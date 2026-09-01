@@ -12,6 +12,8 @@ const STORAGE_KEYS = {
   GRAND_FINALE: 'padel_grand_finale_v1',
   CONFIG: 'padel_config_v1',
   ADMIN_AUTH: 'padel_admin_auth_v1',
+  SUPER_ADMIN_AUTH: 'padel_super_admin_auth_v1',
+  CURRENT_PLAYER_ID: 'padel_current_player_id_v1',
   LAST_SYNC: 'padel_last_sync_v1',
 };
 
@@ -21,7 +23,8 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   editionName: '3er Torneo G20 by Peter Inc.',
   tournamentLogoUrl: '',
   courtNames: ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre)', 'Cancha 5 (Madera / El Asador)'],
-  adminPin: '1234', // Default PIN for admin actions
+  adminPin: '1234', // Tournament Admin PIN for tournament operations
+  superAdminPin: '9999', // Super Admin PIN for developer keys and cloud infra
   rankingSystem: 'total_points',
   bayesianFactorK: 4,
   attendanceBonusPoints: 0.5,
@@ -285,6 +288,19 @@ export const StorageService = {
     }
   },
 
+  // Current Player Session ID
+  getCurrentPlayerId(): string | null {
+    return localStorage.getItem(STORAGE_KEYS.CURRENT_PLAYER_ID);
+  },
+
+  setCurrentPlayerId(playerId: string | null): void {
+    if (playerId) {
+      localStorage.setItem(STORAGE_KEYS.CURRENT_PLAYER_ID, playerId);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.CURRENT_PLAYER_ID);
+    }
+  },
+
   // Admin Session Auth
   getIsAdminAuthenticated(): boolean {
     return localStorage.getItem(STORAGE_KEYS.ADMIN_AUTH) === 'true';
@@ -295,6 +311,19 @@ export const StorageService = {
       localStorage.setItem(STORAGE_KEYS.ADMIN_AUTH, 'true');
     } else {
       localStorage.removeItem(STORAGE_KEYS.ADMIN_AUTH);
+    }
+  },
+
+  // Super Admin Session Auth
+  getIsSuperAdminAuthenticated(): boolean {
+    return localStorage.getItem(STORAGE_KEYS.SUPER_ADMIN_AUTH) === 'true';
+  },
+
+  setSuperAdminAuthenticated(auth: boolean): void {
+    if (auth) {
+      localStorage.setItem(STORAGE_KEYS.SUPER_ADMIN_AUTH, 'true');
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.SUPER_ADMIN_AUTH);
     }
   },
 };

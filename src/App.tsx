@@ -15,6 +15,7 @@ import { MatchdayLive } from './components/MatchdayLive.tsx';
 import { PadelIntelligenceView } from './components/PadelIntelligenceView.tsx';
 import { GrandFinaleBracketView } from './components/GrandFinaleBracketView.tsx';
 import { PlayersManager } from './components/PlayersManager.tsx';
+import { MyProfileView } from './components/MyProfileView.tsx';
 import { ConfigModal } from './components/ConfigModal.tsx';
 import { AdminModal } from './components/AdminModal.tsx';
 
@@ -23,8 +24,12 @@ export function App() {
   const [days, setDays] = useState<TournamentDay[]>(() => StorageService.getTournamentDays());
   const [config, setConfig] = useState<TournamentConfig>(() => StorageService.getConfig());
   const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
+  
+  // Auth state
   const [isAdmin, setIsAdmin] = useState<boolean>(() => StorageService.getIsAdminAuthenticated());
+  const [isSuperAdmin, setIsSuperAdmin] = useState<boolean>(() => StorageService.getIsSuperAdminAuthenticated());
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
+  const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(() => StorageService.getCurrentPlayerId());
 
   // Automatic Supabase initial hydration and Realtime live subscription
   useEffect(() => {
@@ -82,8 +87,15 @@ export function App() {
     hydrateAndSubscribe();
   }, []);
 
-  const [activeTab, setActiveTab] = useState<'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings'>('standings');
+  const [activeTab, setActiveTab] = useState<'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile'>('standings');
   const [selectedPlayerForIntelligence, setSelectedPlayerForIntelligence] = useState<string>('');
+
+  const currentPlayer = useMemo(() => {
+    return players.find(p => p.id === currentPlayerId) || null;
+  }, [players, currentPlayerId]);
+
+  // If active player is marked as admin, they also get admin permissions
+  const effectiveIsAdmin = isAdmin || currentPlayer?.role === 'admin';
 
   // Recompute Padel Intelligence whenever players, matchdays, or formula configs change
   const statsList = useMemo(() => {
@@ -93,6 +105,16 @@ export function App() {
   const handleSavePlayers = (newPlayers: Player[]) => {
     setPlayers(newPlayers);
     StorageService.savePlayers(newPlayers);
+  };
+
+  const handleUpdateSinglePlayer = (updatedPlayer: Player) => {
+    const updated = players.map(p => (p.id === updatedPlayer.id ? updatedPlayer : p));
+    handleSavePlayers(updated);
+  };
+
+  const handleSelectCurrentPlayer = (playerId: string | null) => {
+    setCurrentPlayerId(playerId);
+    StorageService.setCurrentPlayerId(playerId);
   };
 
   const handleSaveDays = (newDays: TournamentDay[]) => {
@@ -118,6 +140,16 @@ export function App() {
   const handleLogoutAdmin = () => {
     setIsAdmin(false);
     StorageService.setAdminAuthenticated(false);
+  };
+
+  const handleAuthenticateSuperAdmin = () => {
+    setIsSuperAdmin(true);
+    StorageService.setSuperAdminAuthenticated(true);
+  };
+
+  const handleLogoutSuperAdmin = () => {
+    setIsSuperAdmin(false);
+    StorageService.setSuperAdminAuthenticated(false);
   };
 
   const handleExportData = () => {
@@ -177,7 +209,8 @@ export function App() {
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        isAdmin={isAdmin}
+        isAdmin={effectiveIsAdmin}
+        currentPlayer={currentPlayer}
         setIsAdminModalOpen={setIsAdminModalOpen}
         config={config}
         onLogoutAdmin={handleLogoutAdmin}
@@ -200,7 +233,7 @@ export function App() {
             players={players}
             statsList={statsList}
             config={config}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
             onSaveDays={handleSaveDays}
             onRequestAdmin={() => setIsAdminModalOpen(true)}
           />
@@ -220,26 +253,40 @@ export function App() {
             bracket={grandFinale}
             statsList={statsList}
             config={config}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
             onSaveBracket={handleSaveGrandFinale}
           />
         )}
 
-        {activeTab === 'players' && (
+        {activeTab === 'players' && effectiveIsAdmin && (
           <PlayersManager
             players={players}
             statsList={statsList}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
             onSavePlayers={handleSavePlayers}
             onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
           />
         )}
 
-        {activeTab === 'settings' && (
+        {activeTab === 'my_profile' && (
+          <MyProfileView
+            players={players}
+            currentPlayerId={currentPlayerId}
+            statsList={statsList}
+            onSelectCurrentPlayer={handleSelectCurrentPlayer}
+            onUpdatePlayer={handleUpdateSinglePlayer}
+            onRequestAdmin={() => setIsAdminModalOpen(true)}
+          />
+        )}
+
+        {activeTab === 'settings' && effectiveIsAdmin && (
           <ConfigModal
             config={config}
-            isAdmin={isAdmin}
+            isAdmin={effectiveIsAdmin}
+            isSuperAdmin={isSuperAdmin}
             onSaveConfig={handleSaveConfig}
+            onAuthenticateSuperAdmin={handleAuthenticateSuperAdmin}
+            onLogoutSuperAdmin={handleLogoutSuperAdmin}
             onExportData={handleExportData}
             onImportData={handleImportData}
             onResetData={handleResetData}
@@ -248,7 +295,7 @@ export function App() {
       </main>
 
       {/* Native Mobile App Bottom Navigation Bar */}
-      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={effectiveIsAdmin} />
 
       {/* Admin Unlock Modal */}
       <AdminModal

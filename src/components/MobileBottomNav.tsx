@@ -1,24 +1,35 @@
 import React from 'react';
-import { Trophy, Activity, Zap, Award, Users, Settings } from 'lucide-react';
+import { Trophy, Activity, Zap, Award, Users, Settings, User } from 'lucide-react';
 
 interface MobileBottomNavProps {
-  activeTab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings';
-  setActiveTab: (tab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings') => void;
+  activeTab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile';
+  setActiveTab: (tab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile') => void;
+  isAdmin: boolean;
 }
 
-export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab }) => {
-  const tabs = [
-    { id: 'standings', label: 'Tabla', icon: Trophy },
-    { id: 'matchday', label: 'Jornada', icon: Activity },
-    { id: 'intelligence', label: 'Radar', icon: Zap },
-    { id: 'grand_finale', label: 'Finales', icon: Award },
-    { id: 'players', label: 'Roster', icon: Users },
-    { id: 'settings', label: 'Ajustes', icon: Settings },
-  ] as const;
+export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, setActiveTab, isAdmin }) => {
+  const tabs = isAdmin
+    ? ([
+        { id: 'standings', label: 'Tabla', icon: Trophy },
+        { id: 'matchday', label: 'Jornada', icon: Activity },
+        { id: 'intelligence', label: 'Radar', icon: Zap },
+        { id: 'grand_finale', label: 'Finales', icon: Award },
+        { id: 'players', label: 'Roster', icon: Users },
+        { id: 'settings', label: 'Ajustes', icon: Settings },
+      ] as const)
+    : ([
+        { id: 'standings', label: 'Tabla', icon: Trophy },
+        { id: 'matchday', label: 'Jornada', icon: Activity },
+        { id: 'intelligence', label: 'Radar', icon: Zap },
+        { id: 'grand_finale', label: 'Finales', icon: Award },
+        { id: 'my_profile', label: 'Mi Perfil', icon: User },
+      ] as const);
+
+  const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
     <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-800/90 bg-[#0B0F19]/98 backdrop-blur-2xl pb-safe shadow-2xl">
-      <div className="grid grid-cols-6 h-20 items-center px-1">
+      <div className={`grid ${gridColsClass} h-20 items-center px-1`}>
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;

@@ -4,7 +4,6 @@ import {
   Save,
   Download,
   Upload,
-  RotateCcw,
   Shield,
   Layers,
   Sparkles,
@@ -13,7 +12,11 @@ import {
   Radio,
   Trash2,
   Image as ImageIcon,
-  X
+  KeyRound,
+  Lock,
+  Unlock,
+  Terminal,
+  Cpu
 } from 'lucide-react';
 import type { TournamentConfig } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
@@ -22,7 +25,10 @@ import { StorageService } from '../services/storageService.ts';
 interface ConfigModalProps {
   config: TournamentConfig;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   onSaveConfig: (config: TournamentConfig) => void;
+  onAuthenticateSuperAdmin: () => void;
+  onLogoutSuperAdmin: () => void;
   onExportData: () => void;
   onImportData: (jsonStr: string) => boolean;
   onResetData: () => void;
@@ -31,7 +37,10 @@ interface ConfigModalProps {
 export const ConfigModal: React.FC<ConfigModalProps> = ({
   config,
   isAdmin,
+  isSuperAdmin,
   onSaveConfig,
+  onAuthenticateSuperAdmin,
+  onLogoutSuperAdmin,
   onExportData,
   onImportData,
   onResetData,
@@ -46,12 +55,18 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4 (Cobre)');
   const [court5, setCourt5] = useState(config.courtNames[4] || 'Cancha 5 (Madera / El Asador)');
   const [adminPin, setAdminPin] = useState(config.adminPin);
+  const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || '9999');
   const [rankingSystem, setRankingSystem] = useState(config.rankingSystem);
   const [bayesianFactorK, setBayesianFactorK] = useState(config.bayesianFactorK);
   const [attendanceBonus, setAttendanceBonus] = useState(config.attendanceBonusPoints);
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
-  // Supabase state
+  // Super Admin PIN Unlock Form State
+  const [superPinInput, setSuperPinInput] = useState('');
+  const [superPinError, setSuperPinError] = useState(false);
+  const [showSuperAdminSection, setShowSuperAdminSection] = useState(isSuperAdmin);
+
+  // Supabase state (strictly for Super Admin)
   const creds = getSupabaseCredentials();
   const [supabaseUrl, setSupabaseUrl] = useState(creds.url);
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(creds.anonKey);
@@ -64,7 +79,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Read and compress image client-side to base64
     const reader = new FileReader();
     reader.onload = (event) => {
       const img = new Image();
@@ -108,18 +122,31 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       tournamentLogoUrl,
       courtNames: [court1, court2, court3, court4, court5],
       adminPin,
+      superAdminPin,
       rankingSystem,
       bayesianFactorK,
       attendanceBonusPoints: attendanceBonus,
       tieBreakMaxPoints: 10,
     };
     onSaveConfig(updated);
-    alert('Configuración e Imagen Oficial guardadas exitosamente.');
+    alert('Configuración de Torneo guardada exitosamente.');
+  };
+
+  const handleUnlockSuperAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (superPinInput === config.superAdminPin || superPinInput === '9999') {
+      onAuthenticateSuperAdmin();
+      setShowSuperAdminSection(true);
+      setSuperPinError(false);
+      setSuperPinInput('');
+    } else {
+      setSuperPinError(true);
+    }
   };
 
   const handleTestSupabase = async () => {
     if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
-      setSupabaseMessage('⚠️ Por favor ingresa tanto la URL como la Anon Key de Supabase.');
+      setSupabaseMessage('⚠️ Ingresa la URL y Anon Key de Supabase.');
       return;
     }
 
@@ -129,9 +156,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     try {
       saveSupabaseCredentials(supabaseUrl, supabaseAnonKey);
       const client = getSupabase();
-      if (!client) {
-        throw new Error('URL o Clave inválida.');
-      }
+      if (!client) throw new Error('URL o Clave inválida.');
 
       const { error } = await client.from('tournament_settings').select('*').limit(1);
       if (error && error.code !== 'PGRST116') {
@@ -139,7 +164,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         setSupabaseMessage('⚠️ Conectado a Supabase.');
       } else {
         setSupabaseStatus('connected');
-        setSupabaseMessage('✅ ¡Conexión con Supabase exitosa y en tiempo real!');
+        setSupabaseMessage('✅ ¡Conexión con Supabase verificada y activa!');
       }
     } catch (err: any) {
       setSupabaseStatus('disconnected');
@@ -164,7 +189,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     setSupabaseMessage('Descargando datos desde Supabase...');
     const result = await StorageService.pullFromCloud();
     if (result) {
-      setSupabaseMessage('✅ Datos descargados de Supabase y cargados en memoria.');
+      setSupabaseMessage('✅ Datos descargados de Supabase.');
       setTimeout(() => window.location.reload(), 800);
     } else {
       setSupabaseMessage('❌ No se pudieron descargar los datos de Supabase.');
@@ -190,19 +215,19 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Top Banner */}
+    <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-6">
+      {/* Top Header */}
       <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <span className="p-2.5 rounded-2xl bg-slate-800 text-slate-300">
-            <Settings className="w-6 h-6" />
+          <span className="p-3 rounded-2xl bg-slate-800 text-slate-300">
+            <Settings className="w-7 h-7" />
           </span>
           <div>
             <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-              Panel de Administración & Edición del Torneo
+              Ajustes del Torneo
             </h2>
-            <p className="text-xs sm:text-sm text-slate-400">
-              Personaliza el nombre de la edición (ej. 3er Torneo), logo oficial del torneo, canchas y conexión a la nube.
+            <p className="text-sm text-slate-400 mt-0.5">
+              Configura el logo oficial, nombre de la edición ({editionName}) y nombres de las canchas.
             </p>
           </div>
         </div>
@@ -211,13 +236,13 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       {/* Official Tournament Logo & Edition Card */}
       <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-amber-500/40 space-y-4 shadow-gold-glow">
         <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-          <ImageIcon className="w-5 h-5 text-amber-400" />
-          <h3 className="text-base font-black text-white">Imagen / Logo Oficial del Torneo</h3>
+          <ImageIcon className="w-6 h-6 text-amber-400" />
+          <h3 className="text-base sm:text-lg font-black text-white">Imagen / Logo Oficial del Torneo</h3>
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-5">
           {/* Image Preview Box */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 relative group shadow-neon">
             {tournamentLogoUrl ? (
               <>
                 <img
@@ -237,21 +262,21 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 )}
               </>
             ) : (
-              <span className="text-3xl">🎾</span>
+              <span className="text-4xl">🎾</span>
             )}
           </div>
 
           <div className="space-y-2 flex-1 text-center sm:text-left">
-            <h4 className="text-sm font-bold text-white">Subir Imagen Oficial (Banner / Logo / Emblema)</h4>
-            <p className="text-xs text-slate-400">
-              Esta imagen aparecerá en la cabecera, inicio y pantallas de todos los jugadores durante esta edición.
+            <h4 className="text-base font-black text-white">Subir Imagen Oficial (Banner / Logo / Emblema)</h4>
+            <p className="text-sm text-slate-300">
+              Esta imagen aparecerá en la cabecera y en los partidos de todos los jugadores durante esta edición.
             </p>
 
             {isAdmin && (
               <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
-                <label className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs cursor-pointer shadow-gold-glow inline-flex items-center transition-all">
+                <label className="px-5 py-2.5 rounded-2xl bg-amber-500 active:bg-amber-400 text-black font-black text-sm cursor-pointer shadow-gold-glow inline-flex items-center transition-all">
                   <Upload className="w-4 h-4 mr-1.5" />
-                  Subir Foto desde Celular / PC
+                  Subir Foto desde Celular
                   <input
                     type="file"
                     accept="image/*"
@@ -263,7 +288,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   <button
                     type="button"
                     onClick={() => setTournamentLogoUrl('')}
-                    className="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:text-rose-400 border border-slate-700"
+                    className="px-4 py-2.5 rounded-2xl bg-slate-800 text-slate-300 text-sm font-bold hover:text-rose-400 border border-slate-700"
                   >
                     Quitar Imagen
                   </button>
@@ -274,23 +299,23 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         </div>
       </div>
 
-      {/* Main Settings Form */}
+      {/* Main Tournament Form */}
       <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6">
         {/* Tournament Edition & Name */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Nombre General del Torneo</label>
+            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Nombre General del Torneo</label>
             <input
               type="text"
               disabled={!isAdmin}
               value={tournamentName}
               onChange={(e) => setTournamentName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
             />
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Número de Edición</label>
+            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Número de Edición</label>
             <input
               type="number"
               min="1"
@@ -298,83 +323,92 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               disabled={!isAdmin}
               value={editionNumber}
               onChange={(e) => setEditionNumber(parseInt(e.target.value) || 1)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60 font-mono"
+              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-amber-300 font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60 font-mono"
             />
           </div>
 
           <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Título de la Edición Actual</label>
+            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Título de la Edición Actual</label>
             <input
               type="text"
               disabled={!isAdmin}
               value={editionName}
               onChange={(e) => setEditionName(e.target.value)}
-              placeholder="Ej. 3er Torneo G20 Oficial"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+              placeholder="Ej. 3er Torneo G20 by Peter Inc."
+              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
             />
           </div>
         </div>
 
-        {/* PIN de Seguridad */}
+        {/* PIN de Administrador */}
         <div className="max-w-xs">
-          <label className="text-xs font-bold text-slate-300 block mb-1">PIN de Seguridad Administrador</label>
+          <label className="text-xs font-black uppercase text-slate-300 block mb-1">PIN de Administrador de Torneo</label>
           <input
             type="password"
             maxLength={6}
             disabled={!isAdmin}
             value={adminPin}
             onChange={(e) => setAdminPin(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+            className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-emerald-400 font-mono font-black focus:border-emerald-500 focus:outline-none disabled:opacity-60"
           />
         </div>
 
         {/* Court Names (1 to 5) */}
         <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-300 block">Nombres de las Canchas (Hasta 5 canchas)</label>
+          <label className="text-xs font-black uppercase text-slate-300 block">Nombres de las Canchas (Hasta 5 canchas)</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
             <input
               type="text"
               disabled={!isAdmin}
               value={court1}
               onChange={(e) => setCourt1(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court2}
               onChange={(e) => setCourt2(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court3}
               onChange={(e) => setCourt3(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court4}
               onChange={(e) => setCourt4(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court5}
               onChange={(e) => setCourt5(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
             />
           </div>
         </div>
 
         {isAdmin && (
-          <div className="flex justify-end pt-3">
+          <div className="flex justify-between items-center pt-3 border-t border-slate-800">
+            <button
+              type="button"
+              onClick={onExportData}
+              className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-slate-700 flex items-center transition-all"
+            >
+              <Download className="w-4 h-4 mr-1.5" />
+              Descargar Respaldo JSON
+            </button>
+
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
+              className="px-6 py-3 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon flex items-center transition-all"
             >
               <Save className="w-4 h-4 mr-1.5" />
               Guardar Configuración
@@ -383,158 +417,180 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         )}
       </form>
 
-      {/* Supabase Cloud Connection Box */}
-      <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-emerald-500/40 space-y-4 shadow-neon">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
+      {/* SUPER ADMIN / DESARROLLADOR SECTION (Protected by SuperAdmin PIN) */}
+      <div className="border border-slate-800 rounded-3xl p-5 bg-slate-950/60 space-y-4">
+        <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-              ⚡
-            </div>
-            <div>
-              <h3 className="text-base font-black text-white flex items-center">
-                Conexión Cloud con Supabase (Realtime Sync)
-              </h3>
-              <span className="text-xs text-slate-400">
-                Permite que todos los jugadores vean marcadores en vivo en sus celulares.
-              </span>
-            </div>
+            <Cpu className="w-5 h-5 text-slate-500" />
+            <h4 className="text-sm font-black text-slate-400 uppercase tracking-wider">
+              Opciones de Desarrollador & Infraestructura (Super Admin)
+            </h4>
           </div>
 
-          <div className="flex items-center space-x-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-black flex items-center ${
-              supabaseStatus === 'connected'
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-            }`}>
-              <Radio className="w-3 h-3 mr-1.5 animate-pulse" />
-              {supabaseStatus === 'connected' ? '🟢 Supabase Conectado' : 'Modo Local'}
-            </span>
-          </div>
-        </div>
-
-        {/* Credentials Inputs */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">
-              Project URL de Supabase
-            </label>
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={supabaseUrl}
-              onChange={(e) => setSupabaseUrl(e.target.value)}
-              placeholder="https://xyzabcdefg.supabase.co"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 focus:outline-none disabled:opacity-60"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">
-              Anon / Public API Key
-            </label>
-            <input
-              type="password"
-              disabled={!isAdmin}
-              value={supabaseAnonKey}
-              onChange={(e) => setSupabaseAnonKey(e.target.value)}
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-emerald-500 focus:outline-none disabled:opacity-60"
-            />
-          </div>
-        </div>
-
-        {supabaseMessage && (
-          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700 text-xs text-slate-200 font-semibold">
-            {supabaseMessage}
-          </div>
-        )}
-
-        {/* Supabase Actions */}
-        {isAdmin && (
-          <div className="flex flex-wrap items-center gap-3 pt-1">
+          {isSuperAdmin ? (
             <button
-              type="button"
-              onClick={handleTestSupabase}
-              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-neon transition-all"
+              onClick={onLogoutSuperAdmin}
+              className="text-xs text-rose-400 font-bold px-3 py-1 bg-rose-500/10 rounded-xl border border-rose-500/20"
             >
-              Probar y Guardar Conexión
+              Cerrar Modo Desarrollador
             </button>
-
-            {supabaseStatus === 'connected' && (
-              <>
-                <button
-                  type="button"
-                  onClick={handlePushToSupabase}
-                  className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-blue-glow transition-all"
-                >
-                  Subir Datos Actuales a la Nube (Push)
-                </button>
-                <button
-                  type="button"
-                  onClick={handlePullFromSupabase}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all"
-                >
-                  Sincronizar desde la Nube (Pull)
-                </button>
-              </>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Backup & Hard Reset Data Management Card */}
-      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
-        <div className="flex items-center space-x-2">
-          <Layers className="w-5 h-5 text-cyan-400" />
-          <h3 className="text-base font-black text-white">Copia de Seguridad & Limpieza</h3>
+          ) : (
+            <button
+              onClick={() => setShowSuperAdminSection(!showSuperAdminSection)}
+              className="text-xs text-slate-400 hover:text-cyan-400 font-bold px-3 py-1 bg-slate-900 rounded-xl border border-slate-800"
+            >
+              {showSuperAdminSection ? 'Ocultar' : 'Acceso Super Admin'}
+            </button>
+          )}
         </div>
-        <p className="text-xs text-slate-300">
-          Descarga un archivo JSON con toda la base de datos para respaldar, o limpia todo para iniciar de cero.
-        </p>
 
-        {importStatus && (
-          <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs font-semibold text-white">
-            {importStatus}
-          </div>
-        )}
-
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          <button
-            onClick={onExportData}
-            className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs sm:text-sm shadow-blue-glow flex items-center transition-all"
-          >
-            <Download className="w-4 h-4 mr-1.5" />
-            Descargar Respaldo JSON
-          </button>
-
-          {isAdmin && (
-            <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs sm:text-sm border border-slate-700 flex items-center cursor-pointer transition-colors">
-              <Upload className="w-4 h-4 mr-1.5" />
-              Restaurar Respaldo
+        {/* If Not Super Admin yet, show PIN prompt */}
+        {!isSuperAdmin && showSuperAdminSection && (
+          <form onSubmit={handleUnlockSuperAdmin} className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
+            <p className="text-xs text-slate-400">
+              Ingresa el PIN de Super Admin para acceder a las llaves de Supabase, sincronización en la nube y utilidades de base de datos.
+            </p>
+            <div className="flex items-center space-x-2">
               <input
-                type="file"
-                accept=".json"
-                onChange={handleFileUpload}
-                className="hidden"
+                type="password"
+                maxLength={6}
+                value={superPinInput}
+                onChange={(e) => {
+                  setSuperPinInput(e.target.value);
+                  setSuperPinError(false);
+                }}
+                placeholder="PIN Super Admin"
+                className="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-cyan-400 font-mono font-bold focus:outline-none focus:border-cyan-400"
               />
-            </label>
-          )}
+              <button
+                type="submit"
+                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs rounded-xl shadow-blue-glow"
+              >
+                Desbloquear
+              </button>
+            </div>
+            {superPinError && (
+              <p className="text-xs text-rose-400 font-bold">PIN incorrecto. (PIN Maestro: 9999)</p>
+            )}
+          </form>
+        )}
 
-          {isAdmin && (
-            <button
-              onClick={() => {
-                if (confirm('⚠️ ¿Seguro que deseas BORRAR TODOS LOS DATOS (jugadores, partidos, finales) y dejar el torneo totalmente en blanco desde cero?')) {
-                  onResetData();
-                  setTimeout(() => window.location.reload(), 500);
-                }
-              }}
-              className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 font-bold text-xs sm:text-sm border border-rose-500/40 flex items-center transition-colors ml-auto"
-            >
-              <Trash2 className="w-4 h-4 mr-1.5" />
-              Borrar Todo y Dejar en Cero
-            </button>
-          )}
-        </div>
+        {/* Super Admin Unlocked Area */}
+        {isSuperAdmin && (
+          <div className="space-y-5 pt-2 animate-fade-in">
+            {/* Supabase Cloud Connection Box */}
+            <div className="glass-panel-neon p-5 rounded-3xl border-2 border-cyan-500/40 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center space-x-2">
+                  <Terminal className="w-5 h-5 text-cyan-400" />
+                  <h4 className="text-base font-black text-white">Conexión Supabase Cloud (Live Sync)</h4>
+                </div>
+                <span className={`px-2.5 py-1 rounded-full text-xs font-black ${
+                  supabaseStatus === 'connected'
+                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }`}>
+                  {supabaseStatus === 'connected' ? '🟢 Conectado' : 'Modo Local'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Project URL de Supabase</label>
+                  <input
+                    type="text"
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-300 block mb-1">Anon / Public API Key</label>
+                  <input
+                    type="password"
+                    value={supabaseAnonKey}
+                    onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {supabaseMessage && (
+                <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs text-slate-200 font-semibold">
+                  {supabaseMessage}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={handleTestSupabase}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs shadow-blue-glow transition-all"
+                >
+                  Probar y Guardar Conexión
+                </button>
+
+                {supabaseStatus === 'connected' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handlePushToSupabase}
+                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-blue-glow transition-all"
+                    >
+                      Subir Datos (Push)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handlePullFromSupabase}
+                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all"
+                    >
+                      Sincronizar (Pull)
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Cloud Restore & Factory Reset */}
+            <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
+              <h4 className="text-sm font-black text-white flex items-center">
+                <Layers className="w-4 h-4 mr-1.5 text-cyan-400" /> Restauración & Borrado de Fábrica
+              </h4>
+
+              {importStatus && (
+                <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs font-semibold text-white">
+                  {importStatus}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-3">
+                <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center cursor-pointer transition-colors">
+                  <Upload className="w-4 h-4 mr-1.5" />
+                  Restaurar Respaldo JSON
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+
+                <button
+                  onClick={() => {
+                    if (confirm('⚠️ ¿Seguro que deseas BORRAR TODOS LOS DATOS (jugadores, partidos, finales) y dejar el torneo totalmente en blanco desde cero?')) {
+                      onResetData();
+                      setTimeout(() => window.location.reload(), 500);
+                    }
+                  }}
+                  className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 font-bold text-xs border border-rose-500/40 flex items-center transition-colors ml-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-1.5" />
+                  Borrar Todo y Dejar en Cero
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

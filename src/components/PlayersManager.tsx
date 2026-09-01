@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles, Camera, Upload, Image as ImageIcon } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles, Camera, Upload, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 
 interface PlayersManagerProps {
@@ -25,9 +25,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const [newNickname, setNewNickname] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [newAvatar, setNewAvatar] = useState<string>('');
+  const [newIsAdmin, setNewIsAdmin] = useState(false);
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editNickname, setEditNickname] = useState('');
+  const [editPhone, setEditPhone] = useState('');
   const [editAvatar, setEditAvatar] = useState<string>('');
 
   const handleCompressAndSetImage = (file: File, callback: (dataUrl: string) => void) => {
@@ -74,6 +76,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       nickname: newNickname.trim() || undefined,
       phone: newPhone.trim() || undefined,
       avatar: newAvatar || undefined,
+      role: newIsAdmin ? 'admin' : 'player',
       registeredAt: new Date().toISOString().split('T')[0],
       isActive: true,
     };
@@ -83,6 +86,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setNewNickname('');
     setNewPhone('');
     setNewAvatar('');
+    setNewIsAdmin(false);
     setIsAddingPlayer(false);
   };
 
@@ -109,6 +113,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         id: `player_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
         name,
         nickname,
+        role: 'player',
         registeredAt: new Date().toISOString().split('T')[0],
         isActive: true,
       };
@@ -123,6 +128,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setEditingPlayerId(player.id);
     setEditName(player.name);
     setEditNickname(player.nickname || '');
+    setEditPhone(player.phone || '');
     setEditAvatar(player.avatar || '');
   };
 
@@ -133,12 +139,25 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             ...p,
             name: editName.trim(),
             nickname: editNickname.trim() || undefined,
+            phone: editPhone.trim() || undefined,
             avatar: editAvatar || undefined,
           }
         : p
     );
     onSavePlayers(updated);
     setEditingPlayerId(null);
+  };
+
+  const handleToggleAdminRole = (player: Player) => {
+    const newRole: 'player' | 'admin' = player.role === 'admin' ? 'player' : 'admin';
+    const confirmMsg = newRole === 'admin'
+      ? `¿Deseas nombrar a "${player.name}" como Administrador del Torneo? Podrá cargar marcadores, programar fechas y gestionar jugadores.`
+      : `¿Deseas revocar los permisos de Administrador a "${player.name}"?`;
+
+    if (confirm(confirmMsg)) {
+      const updated = players.map(p => (p.id === player.id ? { ...p, role: newRole } : p));
+      onSavePlayers(updated);
+    }
   };
 
   const handleQuickAvatarUpload = (playerId: string, file: File) => {
@@ -177,14 +196,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             <div>
               <div className="flex items-center space-x-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                  Roster General de Jugadores
+                  Roster General & Administradores
                 </h2>
                 <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                   {players.length} Registrados
                 </span>
               </div>
               <p className="text-sm text-slate-300 mt-1">
-                Sube la foto de cada jugador para que aparezca en grande en los cruces de los partidos.
+                Administra los jugadores del torneo y nombra a otros jugadores como administradores.
               </p>
             </div>
           </div>
@@ -347,6 +366,20 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             </div>
           </div>
 
+          <div className="flex items-center space-x-2 pt-1">
+            <input
+              type="checkbox"
+              id="newIsAdmin"
+              checked={newIsAdmin}
+              onChange={(e) => setNewIsAdmin(e.target.checked)}
+              className="w-5 h-5 rounded accent-emerald-500 cursor-pointer"
+            />
+            <label htmlFor="newIsAdmin" className="text-sm font-bold text-amber-300 cursor-pointer flex items-center">
+              <ShieldCheck className="w-4 h-4 mr-1 text-amber-400" />
+              Nombrar también como Administrador del Torneo
+            </label>
+          </div>
+
           <div className="flex justify-end pt-2">
             <button
               type="submit"
@@ -382,11 +415,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
           const isEditing = editingPlayerId === player.id;
+          const isPlayerAdmin = player.role === 'admin';
 
           return (
             <div
               key={player.id}
-              className="glass-panel p-4 sm:p-5 rounded-3xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 bg-[#121829]"
+              className={`glass-panel p-4 sm:p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-3 bg-[#121829] ${
+                isPlayerAdmin ? 'border-amber-500/50 shadow-gold-glow' : 'border-slate-800/80 hover:border-slate-700'
+              }`}
             >
               <div>
                 <div className="flex items-center justify-between">
@@ -441,12 +477,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                         </div>
                       ) : (
                         <>
-                          <h4
-                            onClick={() => onSelectPlayerForIntelligence(player.id)}
-                            className="text-base sm:text-lg font-black text-white hover:text-emerald-400 transition-colors cursor-pointer truncate"
-                          >
-                            {player.name}
-                          </h4>
+                          <div className="flex items-center space-x-1.5">
+                            <h4
+                              onClick={() => onSelectPlayerForIntelligence(player.id)}
+                              className="text-base sm:text-lg font-black text-white hover:text-emerald-400 transition-colors cursor-pointer truncate"
+                            >
+                              {player.name}
+                            </h4>
+                          </div>
                           {player.nickname && (
                             <span className="text-xs sm:text-sm text-slate-400 italic font-semibold block truncate">"{player.nickname}"</span>
                           )}
@@ -455,11 +493,18 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                     </div>
                   </div>
 
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-black flex-shrink-0 ${
-                    player.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
-                  }`}>
-                    {player.isActive ? 'Activo' : 'Inactivo'}
-                  </span>
+                  <div className="flex flex-col items-end space-y-1 flex-shrink-0">
+                    {isPlayerAdmin && (
+                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center">
+                        <ShieldCheck className="w-3 h-3 mr-1" /> Admin
+                      </span>
+                    )}
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
+                      player.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
+                    }`}>
+                      {player.isActive ? 'Activo' : 'Inactivo'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Mini Stats snapshot if played */}
@@ -483,7 +528,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
               {/* Admin Actions */}
               {isAdmin && (
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs sm:text-sm">
+                <div className="space-y-2 pt-2 border-t border-slate-800/60 text-xs sm:text-sm">
                   {isEditing ? (
                     <div className="flex space-x-2 w-full">
                       <button
@@ -501,24 +546,40 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                     </div>
                   ) : (
                     <>
+                      <div className="flex items-center justify-between">
+                        <button
+                          onClick={() => handleStartEdit(player)}
+                          className="text-slate-400 hover:text-white flex items-center font-bold"
+                        >
+                          <Edit2 className="w-4 h-4 mr-1" /> Editar
+                        </button>
+                        <button
+                          onClick={() => handleToggleActive(player.id)}
+                          className="text-slate-400 hover:text-amber-400 font-bold"
+                        >
+                          {player.isActive ? 'Pausar' : 'Activar'}
+                        </button>
+                        <button
+                          onClick={() => handleDeletePlayer(player.id)}
+                          className="text-slate-500 hover:text-rose-400"
+                          title="Eliminar jugador"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Promote/Demote Admin Button */}
                       <button
-                        onClick={() => handleStartEdit(player)}
-                        className="text-slate-400 hover:text-white flex items-center font-bold"
+                        type="button"
+                        onClick={() => handleToggleAdminRole(player)}
+                        className={`w-full py-1.5 rounded-xl font-black text-xs flex items-center justify-center transition-all ${
+                          isPlayerAdmin
+                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
+                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
+                        }`}
                       >
-                        <Edit2 className="w-4 h-4 mr-1" /> Editar
-                      </button>
-                      <button
-                        onClick={() => handleToggleActive(player.id)}
-                        className="text-slate-400 hover:text-amber-400 font-bold"
-                      >
-                        {player.isActive ? 'Pausar' : 'Activar'}
-                      </button>
-                      <button
-                        onClick={() => handleDeletePlayer(player.id)}
-                        className="text-slate-500 hover:text-rose-400"
-                        title="Eliminar jugador"
-                      >
-                        <Trash2 className="w-4 h-4" />
+                        <Shield className="w-3.5 h-3.5 mr-1" />
+                        {isPlayerAdmin ? 'Quitar Rol de Admin' : '👑 Nombrar Administrador'}
                       </button>
                     </>
                   )}

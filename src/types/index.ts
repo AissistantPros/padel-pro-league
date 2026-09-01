@@ -1,6 +1,8 @@
 export type MatchType = 'preliminary' | 'daily_final' | 'grand_final';
 export type FinalCategory = 'gold' | 'silver' | 'bronze' | 'copper' | 'qf' | 'sf' | 'final_1st' | 'final_3rd' | 'final_5th' | 'final_7th' | 'final_9th' | 'final_11th' | 'final_13th' | 'final_15th';
 
+export type UserRole = 'player' | 'admin' | 'superadmin';
+
 export interface Player {
   id: string;
   name: string;
@@ -10,6 +12,8 @@ export interface Player {
   email?: string;
   registeredAt: string;
   isActive: boolean;
+  role?: 'player' | 'admin'; // Tournament admin permission
+  pin?: string; // Optional player pin
   notes?: string;
 }
 
@@ -34,7 +38,7 @@ export interface Match {
   id: string;
   dayId: string;
   roundNumber: number; // 1, 2, 3 for prelims, 4 for daily final, or 100+ for grand final
-  courtNumber: number; // 1 to 4
+  courtNumber: number; // 1 to 5
   courtName?: string;
   matchType: MatchType;
   finalCategory?: FinalCategory;
@@ -81,14 +85,14 @@ export interface DailyPlayerStanding {
   prelimTotalScore: number;
   totalDailyScore: number;
   
-  prelimRank: number; // 1 to 16 after round 3
-  finalDailyRank?: number; // 1 to 16 after round 4
+  prelimRank: number; // 1 to 20 after round 3
+  finalDailyRank?: number; // 1 to 20 after round 4
 }
 
 export interface TournamentDay {
   id: string;
   date: string;
-  name: string; // e.g. "Jornada 1 - Apertura"
+  name: string; // e.g. "Fecha G20 #1"
   status: 'draft' | 'checkin' | 'preliminaries' | 'finals' | 'completed';
   checkedInPlayerIds: string[];
   rounds: DailyRound[]; // Round 1, 2, 3 (prelims) & Round 4 (finals)
@@ -194,10 +198,11 @@ export interface PlayerIntelligenceStats {
 export interface TournamentConfig {
   tournamentName: string;
   editionNumber: number; // e.g. 3 for "3er Torneo"
-  editionName: string; // e.g. "3er Torneo G20 - Edición Master"
+  editionName: string; // e.g. "3er Torneo G20 by Peter Inc."
   tournamentLogoUrl?: string; // Base64 dataURL or image URL
   courtNames: string[];
-  adminPin: string;
+  adminPin: string; // Tournament Admin PIN
+  superAdminPin: string; // Super Admin PIN (Developer & Cloud keys)
   rankingSystem: 'bayesian' | 'total_points' | 'avg_points';
   bayesianFactorK: number; // Default 4
   attendanceBonusPoints: number; // Default 0.5
@@ -205,7 +210,7 @@ export interface TournamentConfig {
 }
 
 export interface GrandFinaleSeed {
-  seed: number; // 1 to 16 based on overall championship ranking
+  seed: number; // 1 to 20 based on overall championship ranking
   playerId: string;
   playerName: string;
   championshipPoints: number;
