@@ -9,6 +9,7 @@ import { StorageService } from './services/storageService.ts';
 import { getSupabase } from './services/supabaseClient.ts';
 import { buildChampionshipIntelligence } from './utils/intelligenceEngine.ts';
 import { Header } from './components/Header.tsx';
+import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { StandingsTable } from './components/StandingsTable.tsx';
 import { MatchdayLive } from './components/MatchdayLive.tsx';
 import { PadelIntelligenceView } from './components/PadelIntelligenceView.tsx';
@@ -171,8 +172,8 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-black">
-      {/* Navigation Header */}
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-black overflow-x-hidden max-w-[100vw]">
+      {/* Top Header */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -182,8 +183,8 @@ export function App() {
         onLogoutAdmin={handleLogoutAdmin}
       />
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      {/* Main Content Area with Bottom Bar Safe Margin */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-8">
         {activeTab === 'standings' && (
           <StandingsTable
             stats={statsList}
@@ -246,13 +247,8 @@ export function App() {
         )}
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 glass-panel">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>🎾 G20 by Peter Inc. • Padel Tournament Intelligence</span>
-          <span className="font-mono text-slate-600">v1.0.0 • React + Supabase Realtime</span>
-        </div>
-      </footer>
+      {/* Native Mobile App Bottom Navigation Bar */}
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Admin Unlock Modal */}
       <AdminModal
