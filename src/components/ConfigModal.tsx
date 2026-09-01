@@ -11,7 +11,9 @@ import {
   Check,
   AlertTriangle,
   Radio,
-  Trash2
+  Trash2,
+  Image as ImageIcon,
+  X
 } from 'lucide-react';
 import type { TournamentConfig } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
@@ -35,10 +37,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   onResetData,
 }) => {
   const [tournamentName, setTournamentName] = useState(config.tournamentName);
+  const [editionNumber, setEditionNumber] = useState(config.editionNumber || 3);
+  const [editionName, setEditionName] = useState(config.editionName || '3er Torneo G20 by Peter Inc.');
+  const [tournamentLogoUrl, setTournamentLogoUrl] = useState(config.tournamentLogoUrl || '');
   const [court1, setCourt1] = useState(config.courtNames[0] || 'Cancha 1 (Central Oro)');
   const [court2, setCourt2] = useState(config.courtNames[1] || 'Cancha 2 (Plata)');
   const [court3, setCourt3] = useState(config.courtNames[2] || 'Cancha 3 (Bronce)');
-  const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4 (Cobre / El Asador)');
+  const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4 (Cobre)');
+  const [court5, setCourt5] = useState(config.courtNames[4] || 'Cancha 5 (Madera / El Asador)');
   const [adminPin, setAdminPin] = useState(config.adminPin);
   const [rankingSystem, setRankingSystem] = useState(config.rankingSystem);
   const [bayesianFactorK, setBayesianFactorK] = useState(config.bayesianFactorK);
@@ -54,11 +60,53 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   );
   const [supabaseMessage, setSupabaseMessage] = useState<string | null>(null);
 
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Read and compress image client-side to base64
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 400;
+        const MAX_HEIGHT = 400;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        setTournamentLogoUrl(dataUrl);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: TournamentConfig = {
       tournamentName,
-      courtNames: [court1, court2, court3, court4],
+      editionNumber,
+      editionName,
+      tournamentLogoUrl,
+      courtNames: [court1, court2, court3, court4, court5],
       adminPin,
       rankingSystem,
       bayesianFactorK,
@@ -66,7 +114,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       tieBreakMaxPoints: 10,
     };
     onSaveConfig(updated);
-    alert('Configuración guardada exitosamente.');
+    alert('Configuración e Imagen Oficial guardadas exitosamente.');
   };
 
   const handleTestSupabase = async () => {
@@ -151,14 +199,189 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </span>
           <div>
             <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-              Configuración del Torneo & Nube
+              Panel de Administración & Edición del Torneo
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              Conexión en tiempo real con Supabase, nombres de canchas, PIN de seguridad y respaldos.
+              Personaliza el nombre de la edición (ej. 3er Torneo), logo oficial del torneo, canchas y conexión a la nube.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Official Tournament Logo & Edition Card */}
+      <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-amber-500/40 space-y-4 shadow-gold-glow">
+        <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
+          <ImageIcon className="w-5 h-5 text-amber-400" />
+          <h3 className="text-base font-black text-white">Imagen / Logo Oficial del Torneo</h3>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-center gap-5">
+          {/* Image Preview Box */}
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 relative group">
+            {tournamentLogoUrl ? (
+              <>
+                <img
+                  src={tournamentLogoUrl}
+                  alt="Logo del torneo"
+                  className="w-full h-full object-cover"
+                />
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => setTournamentLogoUrl('')}
+                    className="absolute inset-0 bg-black/70 text-rose-400 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
+                    title="Eliminar imagen"
+                  >
+                    <Trash2 className="w-6 h-6" />
+                  </button>
+                )}
+              </>
+            ) : (
+              <span className="text-3xl">🎾</span>
+            )}
+          </div>
+
+          <div className="space-y-2 flex-1 text-center sm:text-left">
+            <h4 className="text-sm font-bold text-white">Subir Imagen Oficial (Banner / Logo / Emblema)</h4>
+            <p className="text-xs text-slate-400">
+              Esta imagen aparecerá en la cabecera, inicio y pantallas de todos los jugadores durante esta edición.
+            </p>
+
+            {isAdmin && (
+              <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
+                <label className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs cursor-pointer shadow-gold-glow inline-flex items-center transition-all">
+                  <Upload className="w-4 h-4 mr-1.5" />
+                  Subir Foto desde Celular / PC
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                </label>
+                {tournamentLogoUrl && (
+                  <button
+                    type="button"
+                    onClick={() => setTournamentLogoUrl('')}
+                    className="px-3 py-2 rounded-xl bg-slate-800 text-slate-300 text-xs font-bold hover:text-rose-400 border border-slate-700"
+                  >
+                    Quitar Imagen
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Settings Form */}
+      <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6">
+        {/* Tournament Edition & Name */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Nombre General del Torneo</label>
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={tournamentName}
+              onChange={(e) => setTournamentName(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Número de Edición</label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              disabled={!isAdmin}
+              value={editionNumber}
+              onChange={(e) => setEditionNumber(parseInt(e.target.value) || 1)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-amber-300 font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60 font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Título de la Edición Actual</label>
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={editionName}
+              onChange={(e) => setEditionName(e.target.value)}
+              placeholder="Ej. 3er Torneo G20 Oficial"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        {/* PIN de Seguridad */}
+        <div className="max-w-xs">
+          <label className="text-xs font-bold text-slate-300 block mb-1">PIN de Seguridad Administrador</label>
+          <input
+            type="password"
+            maxLength={6}
+            disabled={!isAdmin}
+            value={adminPin}
+            onChange={(e) => setAdminPin(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+          />
+        </div>
+
+        {/* Court Names (1 to 5) */}
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-slate-300 block">Nombres de las Canchas (Hasta 5 canchas)</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={court1}
+              onChange={(e) => setCourt1(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+            />
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={court2}
+              onChange={(e) => setCourt2(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+            />
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={court3}
+              onChange={(e) => setCourt3(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+            />
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={court4}
+              onChange={(e) => setCourt4(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+            />
+            <input
+              type="text"
+              disabled={!isAdmin}
+              value={court5}
+              onChange={(e) => setCourt5(e.target.value)}
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
+            />
+          </div>
+        </div>
+
+        {isAdmin && (
+          <div className="flex justify-end pt-3">
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
+            >
+              <Save className="w-4 h-4 mr-1.5" />
+              Guardar Configuración
+            </button>
+          </div>
+        )}
+      </form>
 
       {/* Supabase Cloud Connection Box */}
       <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-emerald-500/40 space-y-4 shadow-neon">
@@ -258,81 +481,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
         )}
       </div>
-
-      {/* Main Settings Form */}
-      <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6">
-        {/* Tournament Name & PIN */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">Nombre del Torneo</label>
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={tournamentName}
-              onChange={(e) => setTournamentName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
-            />
-          </div>
-          <div>
-            <label className="text-xs font-bold text-slate-300 block mb-1">PIN de Administrador</label>
-            <input
-              type="password"
-              maxLength={6}
-              disabled={!isAdmin}
-              value={adminPin}
-              onChange={(e) => setAdminPin(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-emerald-400 font-mono font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
-            />
-          </div>
-        </div>
-
-        {/* Court Names */}
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-300 block">Nombres de las 4 Canchas</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court1}
-              onChange={(e) => setCourt1(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court2}
-              onChange={(e) => setCourt2(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court3}
-              onChange={(e) => setCourt3(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court4}
-              onChange={(e) => setCourt4(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
-            />
-          </div>
-        </div>
-
-        {isAdmin && (
-          <div className="flex justify-end pt-3">
-            <button
-              type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
-            >
-              <Save className="w-4 h-4 mr-1.5" />
-              Guardar Configuración
-            </button>
-          </div>
-        )}
-      </form>
 
       {/* Backup & Hard Reset Data Management Card */}
       <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">

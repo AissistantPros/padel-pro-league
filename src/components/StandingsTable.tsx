@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, ChevronDown, ChevronUp, Zap, HelpCircle, ArrowUpRight, Award, TrendingUp, Sparkles, Flame, Skull, Beer, Users } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Zap, HelpCircle, ArrowUpRight, Award, TrendingUp, Sparkles, Flame, Skull, Beer, Users, Globe } from 'lucide-react';
 import type { PlayerIntelligenceStats, TournamentConfig } from '../types/index.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
 
@@ -18,38 +18,87 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
 }) => {
   const [expandedPlayerId, setExpandedPlayerId] = useState<string | null>(null);
   const [showFormulaModal, setShowFormulaModal] = useState(false);
+  const [viewScope, setViewScope] = useState<'current' | 'all_time'>('current');
 
   const toggleExpand = (playerId: string) => {
     setExpandedPlayerId(expandedPlayerId === playerId ? null : playerId);
   };
 
+  // Sort based on view scope
+  const sortedStats = [...stats].sort((a, b) => {
+    if (viewScope === 'current') {
+      // Primary: Total Championship Points (Games + Decimals)
+      if (b.totalChampionshipPoints !== a.totalChampionshipPoints) {
+        return b.totalChampionshipPoints - a.totalChampionshipPoints;
+      }
+      return b.winRatePercentage - a.winRatePercentage;
+    } else {
+      // All-time: Bayesian Rating (Historical skill index)
+      if (b.bayesianRating !== a.bayesianRating) {
+        return b.bayesianRating - a.bayesianRating;
+      }
+      return b.totalChampionshipPoints - a.totalChampionshipPoints;
+    }
+  });
+
   return (
     <div className="space-y-6">
-      {/* Top Banner */}
+      {/* Top Edition & Scope Banner */}
       <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-xl sm:text-2xl font-black font-display text-white flex items-center">
-              <Trophy className="w-6 h-6 mr-2 text-amber-400" />
-              Tabla General del G20
-            </h2>
-            <span className="px-2.5 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              {stats.length} Jugadores
+          <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+            <span className="px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center shadow-gold-glow">
+              <Sparkles className="w-3.5 h-3.5 mr-1 text-amber-400" />
+              {config.editionName || `${config.editionNumber || 3}er Torneo G20 by Peter Inc.`}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-800 text-slate-300">
+              {stats.length} Jugadores en Roster
             </span>
           </div>
-          <p className="text-xs sm:text-sm text-slate-300 mt-1">
-            Los <strong>Puntos Totales (Games)</strong> mandan la tabla. Los decimales (`+0.004, -0.004`) son el desempate supremo.
+
+          <h2 className="text-xl sm:text-2xl font-black font-display text-white mt-1 flex items-center">
+            <Trophy className="w-6 h-6 mr-2 text-amber-400" />
+            {viewScope === 'current' ? 'Tabla Oficial del Torneo Actual' : 'Histórico Global Acumulado (Todos los Torneos)'}
+          </h2>
+          <p className="text-xs sm:text-sm text-slate-400 mt-0.5">
+            {viewScope === 'current'
+              ? 'Los Puntos Totales (games ganados) mandan esta edición. Los decimales desempatan.'
+              : 'Nivel histórico permanente ponderado por partidos jugados y consistencia.'}
           </p>
         </div>
 
-        {/* Quick Help and Mode selector */}
-        <div className="flex items-center space-x-2">
+        {/* View Scope Toggle & Criteria Button */}
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="bg-slate-900 p-1 rounded-2xl border border-slate-800 flex items-center">
+            <button
+              onClick={() => setViewScope('current')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                viewScope === 'current'
+                  ? 'bg-emerald-500 text-black shadow-neon'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              🏆 Torneo Actual
+            </button>
+            <button
+              onClick={() => setViewScope('all_time')}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all ${
+                viewScope === 'all_time'
+                  ? 'bg-blue-600 text-white shadow-blue-glow'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              <Globe className="w-3 h-3 inline mr-1" />
+              Histórico Global
+            </button>
+          </div>
+
           <button
             onClick={() => setShowFormulaModal(!showFormulaModal)}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 text-xs sm:text-sm font-bold transition-all border border-slate-700 flex items-center"
+            className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-emerald-400 text-xs font-bold transition-all border border-slate-700 flex items-center"
           >
-            <HelpCircle className="w-4 h-4 mr-1.5 text-amber-400" />
-            Criterios de Desempate
+            <HelpCircle className="w-3.5 h-3.5 mr-1 text-amber-400" />
+            Criterios
           </button>
         </div>
       </div>
@@ -60,7 +109,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
           <div className="flex items-center justify-between font-black text-emerald-400 text-sm">
             <span className="flex items-center">
               <Sparkles className="w-4 h-4 mr-2 text-emerald-300" />
-              Reglamento de Desempates y Puntos Extra (G20 by Peter Inc.)
+              Reglamento de Desempates y Puntos Extra ({config.editionName || 'G20 by Peter Inc.'})
             </span>
             <button
               onClick={() => setShowFormulaModal(false)}
@@ -99,16 +148,16 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
       )}
 
       {/* Empty Zero State */}
-      {stats.length === 0 ? (
+      {sortedStats.length === 0 ? (
         <div className="glass-panel p-12 text-center rounded-3xl border border-slate-800 space-y-4">
           <Trophy className="w-16 h-16 text-slate-600 mx-auto" />
           <h3 className="text-xl font-black text-white">Tabla Vacía - El Torneo Aún No Comienza</h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            Ve a la pestaña <strong>Jugadores</strong> para registrar a los 16 participantes, y luego arranca la <strong>Fecha #1</strong> en Jornada en Vivo.
+            Ve a la pestaña <strong>Jugadores & Fotos</strong> para registrar participantes, y luego arranca la <strong>Fecha #1</strong> en Jornada en Vivo.
           </p>
         </div>
       ) : (
-        /* Standings Table Card */
+        /* Standings Table Card with Player Photos */
         <div className="glass-panel rounded-3xl overflow-hidden border border-slate-800 shadow-2xl">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -126,12 +175,13 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/80 text-sm">
-                {stats.map((player) => {
+                {sortedStats.map((player, idx) => {
+                  const displayRank = idx + 1;
                   const isExpanded = expandedPlayerId === player.playerId;
-                  const isPodium1 = player.currentRank === 1 && player.totalMatchesPlayed > 0;
-                  const isPodium2 = player.currentRank === 2 && player.totalMatchesPlayed > 0;
-                  const isPodium3 = player.currentRank === 3 && player.totalMatchesPlayed > 0;
-                  const isTop8 = player.currentRank <= 8;
+                  const isPodium1 = displayRank === 1 && player.totalMatchesPlayed > 0;
+                  const isPodium2 = displayRank === 2 && player.totalMatchesPlayed > 0;
+                  const isPodium3 = displayRank === 3 && player.totalMatchesPlayed > 0;
+                  const isTop8 = displayRank <= 8;
 
                   return (
                     <React.Fragment key={player.playerId}>
@@ -156,19 +206,28 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                             </span>
                           ) : (
                             <span className={`font-mono ${isTop8 ? 'text-emerald-400 font-extrabold' : 'text-slate-400'}`}>
-                              #{player.currentRank}
+                              #{displayRank}
                             </span>
                           )}
                         </td>
 
-                        {/* Player Info */}
+                        {/* Player Info with Professional Cropped Avatar Photo */}
                         <td className="py-4 px-3 sm:px-4">
                           <div className="flex items-center space-x-3">
-                            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center font-bold text-xs sm:text-sm uppercase flex-shrink-0 ${
-                              isTop8 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' : 'bg-slate-800 text-slate-300 border border-slate-700'
-                            }`}>
-                              {player.playerName.slice(0, 2)}
-                            </div>
+                            {player.avatar ? (
+                              <img
+                                src={player.avatar}
+                                alt={player.playerName}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-emerald-400 shadow-neon flex-shrink-0 bg-slate-900"
+                              />
+                            ) : (
+                              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 ${
+                                isTop8 ? 'bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500/40' : 'bg-slate-800 text-slate-300 border-2 border-slate-700'
+                              }`}>
+                                {player.playerName.slice(0, 2)}
+                              </div>
+                            )}
+
                             <div>
                               <div className="flex items-center space-x-2">
                                 <span
@@ -265,7 +324,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                               <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800">
                                 <span className="text-slate-400 font-bold block mb-1">🎮 Games Ganados (Base)</span>
                                 <div className="text-xl font-black text-white font-mono">{player.totalBasePoints} pts</div>
-                                <div className="text-[11px] text-slate-500">Games acumulados en todas las fechas</div>
+                                <div className="text-[11px] text-slate-500">Games acumulados en el torneo</div>
                               </div>
                               <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800">
                                 <span className="text-slate-400 font-bold block mb-1">🔢 Decimales de Desempate</span>
@@ -285,7 +344,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                               </div>
                               <div className="bg-slate-900 p-3 rounded-2xl border border-slate-800 flex items-center justify-between">
                                 <div>
-                                  <span className="text-slate-400 font-bold block mb-1">⚡ Rating PI</span>
+                                  <span className="text-slate-400 font-bold block mb-1">⚡ Rating Global PI</span>
                                   <div className="text-xl font-black text-amber-400 font-mono">{player.bayesianRating.toFixed(3)}</div>
                                 </div>
                                 <button

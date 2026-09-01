@@ -17,7 +17,10 @@ const STORAGE_KEYS = {
 
 export const DEFAULT_CONFIG: TournamentConfig = {
   tournamentName: 'G20 by Peter Inc. 🎾',
-  courtNames: ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)'],
+  editionNumber: 3,
+  editionName: '3er Torneo G20 by Peter Inc.',
+  tournamentLogoUrl: '',
+  courtNames: ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre)', 'Cancha 5 (Madera / El Asador)'],
   adminPin: '1234', // Default PIN for admin actions
   rankingSystem: 'total_points',
   bayesianFactorK: 4,

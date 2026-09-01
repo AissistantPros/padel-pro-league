@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles, Camera, Upload, Image as ImageIcon } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 
 interface PlayersManagerProps {
@@ -24,9 +24,45 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const [newName, setNewName] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newAvatar, setNewAvatar] = useState<string>('');
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editNickname, setEditNickname] = useState('');
+  const [editAvatar, setEditAvatar] = useState<string>('');
+
+  const handleCompressAndSetImage = (file: File, callback: (dataUrl: string) => void) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 250;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        callback(dataUrl);
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,6 +73,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       name: newName.trim(),
       nickname: newNickname.trim() || undefined,
       phone: newPhone.trim() || undefined,
+      avatar: newAvatar || undefined,
       registeredAt: new Date().toISOString().split('T')[0],
       isActive: true,
     };
@@ -45,6 +82,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setNewName('');
     setNewNickname('');
     setNewPhone('');
+    setNewAvatar('');
     setIsAddingPlayer(false);
   };
 
@@ -85,14 +123,29 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setEditingPlayerId(player.id);
     setEditName(player.name);
     setEditNickname(player.nickname || '');
+    setEditAvatar(player.avatar || '');
   };
 
   const handleSaveEdit = (playerId: string) => {
     const updated = players.map(p =>
-      p.id === playerId ? { ...p, name: editName.trim(), nickname: editNickname.trim() || undefined } : p
+      p.id === playerId
+        ? {
+            ...p,
+            name: editName.trim(),
+            nickname: editNickname.trim() || undefined,
+            avatar: editAvatar || undefined,
+          }
+        : p
     );
     onSavePlayers(updated);
     setEditingPlayerId(null);
+  };
+
+  const handleQuickAvatarUpload = (playerId: string, file: File) => {
+    handleCompressAndSetImage(file, (dataUrl) => {
+      const updated = players.map(p => (p.id === playerId ? { ...p, avatar: dataUrl } : p));
+      onSavePlayers(updated);
+    });
   };
 
   const handleToggleActive = (playerId: string) => {
@@ -124,14 +177,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                  Roster General de Jugadores
+                  Roster General & Fotos de Jugadores
                 </h2>
                 <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                   {players.length} Registrados
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400">
-                Base de datos de jugadores del club/liga. En cada fecha podrás seleccionar cuántos y quiénes juegan.
+                Sube la foto de cada jugador para que aparezca recortada en las canchas y transmisiones de los partidos.
               </p>
             </div>
           </div>
@@ -158,7 +211,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
             >
               <UserPlus className="w-4 h-4 mr-1.5" />
-              Inscribir 1 por 1
+              Inscribir con Foto
             </button>
           </div>
         )}
@@ -217,12 +270,12 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         </form>
       )}
 
-      {/* Add Single Player Form */}
+      {/* Add Single Player Form with Photo Upload */}
       {isAddingPlayer && (
-        <form onSubmit={handleAddPlayer} className="glass-panel-neon p-5 rounded-3xl space-y-4 animate-fade-in border-2 border-emerald-500/40">
+        <form onSubmit={handleAddPlayer} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-emerald-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 className="text-sm font-black text-white flex items-center">
-              <UserPlus className="w-4 h-4 mr-1.5 text-emerald-400" /> Nuevo Jugador
+              <UserPlus className="w-4 h-4 mr-1.5 text-emerald-400" /> Inscribir Jugador y Subir Foto
             </h3>
             <button
               type="button"
@@ -231,6 +284,34 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             >
               Cancelar
             </button>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center gap-4 pb-2">
+            {/* Avatar Preview */}
+            <div className="w-20 h-20 rounded-full border-2 border-emerald-400 bg-slate-900 overflow-hidden flex items-center justify-center relative group flex-shrink-0">
+              {newAvatar ? (
+                <img src={newAvatar} alt="Foto jugador" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="w-8 h-8 text-slate-500" />
+              )}
+            </div>
+
+            <div className="space-y-1 text-center sm:text-left">
+              <label className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-neon cursor-pointer inline-flex items-center">
+                <Upload className="w-3.5 h-3.5 mr-1" />
+                {newAvatar ? 'Cambiar Foto' : 'Cargar Foto de Perfil'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) handleCompressAndSetImage(f, setNewAvatar);
+                  }}
+                  className="hidden"
+                />
+              </label>
+              <div className="text-[11px] text-slate-400">Foto tipo WPT para mostrar en cancha</div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -284,7 +365,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           <Users className="w-16 h-16 text-slate-600 mx-auto" />
           <h3 className="text-xl font-black text-white">No hay jugadores inscritos todavía</h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            Comienza inscribiendo a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y luego en cada fecha elegir quiénes asisten.
+            Comienza inscribiendo a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y subir sus fotos para los partidos.
           </p>
           {isAdmin && (
             <button
@@ -297,7 +378,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         </div>
       )}
 
-      {/* Players List Grid */}
+      {/* Players List Grid with Cropped Avatar Photos */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
@@ -310,10 +391,38 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-sm text-emerald-400">
-                      {player.name.slice(0, 2).toUpperCase()}
+                  <div className="flex items-center space-x-3">
+                    {/* Player Cropped Photo or Initials */}
+                    <div className="relative group">
+                      {player.avatar ? (
+                        <img
+                          src={player.avatar}
+                          alt={player.name}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400 shadow-neon bg-slate-900"
+                        />
+                      ) : (
+                        <div className="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-sm text-emerald-400">
+                          {player.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+
+                      {/* Quick upload overlay for admin */}
+                      {isAdmin && (
+                        <label className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white">
+                          <Camera className="w-4 h-4" />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const f = e.target.files?.[0];
+                              if (f) handleQuickAvatarUpload(player.id, f);
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
                     </div>
+
                     <div>
                       {isEditing ? (
                         <div className="space-y-1">

@@ -27,6 +27,25 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     statsList
   );
 
+  // Get player avatars
+  const getAvatar = (id: string, name: string) => {
+    const pStat = statsList.find(s => s.playerId === id);
+    if (pStat?.avatar) {
+      return (
+        <img
+          src={pStat.avatar}
+          alt={name}
+          className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover border-2 border-emerald-400/80 shadow-neon flex-shrink-0 bg-slate-900"
+        />
+      );
+    }
+    return (
+      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-[10px] sm:text-xs text-emerald-400 flex-shrink-0">
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  };
+
   const getCategoryBadge = () => {
     switch (match.finalCategory) {
       case 'gold':
@@ -36,7 +55,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       case 'bronze':
         return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-700/20 text-amber-400 border border-amber-700/40">🥉 FINAL BRONCE (9º-12º)</span>;
       case 'copper':
-        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-orange-600/20 text-orange-300 border border-orange-600/40">🍖 FINAL COBRE / ASADOR (13º-16º)</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-orange-600/20 text-orange-300 border border-orange-600/40">🍖 FINAL COBRE (13º-16º)</span>;
       default:
         return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">Juego Corto {match.roundNumber}</span>;
     }
@@ -72,27 +91,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         )}
       </div>
 
-      {/* Matchup Teams - EQUAL SIZES FOR ALL PLAYERS */}
+      {/* Matchup Teams - With Professional Cropped Avatar Photos */}
       <div className="py-3.5 space-y-3">
         {/* Team A */}
         <div className={`flex items-center justify-between p-3 sm:p-3.5 rounded-xl transition-colors ${
           isTeamAWinner ? 'bg-emerald-500/20 border-2 border-emerald-500/50' : 'bg-slate-900/90 border border-slate-800'
         }`}>
           <div className="flex items-center space-x-3">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
               isTeamAWinner ? 'bg-emerald-500 text-black shadow-neon' : 'bg-slate-800 text-slate-300'
             }`}>
               A
             </div>
-            {/* EQUAL SIZE FOR BOTH PLAYERS */}
-            <div className="space-y-0.5">
-              <div className="text-sm sm:text-base font-bold text-white flex items-center flex-wrap gap-x-2">
-                <span>{match.teamA.player1Name}</span>
-                <span className="text-emerald-400 font-black text-xs">&</span>
-                <span>{match.teamA.player2Name}</span>
+
+            {/* Players with Avatars */}
+            <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+              <div className="flex items-center space-x-1.5">
+                {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
+                <span className="text-sm sm:text-base font-bold text-white">{match.teamA.player1Name}</span>
+              </div>
+              <span className="text-emerald-400 font-black text-xs">&</span>
+              <div className="flex items-center space-x-1.5">
+                {getAvatar(match.teamA.player2Id, match.teamA.player2Name)}
+                <span className="text-sm sm:text-base font-bold text-white">{match.teamA.player2Name}</span>
               </div>
             </div>
           </div>
+
           <div className="text-right pl-2">
             <span className={`font-mono text-2xl sm:text-3xl font-black ${
               isTeamAWinner ? 'text-emerald-400 glow-text-neon' : 'text-slate-400'
@@ -107,20 +132,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           isTeamBWinner ? 'bg-emerald-500/20 border-2 border-emerald-500/50' : 'bg-slate-900/90 border border-slate-800'
         }`}>
           <div className="flex items-center space-x-3">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-xs flex-shrink-0 ${
               isTeamBWinner ? 'bg-emerald-500 text-black shadow-neon' : 'bg-slate-800 text-slate-300'
             }`}>
               B
             </div>
-            {/* EQUAL SIZE FOR BOTH PLAYERS */}
-            <div className="space-y-0.5">
-              <div className="text-sm sm:text-base font-bold text-white flex items-center flex-wrap gap-x-2">
-                <span>{match.teamB.player1Name}</span>
-                <span className="text-blue-400 font-black text-xs">&</span>
-                <span>{match.teamB.player2Name}</span>
+
+            {/* Players with Avatars */}
+            <div className="flex items-center space-x-3 flex-wrap gap-y-1">
+              <div className="flex items-center space-x-1.5">
+                {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
+                <span className="text-sm sm:text-base font-bold text-white">{match.teamB.player1Name}</span>
+              </div>
+              <span className="text-blue-400 font-black text-xs">&</span>
+              <div className="flex items-center space-x-1.5">
+                {getAvatar(match.teamB.player2Id, match.teamB.player2Name)}
+                <span className="text-sm sm:text-base font-bold text-white">{match.teamB.player2Name}</span>
               </div>
             </div>
           </div>
+
           <div className="text-right pl-2">
             <span className={`font-mono text-2xl sm:text-3xl font-black ${
               isTeamBWinner ? 'text-emerald-400 glow-text-neon' : 'text-slate-400'

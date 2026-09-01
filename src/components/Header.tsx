@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Activity, Users, Award, Settings, Lock, Unlock, Zap, ShieldCheck, Flame } from 'lucide-react';
+import { Trophy, Activity, Users, Award, Settings, Lock, Unlock, Zap, ShieldCheck, Flame, Sparkles } from 'lucide-react';
 import type { TournamentConfig } from '../types/index.ts';
 
 interface HeaderProps {
@@ -23,22 +23,32 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="sticky top-0 z-40 glass-panel border-b border-slate-800/80 bg-[#0B0F19]/95 backdrop-blur-md">
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Logo & Tournament Name */}
+          {/* Logo & Tournament Name & Edition Badge */}
           <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('standings')}>
-            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center shadow-neon font-display text-xl sm:text-2xl font-black text-black">
-              🎾
-            </div>
+            {config.tournamentLogoUrl ? (
+              <img
+                src={config.tournamentLogoUrl}
+                alt="Logo Oficial del Torneo"
+                className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-emerald-400 shadow-neon bg-slate-900"
+              />
+            ) : (
+              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center shadow-neon font-display text-xl sm:text-2xl font-black text-black">
+                🎾
+              </div>
+            )}
+
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-wrap">
                 <h1 className="text-base sm:text-xl font-extrabold font-display text-white tracking-tight">
                   {config.tournamentName || 'G20 by Peter Inc. 🎾'}
                 </h1>
-                <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                  <Flame className="w-3 h-3 mr-1" /> VENENO PURO 🐍
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  {config.editionName || `${config.editionNumber || 3}er Torneo Oficial`}
                 </span>
               </div>
               <p className="text-[11px] sm:text-xs text-slate-400 font-medium truncate max-w-[260px] sm:max-w-none">
-                Puntos Totales Mandan • Desempates Milimétricos • Parejas Parejas
+                Edición Oficial Activa • Clasificación de Temporada & Histórico Global
               </p>
             </div>
           </div>
@@ -48,7 +58,7 @@ export const Header: React.FC<HeaderProps> = ({
             {isAdmin ? (
               <div className="flex items-center space-x-2">
                 <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Admin Modo Juez
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Admin Activo
                 </span>
                 <button
                   onClick={onLogoutAdmin}
@@ -128,7 +138,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Users className="w-4 h-4 mr-1.5" />
-            Jugadores
+            Jugadores & Fotos
           </button>
 
           <button
@@ -140,7 +150,7 @@ export const Header: React.FC<HeaderProps> = ({
             }`}
           >
             <Settings className="w-4 h-4 mr-1.5" />
-            Ajustes
+            Ajustes & Imagen
           </button>
         </div>
       </div>

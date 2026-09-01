@@ -193,6 +193,9 @@ export interface PlayerIntelligenceStats {
 
 export interface TournamentConfig {
   tournamentName: string;
+  editionNumber: number; // e.g. 3 for "3er Torneo"
+  editionName: string; // e.g. "3er Torneo G20 - Edición Master"
+  tournamentLogoUrl?: string; // Base64 dataURL or image URL
   courtNames: string[];
   adminPin: string;
   rankingSystem: 'bayesian' | 'total_points' | 'avg_points';

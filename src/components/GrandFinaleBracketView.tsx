@@ -22,6 +22,24 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
 }) => {
   const [activeScoreMatch, setActiveScoreMatch] = useState<Match | null>(null);
 
+  const getAvatar = (id: string, name: string) => {
+    const pStat = statsList.find(s => s.playerId === id || s.playerName === name);
+    if (pStat?.avatar) {
+      return (
+        <img
+          src={pStat.avatar}
+          alt={name}
+          className="w-7 h-7 rounded-full object-cover border border-amber-400/80 shadow-neon flex-shrink-0 bg-slate-900"
+        />
+      );
+    }
+    return (
+      <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-black text-[10px] text-amber-300 flex-shrink-0">
+        {name.slice(0, 2).toUpperCase()}
+      </div>
+    );
+  };
+
   const handleCreateBracket = () => {
     const newBracket = generateGrandFinaleBracket(statsList, config.courtNames);
     onSaveBracket(newBracket);
@@ -131,7 +149,7 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
             </span>
             <div>
               <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                Día de la Gran Final G20 (Playoffs)
+                Día de la Gran Final ({config.editionName || '3er Torneo G20'})
               </h2>
               <p className="text-xs sm:text-sm text-slate-300">
                 Formato de 3 partidos: Lugares 1 al 12 pelean por el Campeonato (1º) y el lugar 16 puede subir al Podio (3º) si gana sus 2 primeros partidos.
@@ -155,7 +173,7 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
       {bracket?.podium?.firstPlace && (
         <div className="glass-panel-neon p-6 rounded-3xl border-2 border-amber-500/50 text-center space-y-4 shadow-gold-glow animate-slide-up bg-slate-950/90">
           <div className="flex items-center justify-center space-x-2 text-amber-400 font-black uppercase tracking-wider text-xs sm:text-sm">
-            <Sparkles className="w-4 h-4" /> 🏆 PODIO DE CAMPEONES G20 BY PETER INC. 🏆 <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4" /> 🏆 PODIO DE CAMPEONES {config.editionName?.toUpperCase() || 'G20 BY PETER INC.'} 🏆 <Sparkles className="w-4 h-4" />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
@@ -230,28 +248,48 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
                         )}
                       </div>
 
-                      {/* Team A - EQUAL SIZES */}
+                      {/* Team A - EQUAL SIZES & AVATARS */}
                       <div className={`flex items-center justify-between p-3 rounded-xl ${
                         winA ? 'bg-emerald-500/20 border-2 border-emerald-500/50 text-white font-bold' : 'bg-slate-900 border border-slate-800 text-slate-200'
                       }`}>
-                        <div className="text-sm sm:text-base font-bold flex items-center flex-wrap gap-x-2">
-                          <span>{m.teamA.player1Name}</span>
-                          {m.teamA.player2Name && <span className="text-emerald-400 font-black">&</span>}
-                          <span>{m.teamA.player2Name}</span>
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <div className="flex items-center space-x-1.5">
+                            {getAvatar(m.teamA.player1Id, m.teamA.player1Name)}
+                            <span className="text-sm sm:text-base font-bold">{m.teamA.player1Name}</span>
+                          </div>
+                          {m.teamA.player2Name && (
+                            <>
+                              <span className="text-emerald-400 font-black text-xs">&</span>
+                              <div className="flex items-center space-x-1.5">
+                                {getAvatar(m.teamA.player2Id, m.teamA.player2Name)}
+                                <span className="text-sm sm:text-base font-bold">{m.teamA.player2Name}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                         <span className="font-mono text-2xl font-black text-emerald-400 pl-2">
                           {isDone ? m.score.scoreA : '-'}
                         </span>
                       </div>
 
-                      {/* Team B - EQUAL SIZES */}
+                      {/* Team B - EQUAL SIZES & AVATARS */}
                       <div className={`flex items-center justify-between p-3 rounded-xl ${
                         winB ? 'bg-emerald-500/20 border-2 border-emerald-500/50 text-white font-bold' : 'bg-slate-900 border border-slate-800 text-slate-200'
                       }`}>
-                        <div className="text-sm sm:text-base font-bold flex items-center flex-wrap gap-x-2">
-                          <span>{m.teamB.player1Name}</span>
-                          {m.teamB.player2Name && <span className="text-blue-400 font-black">&</span>}
-                          <span>{m.teamB.player2Name}</span>
+                        <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                          <div className="flex items-center space-x-1.5">
+                            {getAvatar(m.teamB.player1Id, m.teamB.player1Name)}
+                            <span className="text-sm sm:text-base font-bold">{m.teamB.player1Name}</span>
+                          </div>
+                          {m.teamB.player2Name && (
+                            <>
+                              <span className="text-blue-400 font-black text-xs">&</span>
+                              <div className="flex items-center space-x-1.5">
+                                {getAvatar(m.teamB.player2Id, m.teamB.player2Name)}
+                                <span className="text-sm sm:text-base font-bold">{m.teamB.player2Name}</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                         <span className="font-mono text-2xl font-black text-emerald-400 pl-2">
                           {isDone ? m.score.scoreB : '-'}
