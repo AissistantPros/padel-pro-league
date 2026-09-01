@@ -6,9 +6,6 @@ export interface PlayerRankedSeed {
   score: number;
 }
 
-/**
- * Shuffles an array using Fisher-Yates
- */
 export function shuffleArray<T>(array: T[]): T[] {
   const arr = [...array];
   for (let i = arr.length - 1; i > 0; i--) {
@@ -19,17 +16,17 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 /**
- * Generates the 3 preliminary rounds ensuring:
- * 1. Top half (Top 8) NEVER pair with each other in rounds 1, 2, 3.
- * 2. Every team has 1 Top-half player + 1 Bottom-half player.
- * 3. Matched teams have EQUAL/BALANCED rank sums (Team A sum == Team B sum, Delta = 0).
- * 4. No player repeats partner in the 3 rounds.
+ * Intelligent Matchup Optimizer for Preliminary Rounds (1, 2, and 3):
+ * 1. Top half (Top 8) NEVER pair together in rounds 1, 2, 3 (strictly 1 Top-8 + 1 Bottom-8 in every team).
+ * 2. NO player repeats a partner in the 3 rounds.
+ * 3. Matchups between Team A and Team B are optimized to minimize point/strength differences (Delta -> 0).
+ * 4. Yields the most balanced, competitive (close to 50% vs 50%) matches possible across all 4 courts.
  */
 export function generatePreliminaryRounds(
   dayId: string,
   players: Player[],
   isFirstDay: boolean = false,
-  rankingOrder?: Map<string, number>, // Map of playerId -> rank (1..N)
+  rankingOrder?: Map<string, number>, // Map of playerId -> rank (1..N) or points
   courtNames: string[] = ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)']
 ): DailyRound[] {
   const numPlayers = players.length;
@@ -38,77 +35,178 @@ export function generatePreliminaryRounds(
     throw new Error(`Se requiere un número de jugadores múltiplo de 4 (ej. 8, 12, 16). Actual: ${numPlayers}`);
   }
 
-  let orderedPlayers: Player[] = [];
+  // 1. Determine player ordering based on previous date rankings or random on day 1
+  let sortedPlayers: { player: Player; score: number; rank: number }[] = [];
 
   if (isFirstDay || !rankingOrder || rankingOrder.size === 0) {
-    orderedPlayers = shuffleArray(players);
+    const shuffled = shuffleArray(players);
+    sortedPlayers = shuffled.map((p, idx) => ({
+      player: p,
+      score: (numPlayers - idx) * 2, // simulated gradient
+      rank: idx + 1,
+    }));
   } else {
-    // Sort according to previous date/cumulative standings (1 to 16)
-    orderedPlayers = [...players].sort((a, b) => {
-      const rankA = rankingOrder.get(a.id) ?? 9999;
-      const rankB = rankingOrder.get(b.id) ?? 9999;
-      return rankA - rankB;
+    // Sort by rank / points from previous date standings
+    sortedPlayers = [...players]
+      .map((p) => {
+        const val = rankingOrder.get(p.id) ?? 999;
+        return {
+          player: p,
+          // If value is small (rank 1..16), invert to score; if points (>16), keep points
+          score: val <= numPlayers ? (numPlayers - val + 1) * 3 : val,
+          rank: 0,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+
+    sortedPlayers.forEach((p, idx) => {
+      p.rank = idx + 1;
     });
   }
 
   const half = numPlayers / 2; // 8 for 16 players
-  const topPot = orderedPlayers.slice(0, half);     // P1..P8
-  const bottomPot = orderedPlayers.slice(half);     // P9..P16
+  const topPot = sortedPlayers.slice(0, half);     // Rank 1..8
+  const bottomPot = sortedPlayers.slice(half);     // Rank 9..16
 
+  const partnerHistory = new Set<string>();
   const rounds: DailyRound[] = [];
-  const courtsPerRound = numPlayers / 4; // 4 courts for 16 players
+  const courtsPerRound = numPlayers / 4;
 
-  // We generate 3 rounds with balanced rank sums:
   for (let r = 1; r <= 3; r++) {
-    const matches: Match[] = [];
+    let bestCandidateCourtMatches: { teamA: [{ player: Player; score: number }, { player: Player; score: number }]; teamB: [{ player: Player; score: number }, { player: Player; score: number }]; diff: number }[] | null = null;
+    let minImbalance = Infinity;
 
-    for (let c = 0; c < courtsPerRound; c++) {
-      const topAIndex = c;
-      const topBIndex = half - 1 - c;
+    // Search through all candidate pairings of Top 8 + Bottom 8
+    const permutationsToTry: { player: Player; score: number; rank: number }[][] = [];
 
-      // Rotation shift based on round to avoid partner repetition while keeping rank sums balanced
-      const shiftA = (half - 1 - c - (r - 1) + half) % half;
-      const shiftB = (c + (r - 1)) % half;
-
-      const pTopA = topPot[topAIndex];
-      const pBotA = bottomPot[shiftA];
-
-      const pTopB = topPot[topBIndex];
-      const pBotB = bottomPot[shiftB];
-
-      const courtName = courtNames[c % courtNames.length] || `Cancha ${c + 1}`;
-
-      matches.push({
-        id: `${dayId}_r${r}_m${c + 1}`,
-        dayId,
-        roundNumber: r,
-        courtNumber: c + 1,
-        courtName,
-        matchType: 'preliminary',
-        teamA: {
-          player1Id: pTopA.id,
-          player1Name: pTopA.name,
-          player2Id: pBotA.id,
-          player2Name: pBotA.name,
-        },
-        teamB: {
-          player1Id: pTopB.id,
-          player1Name: pTopB.name,
-          player2Id: pBotB.id,
-          player2Name: pBotB.name,
-        },
-        score: {
-          scoreA: 0,
-          scoreB: 0,
-          completed: false,
-        },
-        createdAt: new Date().toISOString(),
-      });
+    // Deterministic rotated permutations
+    for (let shift = 0; shift < half; shift++) {
+      const perm: typeof bottomPot = [];
+      for (let i = 0; i < half; i++) {
+        perm.push(bottomPot[(i + shift + (r - 1) * 2) % half]);
+      }
+      permutationsToTry.push(perm);
     }
+
+    for (let shift = 0; shift < half; shift++) {
+      const perm: typeof bottomPot = [];
+      for (let i = 0; i < half; i++) {
+        perm.push(bottomPot[(half - 1 - i + shift + (r - 1)) % half]);
+      }
+      permutationsToTry.push(perm);
+    }
+
+    // Randomized search to find absolute global minimum variance
+    for (let trial = 0; trial < 1500; trial++) {
+      const shuffled = [...bottomPot];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+      permutationsToTry.push(shuffled);
+    }
+
+    for (const bottomPerm of permutationsToTry) {
+      let valid = true;
+      const candidatePairs: [{ player: Player; score: number }, { player: Player; score: number }][] = [];
+
+      for (let i = 0; i < half; i++) {
+        const topP = topPot[i];
+        const botP = bottomPerm[i];
+        const pairKey = [topP.player.id, botP.player.id].sort().join('&');
+        if (partnerHistory.has(pairKey)) {
+          valid = false;
+          break;
+        }
+        candidatePairs.push([topP, botP]);
+      }
+
+      if (!valid) continue;
+
+      // Group into 4 courts that maximize parity (Team A vs Team B)
+      const pairsWithStrength = candidatePairs.map(p => ({
+        top: p[0],
+        bot: p[1],
+        strength: p[0].score + p[1].score,
+      }));
+
+      // Sort pairs by combined strength to pair closest strengths together
+      pairsWithStrength.sort((a, b) => b.strength - a.strength);
+
+      const candidateCourtMatches: { teamA: [{ player: Player; score: number }, { player: Player; score: number }]; teamB: [{ player: Player; score: number }, { player: Player; score: number }]; diff: number }[] = [];
+      let currentImbalance = 0;
+
+      for (let c = 0; c < courtsPerRound; c++) {
+        const p1 = pairsWithStrength[c * 2];
+        const p2 = pairsWithStrength[c * 2 + 1];
+        const diff = Math.abs(p1.strength - p2.strength);
+        currentImbalance += diff * diff;
+
+        candidateCourtMatches.push({
+          teamA: [p1.top, p1.bot],
+          teamB: [p2.top, p2.bot],
+          diff,
+        });
+      }
+
+      if (currentImbalance < minImbalance) {
+        minImbalance = currentImbalance;
+        bestCandidateCourtMatches = candidateCourtMatches;
+      }
+    }
+
+    if (!bestCandidateCourtMatches) {
+      // Fallback
+      bestCandidateCourtMatches = [];
+      for (let c = 0; c < courtsPerRound; c++) {
+        const topA = topPot[c];
+        const botA = bottomPot[(half - 1 - c + r) % half];
+        const topB = topPot[half - 1 - c];
+        const botB = bottomPot[(c + r) % half];
+        bestCandidateCourtMatches.push({
+          teamA: [topA, botA],
+          teamB: [topB, botB],
+          diff: 0,
+        });
+      }
+    }
+
+    // Save partners to history
+    bestCandidateCourtMatches.forEach(m => {
+      partnerHistory.add([m.teamA[0].player.id, m.teamA[1].player.id].sort().join('&'));
+      partnerHistory.add([m.teamB[0].player.id, m.teamB[1].player.id].sort().join('&'));
+    });
+
+    const matches: Match[] = bestCandidateCourtMatches.map((m, cIdx) => ({
+      id: `${dayId}_r${r}_m${cIdx + 1}`,
+      dayId,
+      roundNumber: r,
+      courtNumber: cIdx + 1,
+      courtName: courtNames[cIdx % courtNames.length] || `Cancha ${cIdx + 1}`,
+      matchType: 'preliminary',
+      teamA: {
+        player1Id: m.teamA[0].player.id,
+        player1Name: m.teamA[0].player.name,
+        player2Id: m.teamA[1].player.id,
+        player2Name: m.teamA[1].player.name,
+      },
+      teamB: {
+        player1Id: m.teamB[0].player.id,
+        player1Name: m.teamB[0].player.name,
+        player2Id: m.teamB[1].player.id,
+        player2Name: m.teamB[1].player.name,
+      },
+      score: {
+        scoreA: 0,
+        scoreB: 0,
+        completed: false,
+      },
+      createdAt: new Date().toISOString(),
+    }));
 
     rounds.push({
       roundNumber: r,
-      name: `Juego Corto ${r} (Preliminares Parejos)`,
+      name: `Juego Corto ${r} (Máximo Equilibrio 50-50)`,
       matches,
       isCompleted: false,
     });

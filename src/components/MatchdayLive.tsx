@@ -84,9 +84,9 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     const participatingPlayers = players.filter(p => checkedInIds.includes(p.id));
     const isFirstDay = days.length === 0;
 
-    // Use current ranking order
+    // Use current ranking points for exact parity optimization
     const rankingMap = new Map<string, number>(
-      statsList.map(s => [s.playerId, s.currentRank || 16])
+      statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (17 - (s.currentRank || 16)) * 4])
     );
 
     const rounds = generatePreliminaryRounds(
@@ -275,6 +275,37 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 </option>
               ))}
             </select>
+          )}
+
+          {isAdmin && currentDay && currentDay.status === 'preliminaries' && (
+            <button
+              onClick={() => {
+                if (confirm('¿Regenerar los 3 juegos preliminares de esta fecha con el optimizador de máximo equilibrio 50-50?')) {
+                  const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
+                  const rankingMap = new Map<string, number>(
+                    statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (17 - (s.currentRank || 16)) * 4])
+                  );
+                  const rounds = generatePreliminaryRounds(
+                    currentDay.id,
+                    participatingPlayers,
+                    false,
+                    rankingMap,
+                    config.courtNames
+                  );
+                  const updatedDay: TournamentDay = {
+                    ...currentDay,
+                    rounds,
+                  };
+                  const updatedDays = days.map(d => (d.id === currentDay.id ? updatedDay : d));
+                  onSaveDays(updatedDays);
+                }
+              }}
+              title="Reequilibrar Cruces"
+              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-extrabold text-xs sm:text-sm border border-slate-700 flex items-center transition-all"
+            >
+              <RefreshCw className="w-4 h-4 mr-1.5" />
+              Reequilibrar Cruces (50-50)
+            </button>
           )}
 
           {isAdmin && (
