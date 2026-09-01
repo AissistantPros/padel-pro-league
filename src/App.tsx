@@ -304,9 +304,9 @@ export function App() {
       </main>
 
       {/* Official App Credits Footer */}
-      <footer className="w-full border-t border-slate-800/80 bg-[#070A12] py-8 px-4 text-center text-xs text-slate-400 space-y-2 select-none mb-16 md:mb-0">
+      <footer className="w-full border-t border-slate-800/80 bg-[#070A12] pt-10 pb-12 px-6 text-center text-xs text-slate-400 space-y-2.5 select-none mb-32 md:mb-0">
         <div className="flex items-center justify-center space-x-2 flex-wrap">
-          <span className="font-extrabold text-slate-300">🎾 {config.tournamentName}</span>
+          <span className="font-extrabold text-slate-200">🎾 {config.tournamentName}</span>
           <span>•</span>
           <span className="text-amber-400 font-bold">{config.editionName}</span>
         </div>
