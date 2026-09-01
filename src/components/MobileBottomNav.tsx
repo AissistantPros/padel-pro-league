@@ -12,16 +12,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
     ? ([
         { id: 'standings', label: 'Tabla', icon: Trophy },
         { id: 'matchday', label: 'Jornada', icon: Activity },
+        { id: 'players', label: 'Roster', icon: Users },
         { id: 'intelligence', label: 'Radar', icon: Zap },
         { id: 'grand_finale', label: 'Finales', icon: Award },
-        { id: 'players', label: 'Roster', icon: Users },
         { id: 'settings', label: 'Ajustes', icon: Settings },
       ] as const)
     : ([
         { id: 'standings', label: 'Tabla', icon: Trophy },
         { id: 'matchday', label: 'Jornada', icon: Activity },
+        { id: 'players', label: 'Roster', icon: Users },
         { id: 'intelligence', label: 'Radar', icon: Zap },
-        { id: 'grand_finale', label: 'Finales', icon: Award },
         { id: 'my_profile', label: 'Mi Perfil', icon: User },
       ] as const);
 

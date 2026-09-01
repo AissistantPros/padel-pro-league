@@ -248,6 +248,16 @@ export function App() {
           />
         )}
 
+        {activeTab === 'players' && (
+          <PlayersManager
+            players={players}
+            statsList={statsList}
+            isAdmin={effectiveIsAdmin}
+            onSavePlayers={handleSavePlayers}
+            onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
+          />
+        )}
+
         {activeTab === 'intelligence' && (
           <PadelIntelligenceView
             statsList={statsList}
@@ -264,16 +274,6 @@ export function App() {
             config={config}
             isAdmin={effectiveIsAdmin}
             onSaveBracket={handleSaveGrandFinale}
-          />
-        )}
-
-        {activeTab === 'players' && effectiveIsAdmin && (
-          <PlayersManager
-            players={players}
-            statsList={statsList}
-            isAdmin={effectiveIsAdmin}
-            onSavePlayers={handleSavePlayers}
-            onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
           />
         )}
 

@@ -111,7 +111,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Desktop Tab Navigation */}
+        {/* Desktop Tab Navigation (Visible to all, with public Roster!) */}
         <div className="hidden md:flex space-x-2 overflow-x-auto py-2.5 border-t border-slate-800/60">
           <button
             onClick={() => setActiveTab('standings')}
@@ -138,6 +138,18 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
 
           <button
+            onClick={() => setActiveTab('players')}
+            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
+              activeTab === 'players'
+                ? 'bg-emerald-500 text-black shadow-neon'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Users className="w-4 h-4 mr-2" />
+            Jugadores (Roster)
+          </button>
+
+          <button
             onClick={() => setActiveTab('intelligence')}
             className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
               activeTab === 'intelligence'
@@ -161,43 +173,29 @@ export const Header: React.FC<HeaderProps> = ({
             Gran Final (Playoffs)
           </button>
 
-          {isAdmin ? (
-            <>
-              <button
-                onClick={() => setActiveTab('players')}
-                className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-                  activeTab === 'players'
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Roster & Admins
-              </button>
+          <button
+            onClick={() => setActiveTab('my_profile')}
+            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
+              activeTab === 'my_profile'
+                ? 'bg-emerald-500 text-black shadow-neon'
+                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <User className="w-4 h-4 mr-2" />
+            Mi Perfil
+          </button>
 
-              <button
-                onClick={() => setActiveTab('settings')}
-                className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-                  activeTab === 'settings'
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                }`}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Ajustes Torneo
-              </button>
-            </>
-          ) : (
+          {isAdmin && (
             <button
-              onClick={() => setActiveTab('my_profile')}
+              onClick={() => setActiveTab('settings')}
               className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-                activeTab === 'my_profile'
-                  ? 'bg-emerald-500 text-black shadow-neon'
+                activeTab === 'settings'
+                  ? 'bg-amber-500 text-black shadow-gold-glow'
                   : 'text-slate-300 hover:bg-slate-800 hover:text-white'
               }`}
             >
-              <User className="w-4 h-4 mr-2" />
-              Mi Perfil
+              <Settings className="w-4 h-4 mr-2" />
+              Ajustes Torneo
             </button>
           )}
         </div>

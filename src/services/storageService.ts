@@ -229,9 +229,17 @@ export const StorageService = {
       ]);
 
       const config: TournamentConfig = confRes.data?.data || DEFAULT_CONFIG;
-      const players: Player[] = (playersRes.data && playersRes.data.length > 0)
+      let players: Player[] = (playersRes.data && playersRes.data.length > 0)
         ? playersRes.data.map((r: any) => r.data)
         : INITIAL_PLAYERS;
+      
+      if (players.length === 0) {
+        players = INITIAL_PLAYERS;
+        // Auto-seed to Supabase
+        const pRows = INITIAL_PLAYERS.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
+        supabase.from('players').insert(pRows).then();
+      }
+
       const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || [];
       const bracket: GrandFinaleBracket | null = finaleRes.data?.data || null;
 
