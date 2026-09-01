@@ -31,7 +31,28 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   tieBreakMaxPoints: 10,
 };
 
-export const INITIAL_PLAYERS: Player[] = [];
+export const INITIAL_PLAYERS: Player[] = [
+  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', role: 'admin', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', role: 'admin', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', role: 'player', registeredAt: '2026-08-01', isActive: true },
+];
 
 export const StorageService = {
   // Config
@@ -70,12 +91,15 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PLAYERS);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       }
     } catch (e) {
       console.error('Error reading players from localStorage', e);
     }
-    return [];
+    return INITIAL_PLAYERS;
   },
 
   savePlayers(players: Player[]): void {
@@ -205,7 +229,9 @@ export const StorageService = {
       ]);
 
       const config: TournamentConfig = confRes.data?.data || DEFAULT_CONFIG;
-      const players: Player[] = playersRes.data?.map((r: any) => r.data) || [];
+      const players: Player[] = (playersRes.data && playersRes.data.length > 0)
+        ? playersRes.data.map((r: any) => r.data)
+        : INITIAL_PLAYERS;
       const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || [];
       const bracket: GrandFinaleBracket | null = finaleRes.data?.data || null;
 

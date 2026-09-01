@@ -5,7 +5,7 @@ import type {
   TournamentConfig,
   GrandFinaleBracket,
 } from './types/index.ts';
-import { StorageService } from './services/storageService.ts';
+import { StorageService, INITIAL_PLAYERS } from './services/storageService.ts';
 import { getSupabase } from './services/supabaseClient.ts';
 import { buildChampionshipIntelligence } from './utils/intelligenceEngine.ts';
 import { Header } from './components/Header.tsx';
@@ -20,7 +20,10 @@ import { ConfigModal } from './components/ConfigModal.tsx';
 import { AdminModal } from './components/AdminModal.tsx';
 
 export function App() {
-  const [players, setPlayers] = useState<Player[]>(() => StorageService.getPlayers());
+  const [players, setPlayers] = useState<Player[]>(() => {
+    const loaded = StorageService.getPlayers();
+    return loaded.length > 0 ? loaded : INITIAL_PLAYERS;
+  });
   const [days, setDays] = useState<TournamentDay[]>(() => StorageService.getTournamentDays());
   const [config, setConfig] = useState<TournamentConfig>(() => StorageService.getConfig());
   const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
@@ -40,7 +43,12 @@ export function App() {
       // 1. Initial Pull from cloud
       const cloudData = await StorageService.pullFromCloud();
       if (cloudData) {
-        if (cloudData.players) setPlayers(cloudData.players);
+        if (cloudData.players && cloudData.players.length > 0) {
+          setPlayers(cloudData.players);
+        } else {
+          setPlayers(INITIAL_PLAYERS);
+          StorageService.savePlayers(INITIAL_PLAYERS);
+        }
         if (cloudData.days) setDays(cloudData.days);
         if (cloudData.config) setConfig(cloudData.config);
         if (cloudData.bracket !== undefined) setGrandFinale(cloudData.bracket);
@@ -188,7 +196,8 @@ export function App() {
 
   const handleResetData = async () => {
     await StorageService.resetAllData();
-    setPlayers([]);
+    setPlayers(INITIAL_PLAYERS);
+    StorageService.savePlayers(INITIAL_PLAYERS);
     setDays([]);
     setGrandFinale(null);
   };
@@ -217,7 +226,7 @@ export function App() {
       />
 
       {/* Main Content Area with Bottom Bar Safe Margin */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-24 md:pb-8">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-28 md:pb-12">
         {activeTab === 'standings' && (
           <StandingsTable
             stats={statsList}
@@ -293,6 +302,18 @@ export function App() {
           />
         )}
       </main>
+
+      {/* Official App Credits Footer */}
+      <footer className="w-full border-t border-slate-800/80 bg-[#070A12] py-8 px-4 text-center text-xs text-slate-400 space-y-2 select-none mb-16 md:mb-0">
+        <div className="flex items-center justify-center space-x-2 flex-wrap">
+          <span className="font-extrabold text-slate-300">🎾 {config.tournamentName}</span>
+          <span>•</span>
+          <span className="text-amber-400 font-bold">{config.editionName}</span>
+        </div>
+        <div className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
+          Desarrollado por <strong className="text-emerald-400 font-black">Esteban Reyna</strong> • <span className="font-mono text-slate-300 font-bold">v2.4.0</span> • <strong className="text-cyan-400 font-bold">IA Factory Cancún</strong> en colaboración con <strong className="text-amber-400 font-bold">Marketing 101 Cancún</strong>
+        </div>
+      </footer>
 
       {/* Native Mobile App Bottom Navigation Bar */}
       <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={effectiveIsAdmin} />
