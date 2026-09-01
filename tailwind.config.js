@@ -7,6 +7,18 @@ export default {
   darkMode: 'class',
   theme: {
     extend: {
+      fontSize: {
+        '2xs': ['0.8125rem', { lineHeight: '1.125rem' }], // 13px
+        'xs': ['0.875rem', { lineHeight: '1.25rem' }],   // 14px (raised from 12px)
+        'sm': ['1rem', { lineHeight: '1.5rem' }],        // 16px (raised from 14px - per user request!)
+        'base': ['1.125rem', { lineHeight: '1.75rem' }], // 18px (raised from 16px)
+        'lg': ['1.25rem', { lineHeight: '1.75rem' }],    // 20px (raised from 18px)
+        'xl': ['1.5rem', { lineHeight: '2rem' }],        // 24px (raised from 20px)
+        '2xl': ['1.75rem', { lineHeight: '2.25rem' }],   // 28px (raised from 24px)
+        '3xl': ['2.25rem', { lineHeight: '2.5rem' }],    // 36px (raised from 30px)
+        '4xl': ['2.75rem', { lineHeight: '3rem' }],      // 44px (raised from 36px)
+        '5xl': ['3.5rem', { lineHeight: '3.75rem' }],    // 56px (raised from 48px)
+      },
       colors: {
         padel: {
           dark: '#0B0F19',
@@ -29,15 +41,15 @@ export default {
         display: ['Outfit', 'Inter', 'sans-serif'],
       },
       boxShadow: {
-        'neon': '0 0 20px -5px rgba(16, 185, 129, 0.3)',
-        'neon-lg': '0 0 30px -5px rgba(16, 185, 129, 0.45)',
-        'blue-glow': '0 0 20px -5px rgba(59, 130, 246, 0.35)',
-        'gold-glow': '0 0 25px -5px rgba(245, 158, 11, 0.4)',
+        'neon': '0 0 20px -5px rgba(16, 185, 129, 0.35)',
+        'neon-lg': '0 0 30px -5px rgba(16, 185, 129, 0.5)',
+        'blue-glow': '0 0 20px -5px rgba(59, 130, 246, 0.4)',
+        'gold-glow': '0 0 25px -5px rgba(245, 158, 11, 0.45)',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'fade-in': 'fadeIn 0.3s ease-in-out',
-        'slide-up': 'slideUp 0.4s ease-out',
+        'fade-in': 'fadeIn 0.25s ease-in-out',
+        'slide-up': 'slideUp 0.35s ease-out',
       },
       keyframes: {
         fadeIn: {

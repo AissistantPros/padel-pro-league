@@ -166,25 +166,25 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20 md:pb-6">
       {/* Header */}
       <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <span className="p-2.5 rounded-2xl bg-slate-800 text-slate-200">
-              <Users className="w-6 h-6" />
+          <div className="flex items-center space-x-3">
+            <span className="p-3 rounded-2xl bg-slate-800 text-slate-200">
+              <Users className="w-7 h-7" />
             </span>
             <div>
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 flex-wrap">
                 <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                  Roster General & Fotos de Jugadores
+                  Roster General de Jugadores
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
                   {players.length} Registrados
                 </span>
               </div>
-              <p className="text-xs sm:text-sm text-slate-400">
-                Sube la foto de cada jugador para que aparezca recortada en las canchas y transmisiones de los partidos.
+              <p className="text-sm text-slate-300 mt-1">
+                Sube la foto de cada jugador para que aparezca en grande en los cruces de los partidos.
               </p>
             </div>
           </div>
@@ -197,10 +197,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                 setIsBulkAdding(!isBulkAdding);
                 setIsAddingPlayer(false);
               }}
-              className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-extrabold text-xs sm:text-sm border border-slate-700 flex items-center transition-all"
+              className="px-4 py-2.5 rounded-2xl bg-slate-800 active:bg-slate-700 text-cyan-400 font-black text-sm border border-slate-700 flex items-center transition-all"
             >
               <FileText className="w-4 h-4 mr-1.5" />
-              Pegar Lista Rápida
+              Pegar Lista
             </button>
 
             <button
@@ -208,7 +208,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                 setIsAddingPlayer(!isAddingPlayer);
                 setIsBulkAdding(false);
               }}
-              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
+              className="px-4 py-2.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon flex items-center transition-all"
             >
               <UserPlus className="w-4 h-4 mr-1.5" />
               Inscribir con Foto
@@ -220,34 +220,34 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       {/* Search Filter Bar */}
       {players.length > 0 && (
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-4" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={`Buscar entre los ${players.length} jugadores inscritos...`}
-            className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm text-white focus:border-cyan-400 focus:outline-none"
+            className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-base text-white focus:border-cyan-400 focus:outline-none font-bold"
           />
         </div>
       )}
 
-      {/* Bulk Import Modal / Form */}
+      {/* Bulk Import Form */}
       {isBulkAdding && (
         <form onSubmit={handleBulkImport} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-cyan-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-sm font-black text-cyan-300 flex items-center">
-              <FileText className="w-4 h-4 mr-1.5" /> Pegar Lista de Nombres (Cualquier cantidad)
+            <h3 className="text-base font-black text-cyan-300 flex items-center">
+              <FileText className="w-5 h-5 mr-1.5" /> Pegar Lista de Nombres
             </h3>
             <button
               type="button"
               onClick={() => setIsBulkAdding(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg font-bold"
+              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 rounded-xl"
             >
               Cancelar
             </button>
           </div>
 
-          <p className="text-xs text-slate-300">
+          <p className="text-sm text-slate-300">
             Pega los nombres copiados de WhatsApp, Excel o Notas (un nombre por renglón). Opcional con apodo: <code>Juan Pérez (El Rayo)</code>.
           </p>
 
@@ -256,13 +256,13 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             value={bulkText}
             onChange={(e) => setBulkText(e.target.value)}
             placeholder={`Alejandro Galán (Ale)\nJuan Lebrón (El Lobo)\nAgustín Tapia (El Mozart)\nArturo Coello\n...`}
-            className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-3.5 text-sm text-white font-mono focus:border-cyan-400 focus:outline-none"
+            className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-base text-white font-mono focus:border-cyan-400 focus:outline-none"
           />
 
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs sm:text-sm shadow-blue-glow flex items-center"
+              className="px-6 py-3.5 rounded-2xl bg-cyan-500 active:bg-cyan-400 text-black font-black text-sm shadow-blue-glow flex items-center"
             >
               <Sparkles className="w-4 h-4 mr-1.5" /> Importar Jugadores a la Lista
             </button>
@@ -270,24 +270,23 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         </form>
       )}
 
-      {/* Add Single Player Form with Photo Upload */}
+      {/* Add Single Player Form */}
       {isAddingPlayer && (
         <form onSubmit={handleAddPlayer} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-emerald-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-sm font-black text-white flex items-center">
-              <UserPlus className="w-4 h-4 mr-1.5 text-emerald-400" /> Inscribir Jugador y Subir Foto
+            <h3 className="text-base font-black text-white flex items-center">
+              <UserPlus className="w-5 h-5 mr-1.5 text-emerald-400" /> Inscribir Jugador y Subir Foto
             </h3>
             <button
               type="button"
               onClick={() => setIsAddingPlayer(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg font-bold"
+              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 rounded-xl"
             >
               Cancelar
             </button>
           </div>
 
           <div className="flex flex-col sm:flex-row items-center gap-4 pb-2">
-            {/* Avatar Preview */}
             <div className="w-20 h-20 rounded-full border-2 border-emerald-400 bg-slate-900 overflow-hidden flex items-center justify-center relative group flex-shrink-0">
               {newAvatar ? (
                 <img src={newAvatar} alt="Foto jugador" className="w-full h-full object-cover" />
@@ -296,9 +295,9 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               )}
             </div>
 
-            <div className="space-y-1 text-center sm:text-left">
-              <label className="px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-neon cursor-pointer inline-flex items-center">
-                <Upload className="w-3.5 h-3.5 mr-1" />
+            <div className="space-y-1.5 text-center sm:text-left">
+              <label className="px-4 py-2 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon cursor-pointer inline-flex items-center">
+                <Upload className="w-4 h-4 mr-1.5" />
                 {newAvatar ? 'Cambiar Foto' : 'Cargar Foto de Perfil'}
                 <input
                   type="file"
@@ -310,76 +309,76 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   className="hidden"
                 />
               </label>
-              <div className="text-[11px] text-slate-400">Foto tipo WPT para mostrar en cancha</div>
+              <div className="text-xs text-slate-400">Foto recortada profesional para cancha</div>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1">Nombre Completo *</label>
+              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Nombre Completo *</label>
               <input
                 type="text"
                 required
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="Ej. Juan Pérez"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1">Apodo / Nickname</label>
+              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Apodo / Nickname</label>
               <input
                 type="text"
                 value={newNickname}
                 onChange={(e) => setNewNickname(e.target.value)}
                 placeholder="Ej. El Rayo"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
               />
             </div>
             <div>
-              <label className="text-xs font-bold text-slate-300 block mb-1">Teléfono / WhatsApp</label>
+              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Teléfono / WhatsApp</label>
               <input
                 type="text"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
                 placeholder="Ej. +52 55 1234 5678"
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
               />
             </div>
           </div>
 
-          <div className="flex justify-end pt-1">
+          <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center"
+              className="px-6 py-3.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-base shadow-neon flex items-center"
             >
-              <Check className="w-4 h-4 mr-1.5" /> Guardar Jugador
+              <Check className="w-5 h-5 mr-1.5" /> Guardar Jugador
             </button>
           </div>
         </form>
       )}
 
-      {/* Zero State if Empty */}
+      {/* Empty Zero State */}
       {players.length === 0 && (
         <div className="glass-panel p-12 text-center rounded-3xl border border-slate-800 space-y-4">
           <Users className="w-16 h-16 text-slate-600 mx-auto" />
           <h3 className="text-xl font-black text-white">No hay jugadores inscritos todavía</h3>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            Comienza inscribiendo a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y subir sus fotos para los partidos.
+          <p className="text-base text-slate-400 max-w-md mx-auto">
+            Inscribe a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y subir sus fotos para los partidos.
           </p>
           {isAdmin && (
             <button
               onClick={() => setIsBulkAdding(true)}
-              className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm shadow-neon inline-flex items-center"
+              className="px-6 py-3.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-base shadow-neon inline-flex items-center"
             >
-              <FileText className="w-4 h-4 mr-2" /> Pegar Lista de Jugadores
+              <FileText className="w-5 h-5 mr-2" /> Pegar Lista de Jugadores
             </button>
           )}
         </div>
       )}
 
-      {/* Players List Grid with Cropped Avatar Photos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      {/* Players List Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
           const isEditing = editingPlayerId === player.id;
@@ -387,21 +386,21 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           return (
             <div
               key={player.id}
-              className="glass-panel p-4 rounded-2xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 bg-[#121826]"
+              className="glass-panel p-4 sm:p-5 rounded-3xl border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col justify-between space-y-3 bg-[#121829]"
             >
               <div>
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
                     {/* Player Cropped Photo or Initials */}
-                    <div className="relative group">
+                    <div className="relative group flex-shrink-0">
                       {player.avatar ? (
                         <img
                           src={player.avatar}
                           alt={player.name}
-                          className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400 shadow-neon bg-slate-900"
+                          className="w-13 h-13 rounded-full object-cover border-2 border-emerald-400 shadow-neon bg-slate-900"
                         />
                       ) : (
-                        <div className="w-12 h-12 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-sm text-emerald-400">
+                        <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-base text-emerald-400">
                           {player.name.slice(0, 2).toUpperCase()}
                         </div>
                       )}
@@ -409,7 +408,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                       {/* Quick upload overlay for admin */}
                       {isAdmin && (
                         <label className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white">
-                          <Camera className="w-4 h-4" />
+                          <Camera className="w-5 h-5" />
                           <input
                             type="file"
                             accept="image/*"
@@ -423,40 +422,40 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                       )}
                     </div>
 
-                    <div>
+                    <div className="min-w-0 flex-1">
                       {isEditing ? (
-                        <div className="space-y-1">
+                        <div className="space-y-1.5">
                           <input
                             type="text"
                             value={editName}
                             onChange={(e) => setEditName(e.target.value)}
-                            className="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-white font-bold"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-sm text-white font-bold"
                           />
                           <input
                             type="text"
                             value={editNickname}
                             onChange={(e) => setEditNickname(e.target.value)}
                             placeholder="Apodo"
-                            className="bg-slate-900 border border-slate-700 rounded px-2 py-0.5 text-xs text-slate-400"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-slate-400"
                           />
                         </div>
                       ) : (
                         <>
                           <h4
                             onClick={() => onSelectPlayerForIntelligence(player.id)}
-                            className="text-sm font-extrabold text-white hover:text-emerald-400 transition-colors cursor-pointer"
+                            className="text-base sm:text-lg font-black text-white hover:text-emerald-400 transition-colors cursor-pointer truncate"
                           >
                             {player.name}
                           </h4>
                           {player.nickname && (
-                            <span className="text-xs text-slate-400 italic font-medium">"{player.nickname}"</span>
+                            <span className="text-xs sm:text-sm text-slate-400 italic font-semibold block truncate">"{player.nickname}"</span>
                           )}
                         </>
                       )}
                     </div>
                   </div>
 
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-black flex-shrink-0 ${
                     player.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
                   }`}>
                     {player.isActive ? 'Activo' : 'Inactivo'}
@@ -467,16 +466,16 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                 {stats && stats.totalMatchesPlayed > 0 && (
                   <div className="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-3 gap-1 text-center text-xs">
                     <div>
-                      <span className="text-[10px] text-slate-500 block font-bold">Ranking</span>
-                      <span className="font-black text-white font-mono">#{stats.currentRank}</span>
+                      <span className="text-xs text-slate-400 block font-bold">Ranking</span>
+                      <span className="font-black text-white font-mono text-sm">#{stats.currentRank}</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block font-bold">Efectividad</span>
-                      <span className="font-black text-emerald-400 font-mono">{stats.winRatePercentage}%</span>
+                      <span className="text-xs text-slate-400 block font-bold">Efectividad</span>
+                      <span className="font-black text-emerald-400 font-mono text-sm">{stats.winRatePercentage}%</span>
                     </div>
                     <div>
-                      <span className="text-[10px] text-slate-500 block font-bold">Puntos</span>
-                      <span className="font-black text-blue-400 font-mono">{stats.totalChampionshipPoints.toFixed(3)}</span>
+                      <span className="text-xs text-slate-400 block font-bold">Puntos</span>
+                      <span className="font-black text-blue-400 font-mono text-sm">{stats.totalChampionshipPoints.toFixed(3)}</span>
                     </div>
                   </div>
                 )}
@@ -484,18 +483,18 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
               {/* Admin Actions */}
               {isAdmin && (
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-800/60 text-xs sm:text-sm">
                   {isEditing ? (
-                    <div className="flex space-x-1.5 w-full">
+                    <div className="flex space-x-2 w-full">
                       <button
                         onClick={() => handleSaveEdit(player.id)}
-                        className="flex-1 py-1 bg-emerald-500 text-black font-bold rounded text-xs"
+                        className="flex-1 py-1.5 bg-emerald-500 text-black font-black rounded-xl text-xs"
                       >
                         Guardar
                       </button>
                       <button
                         onClick={() => setEditingPlayerId(null)}
-                        className="px-2 py-1 bg-slate-800 text-slate-300 rounded text-xs"
+                        className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold"
                       >
                         Cancelar
                       </button>
@@ -506,7 +505,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                         onClick={() => handleStartEdit(player)}
                         className="text-slate-400 hover:text-white flex items-center font-bold"
                       >
-                        <Edit2 className="w-3.5 h-3.5 mr-1" /> Editar
+                        <Edit2 className="w-4 h-4 mr-1" /> Editar
                       </button>
                       <button
                         onClick={() => handleToggleActive(player.id)}
@@ -519,7 +518,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                         className="text-slate-500 hover:text-rose-400"
                         title="Eliminar jugador"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </>
                   )}
