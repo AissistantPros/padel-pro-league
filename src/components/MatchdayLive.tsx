@@ -1,0 +1,627 @@
+import React, { useState } from 'react';
+import {
+  Calendar,
+  CheckSquare,
+  Square,
+  Play,
+  CheckCircle,
+  Trophy,
+  ArrowRight,
+  Flame,
+  Plus,
+  RefreshCw,
+  Sparkles,
+  Users
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import type {
+  Player,
+  TournamentDay,
+  Match,
+  MatchScore,
+  PlayerIntelligenceStats,
+  TournamentConfig
+} from '../types/index.ts';
+import { MatchCard } from './MatchCard.tsx';
+import { ScoreModal } from './ScoreModal.tsx';
+import { generatePreliminaryRounds, generateDailyFinalRound } from '../utils/pairingEngine.ts';
+import { calculateDailyPrelimStandings, calculateDailyFinalStandings } from '../utils/intelligenceEngine.ts';
+import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
+
+interface MatchdayLiveProps {
+  days: TournamentDay[];
+  players: Player[];
+  statsList: PlayerIntelligenceStats[];
+  config: TournamentConfig;
+  isAdmin: boolean;
+  onSaveDays: (updatedDays: TournamentDay[]) => void;
+  onRequestAdmin: () => void;
+}
+
+export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
+  days,
+  players,
+  statsList,
+  config,
+  isAdmin,
+  onSaveDays,
+  onRequestAdmin,
+}) => {
+  // Select active day or default to latest
+  const [selectedDayId, setSelectedDayId] = useState<string>(
+    days.length > 0 ? days[days.length - 1].id : ''
+  );
+  const [activeRoundTab, setActiveRoundTab] = useState<number>(1); // 1, 2, 3 for prelims, 99 for prelim table, 4 for final
+  const [activeScoreMatch, setActiveScoreMatch] = useState<Match | null>(null);
+
+  // Check-in state for new day creation
+  const [isCreatingNewDay, setIsCreatingNewDay] = useState(false);
+  const [newDayName, setNewDayName] = useState(`Jornada ${days.length + 1}`);
+  const [newDayDate, setNewDayDate] = useState(new Date().toISOString().split('T')[0]);
+  const [checkedInIds, setCheckedInIds] = useState<string[]>(players.map(p => p.id));
+
+  const currentDay = days.find(d => d.id === selectedDayId) || days[days.length - 1];
+
+  const handleToggleCheckin = (playerId: string) => {
+    setCheckedInIds(prev =>
+      prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
+    );
+  };
+
+  const handleSelectAllPlayers = () => {
+    setCheckedInIds(players.map(p => p.id));
+  };
+
+  // Start new matchday
+  const handleStartNewDay = () => {
+    if (checkedInIds.length % 4 !== 0 || checkedInIds.length < 4) {
+      alert(`Por favor confirma un número de jugadores múltiplo de 4 (ej. 8, 12, 16). Seleccionados actualmente: ${checkedInIds.length}`);
+      return;
+    }
+
+    const dayId = `jornada_${Date.now()}`;
+    const participatingPlayers = players.filter(p => checkedInIds.includes(p.id));
+    const isFirstDay = days.length === 0;
+
+    // Use current ranking order
+    const rankingMap = new Map<string, number>(
+      statsList.map(s => [s.playerId, s.currentRank || 16])
+    );
+
+    const rounds = generatePreliminaryRounds(
+      dayId,
+      participatingPlayers,
+      isFirstDay,
+      rankingMap,
+      config.courtNames
+    );
+
+    const newDay: TournamentDay = {
+      id: dayId,
+      name: newDayName,
+      date: newDayDate,
+      status: 'preliminaries',
+      checkedInPlayerIds: checkedInIds,
+      rounds,
+      prelimStandings: [],
+      finalStandings: [],
+      createdAt: new Date().toISOString(),
+    };
+
+    const updated = [...days, newDay];
+    onSaveDays(updated);
+    setSelectedDayId(dayId);
+    setIsCreatingNewDay(false);
+    setActiveRoundTab(1);
+  };
+
+  // Save match score
+  const handleSaveMatchScore = (matchId: string, score: MatchScore) => {
+    if (!currentDay) return;
+
+    const updatedRounds = currentDay.rounds.map(round => {
+      const matchIndex = round.matches.findIndex(m => m.id === matchId);
+      if (matchIndex === -1) return round;
+
+      const updatedMatches = [...round.matches];
+      updatedMatches[matchIndex] = {
+        ...updatedMatches[matchIndex],
+        score,
+        completedAt: new Date().toISOString(),
+      };
+
+      const allMatchesCompleted = updatedMatches.every(m => m.score.completed);
+
+      return {
+        ...round,
+        matches: updatedMatches,
+        isCompleted: allMatchesCompleted,
+      };
+    });
+
+    // Recompute preliminary standings
+    const prelimMatches = updatedRounds
+      .filter(r => r.roundNumber <= 3)
+      .flatMap(r => r.matches);
+    
+    const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
+    const newPrelimStandings = calculateDailyPrelimStandings(participatingPlayers, prelimMatches);
+
+    // If final round exists, recompute final standings
+    const finalRound = updatedRounds.find(r => r.roundNumber === 4);
+    const newFinalStandings = finalRound
+      ? calculateDailyFinalStandings(newPrelimStandings, finalRound.matches)
+      : currentDay.finalStandings;
+
+    const updatedDay: TournamentDay = {
+      ...currentDay,
+      rounds: updatedRounds,
+      prelimStandings: newPrelimStandings,
+      finalStandings: newFinalStandings,
+    };
+
+    const updatedDays = days.map(d => (d.id === currentDay.id ? updatedDay : d));
+    onSaveDays(updatedDays);
+  };
+
+  // Generate Daily Finals (Round 4) after 3 preliminary rounds
+  const handleGenerateDailyFinals = () => {
+    if (!currentDay) return;
+
+    const prelimMatches = currentDay.rounds
+      .filter(r => r.roundNumber <= 3)
+      .flatMap(r => r.matches);
+
+    const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
+    const prelimStandings = calculateDailyPrelimStandings(participatingPlayers, prelimMatches);
+
+    const finalRound = generateDailyFinalRound(
+      currentDay.id,
+      prelimStandings,
+      config.courtNames
+    );
+
+    // Keep rounds 1,2,3 and append/replace round 4
+    const existingRounds = currentDay.rounds.filter(r => r.roundNumber <= 3);
+    const updatedRounds = [...existingRounds, finalRound];
+
+    const updatedDay: TournamentDay = {
+      ...currentDay,
+      status: 'finals',
+      rounds: updatedRounds,
+      prelimStandings,
+    };
+
+    const updatedDays = days.map(d => (d.id === currentDay.id ? updatedDay : d));
+    onSaveDays(updatedDays);
+    setActiveRoundTab(4);
+  };
+
+  // Complete and Close Matchday
+  const handleCompleteDay = () => {
+    if (!currentDay) return;
+
+    const finalRound = currentDay.rounds.find(r => r.roundNumber === 4);
+    if (!finalRound || !finalRound.matches.every(m => m.score.completed)) {
+      alert('Por favor completa todos los marcadores de las Finales del Día antes de cerrar la jornada.');
+      return;
+    }
+
+    const finalStandings = calculateDailyFinalStandings(currentDay.prelimStandings, finalRound.matches);
+
+    const updatedDay: TournamentDay = {
+      ...currentDay,
+      status: 'completed',
+      finalStandings,
+      completedAt: new Date().toISOString(),
+    };
+
+    const updatedDays = days.map(d => (d.id === currentDay.id ? updatedDay : d));
+    onSaveDays(updatedDays);
+
+    // Confetti celebration!
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.6 },
+    });
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Matchday Header & Switcher */}
+      <div className="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center space-x-3">
+            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
+              <Calendar className="w-5 h-5" />
+            </span>
+            <div>
+              <h2 className="text-xl sm:text-2xl font-bold font-display text-white">
+                {currentDay ? currentDay.name : 'Gestión de Jornada'}
+              </h2>
+              <div className="text-xs text-slate-400 flex items-center space-x-2 mt-0.5">
+                <span>{currentDay ? currentDay.date : ''}</span>
+                {currentDay && (
+                  <>
+                    <span>•</span>
+                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                      currentDay.status === 'completed'
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : currentDay.status === 'finals'
+                        ? 'bg-amber-500/20 text-amber-300'
+                        : 'bg-blue-500/20 text-blue-400'
+                    }`}>
+                      {currentDay.status === 'completed' ? 'Completada' : currentDay.status === 'finals' ? 'Fase Final' : 'Juegos Preliminares'}
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Day Selector & New Day Trigger */}
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+          {days.length > 0 && (
+            <select
+              value={selectedDayId}
+              onChange={(e) => {
+                setSelectedDayId(e.target.value);
+                setIsCreatingNewDay(false);
+              }}
+              className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:border-emerald-500"
+            >
+              {days.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name} ({d.date})
+                </option>
+              ))}
+            </select>
+          )}
+
+          {isAdmin && (
+            <button
+              onClick={() => {
+                setIsCreatingNewDay(!isCreatingNewDay);
+                setCheckedInIds(players.map(p => p.id));
+              }}
+              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm shadow-neon flex items-center transition-all"
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              Nueva Fecha
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* New Day Creation Form / Check-in Modal */}
+      {isCreatingNewDay && (
+        <div className="glass-panel-neon p-5 sm:p-6 rounded-2xl space-y-5 animate-fade-in border border-emerald-500/40">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Users className="w-5 h-5 text-emerald-400" />
+              <h3 className="text-lg font-bold text-white">Confirmar Asistencia y Crear Jornada</h3>
+            </div>
+            <button
+              onClick={() => setIsCreatingNewDay(false)}
+              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg"
+            >
+              Cancelar
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">Nombre de la Fecha</label>
+              <input
+                type="text"
+                value={newDayName}
+                onChange={(e) => setNewDayName(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-slate-400 block mb-1">Fecha</label>
+              <input
+                type="date"
+                value={newDayDate}
+                onChange={(e) => setNewDayDate(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+              />
+            </div>
+          </div>
+
+          {/* Player Check-in Selector */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-300">
+                Jugadores Confirmados ({checkedInIds.length} seleccionados - Ideal 16)
+              </span>
+              <button
+                type="button"
+                onClick={handleSelectAllPlayers}
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
+              >
+                Seleccionar Todos
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto p-2 bg-slate-950/70 rounded-xl border border-slate-800">
+              {players.map((p) => {
+                const isChecked = checkedInIds.includes(p.id);
+                return (
+                  <div
+                    key={p.id}
+                    onClick={() => handleToggleCheckin(p.id)}
+                    className={`flex items-center p-2 rounded-lg cursor-pointer transition-all border ${
+                      isChecked
+                        ? 'bg-emerald-500/20 border-emerald-500/40 text-white'
+                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                    }`}
+                  >
+                    {isChecked ? (
+                      <CheckSquare className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
+                    ) : (
+                      <Square className="w-4 h-4 mr-2 text-slate-600 flex-shrink-0" />
+                    )}
+                    <span className="text-xs font-medium truncate">{p.name}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
+            <span className="font-semibold text-emerald-400 block">✨ Regla de Oro de Emparejamientos:</span>
+            <p>
+              El algoritmo sorteará las parejas dividiendo a los 16 jugadores en <strong>Bombo 1 (Top 8)</strong> y <strong>Bombo 2 (Bottom 8)</strong>. Los primeros 8 del ranking <strong>NUNCA</strong> serán pareja entre ellos en los 3 juegos preliminares.
+            </p>
+          </div>
+
+          <button
+            onClick={handleStartNewDay}
+            className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm shadow-neon flex items-center justify-center transition-all"
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Generar Emparejamientos y Comenzar Fecha
+          </button>
+        </div>
+      )}
+
+      {/* Main Active Day Rounds & Tabs */}
+      {currentDay && (
+        <div className="space-y-5">
+          {/* Round Selector Tabs */}
+          <div className="flex space-x-2 overflow-x-auto pb-1 scrollbar-none">
+            {[1, 2, 3].map((rNum) => {
+              const r = currentDay.rounds.find(round => round.roundNumber === rNum);
+              const isDone = r?.isCompleted;
+
+              return (
+                <button
+                  key={rNum}
+                  onClick={() => setActiveRoundTab(rNum)}
+                  className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+                    activeRoundTab === rNum
+                      ? 'bg-emerald-500 text-black border-emerald-400 shadow-neon'
+                      : isDone
+                      ? 'bg-slate-900 text-slate-200 border-slate-700 hover:bg-slate-800'
+                      : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800'
+                  }`}
+                >
+                  {isDone && <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />}
+                  Juego Corto {rNum}
+                </button>
+              );
+            })}
+
+            {/* Preliminary Standings Tab */}
+            <button
+              onClick={() => setActiveRoundTab(99)}
+              className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+                activeRoundTab === 99
+                  ? 'bg-blue-600 text-white border-blue-500 shadow-blue-glow'
+                  : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              <Trophy className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+              Tabla Preliminar (1-16)
+            </button>
+
+            {/* Daily Final Round Tab */}
+            <button
+              onClick={() => setActiveRoundTab(4)}
+              className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+                activeRoundTab === 4
+                  ? 'bg-amber-500 text-black border-amber-400 shadow-gold-glow'
+                  : 'bg-slate-900 text-amber-300 border-amber-500/30 hover:bg-slate-800'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 mr-1.5" />
+              Finales del Día (Juego 4)
+            </button>
+          </div>
+
+          {/* Preliminary Round Matches (1, 2, or 3) */}
+          {[1, 2, 3].includes(activeRoundTab) && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-white flex items-center">
+                  <span>Juego Corto #{activeRoundTab} - Mejor de 7 games</span>
+                </h3>
+                <span className="text-xs text-slate-400">
+                  4 Canchas en simultáneo • Rotación de parejas
+                </span>
+              </div>
+
+              {/* Grid of 4 Courts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentDay.rounds
+                  .find(r => r.roundNumber === activeRoundTab)
+                  ?.matches.map(match => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      isAdmin={isAdmin}
+                      onOpenScoreModal={(m) => setActiveScoreMatch(m)}
+                      statsList={statsList}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Intermediate Daily Standings View (Tab 99) */}
+          {activeRoundTab === 99 && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center">
+                    <Trophy className="w-5 h-5 mr-2 text-amber-400" />
+                    Posiciones de la Jornada (Tras 3 Juegos Cortos)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Ordenados por suma de games ganados + margen decimal + récord 3-0. Estos lugares definen los cruces de la Final.
+                  </p>
+                </div>
+
+                {isAdmin && (
+                  <button
+                    onClick={handleGenerateDailyFinals}
+                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm shadow-gold-glow flex items-center transition-all"
+                  >
+                    <Flame className="w-4 h-4 mr-1.5" />
+                    Generar Cruces de Finales (1&4 vs 2&3...)
+                  </button>
+                )}
+              </div>
+
+              {/* Prelim Standings Table */}
+              <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-900 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800">
+                      <th className="py-3 px-4 text-center">Pos</th>
+                      <th className="py-3 px-4">Jugador</th>
+                      <th className="py-3 px-3 text-center">PJ</th>
+                      <th className="py-3 px-3 text-center">V - D</th>
+                      <th className="py-3 px-3 text-center">Games Base</th>
+                      <th className="py-3 px-3 text-center">Bono Margen</th>
+                      <th className="py-3 px-3 text-center">Bono Récord</th>
+                      <th className="py-3 px-4 text-right">Puntaje Preliminar</th>
+                      <th className="py-3 px-4 text-center">Cancha Final Asignada</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800 text-sm">
+                    {currentDay.prelimStandings.map((s) => {
+                      let courtBadge = '';
+                      if (s.prelimRank <= 4) courtBadge = 'Cancha 1 (Oro: 1º-4º)';
+                      else if (s.prelimRank <= 8) courtBadge = 'Cancha 2 (Plata: 5º-8º)';
+                      else if (s.prelimRank <= 12) courtBadge = 'Cancha 3 (Bronce: 9º-12º)';
+                      else courtBadge = 'Cancha 4 (Cobre: 13º-16º)';
+
+                      return (
+                        <tr key={s.playerId} className="hover:bg-slate-800/30">
+                          <td className="py-3 px-4 text-center font-bold font-display">
+                            #{s.prelimRank}
+                          </td>
+                          <td className="py-3 px-4 font-bold text-white">
+                            {s.playerName}
+                          </td>
+                          <td className="py-3 px-3 text-center text-slate-300">{s.matchesPlayed}</td>
+                          <td className="py-3 px-3 text-center font-mono text-xs text-slate-300">
+                            {s.matchesWon}V - {s.matchesLost}D
+                          </td>
+                          <td className="py-3 px-3 text-center font-bold text-slate-200">
+                            {s.basePoints} pts
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono text-xs">
+                            <span className={s.marginBonus >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                              {s.marginBonus >= 0 ? `+${s.marginBonus.toFixed(3)}` : s.marginBonus.toFixed(3)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 text-center font-mono text-xs">
+                            <span className={s.roundRecordBonus >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                              {s.roundRecordBonus >= 0 ? `+${s.roundRecordBonus.toFixed(3)}` : s.roundRecordBonus.toFixed(3)}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">
+                            {formatScoreDisplay(s.prelimTotalScore)}
+                          </td>
+                          <td className="py-3 px-4 text-center">
+                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                              s.prelimRank <= 4
+                                ? 'bg-amber-500/20 text-amber-300'
+                                : s.prelimRank <= 8
+                                ? 'bg-slate-400/20 text-slate-300'
+                                : s.prelimRank <= 12
+                                ? 'bg-amber-700/20 text-amber-400'
+                                : 'bg-orange-600/20 text-orange-300'
+                            }`}>
+                              {courtBadge}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Daily Final Round (Round 4) */}
+          {activeRoundTab === 4 && (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+                <div>
+                  <h3 className="text-lg font-bold text-white flex items-center">
+                    <Flame className="w-5 h-5 mr-2 text-amber-400" />
+                    Finales del Día (Juego 4)
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    1 y 4 vs 2 y 3 (Oro) • 5 y 8 vs 6 y 7 (Plata) • 9 y 12 vs 10 y 11 (Bronce) • 13 y 16 vs 14 y 15 (Cobre)
+                  </p>
+                </div>
+
+                {isAdmin && currentDay.status !== 'completed' && (
+                  <button
+                    onClick={handleCompleteDay}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold text-xs sm:text-sm shadow-neon flex items-center transition-all"
+                  >
+                    <CheckCircle className="w-4 h-4 mr-1.5" />
+                    Cerrar y Guardar Jornada
+                  </button>
+                )}
+              </div>
+
+              {/* Grid of 4 Final Courts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {currentDay.rounds
+                  .find(r => r.roundNumber === 4)
+                  ?.matches.map(match => (
+                    <MatchCard
+                      key={match.id}
+                      match={match}
+                      isAdmin={isAdmin}
+                      onOpenScoreModal={(m) => setActiveScoreMatch(m)}
+                      statsList={statsList}
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Score Modal */}
+      <ScoreModal
+        match={activeScoreMatch}
+        isOpen={!!activeScoreMatch}
+        onClose={() => setActiveScoreMatch(null)}
+        onSaveScore={handleSaveMatchScore}
+      />
+    </div>
+  );
+};
