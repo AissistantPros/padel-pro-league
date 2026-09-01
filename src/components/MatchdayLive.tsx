@@ -12,8 +12,11 @@ import {
   RefreshCw,
   Sparkles,
   Users,
-  ShieldCheck,
-  Beer
+  Search,
+  Zap,
+  Dice5,
+  SlidersHorizontal,
+  Check
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type {
@@ -55,45 +58,80 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
   const [activeRoundTab, setActiveRoundTab] = useState<number>(1);
   const [activeScoreMatch, setActiveScoreMatch] = useState<Match | null>(null);
 
-  // Check-in state for new day creation
+  // New Date Wizard State
   const [isCreatingNewDay, setIsCreatingNewDay] = useState(false);
+  const [targetPlayerCount, setTargetPlayerCount] = useState<number>(16);
   const [newDayName, setNewDayName] = useState(`Fecha G20 #${days.length + 1}`);
   const [newDayDate, setNewDayDate] = useState(new Date().toISOString().split('T')[0]);
-  const [checkedInIds, setCheckedInIds] = useState<string[]>(players.map(p => p.id));
+  const [checkedInIds, setCheckedInIds] = useState<string[]>([]);
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
+  const [pairingMode, setPairingMode] = useState<'ranking' | 'random'>('ranking');
 
-  const currentDay = days.find(d => d.id === selectedDayId) || days[days.length - 1];
+  const currentDay = days.find(d => d.id === selectedDayId) || (days.length > 0 ? days[days.length - 1] : null);
+
+  const handleOpenWizard = () => {
+    setIsCreatingNewDay(true);
+    setNewDayName(`Fecha G20 #${days.length + 1}`);
+    setNewDayDate(new Date().toISOString().split('T')[0]);
+
+    // Default target count: 16 if available, or closest multiple of 4
+    const available = players.filter(p => p.isActive).length;
+    let defCount = 16;
+    if (available < 16 && available >= 12) defCount = 12;
+    else if (available < 12 && available >= 8) defCount = 8;
+    else if (available < 8 && available >= 4) defCount = 4;
+    setTargetPlayerCount(defCount);
+
+    // Auto check top N players by default
+    const active = players.filter(p => p.isActive).slice(0, defCount);
+    setCheckedInIds(active.map(p => p.id));
+    setPairingMode(statsList.some(s => s.totalMatchesPlayed > 0) ? 'ranking' : 'random');
+  };
 
   const handleToggleCheckin = (playerId: string) => {
-    setCheckedInIds(prev =>
-      prev.includes(playerId) ? prev.filter(id => id !== playerId) : [...prev, playerId]
-    );
+    setCheckedInIds(prev => {
+      if (prev.includes(playerId)) {
+        return prev.filter(id => id !== playerId);
+      } else {
+        if (prev.length >= targetPlayerCount) {
+          return prev;
+        }
+        return [...prev, playerId];
+      }
+    });
   };
 
-  const handleSelectAllPlayers = () => {
-    setCheckedInIds(players.map(p => p.id));
+  const handleSelectTopByRanking = () => {
+    // Sort players by global stats rank
+    const sorted = [...players].sort((a, b) => {
+      const stA = statsList.find(s => s.playerId === a.id)?.currentRank ?? 999;
+      const stB = statsList.find(s => s.playerId === b.id)?.currentRank ?? 999;
+      return stA - stB;
+    });
+    setCheckedInIds(sorted.slice(0, targetPlayerCount).map(p => p.id));
   };
 
-  // Start new matchday with equal sum balancing
+  // Start new matchday
   const handleStartNewDay = () => {
-    if (checkedInIds.length % 4 !== 0 || checkedInIds.length < 4) {
-      alert(`Se requiere un múltiplo de 4 jugadores (ej. 8, 12, 16). Seleccionados: ${checkedInIds.length}`);
+    if (checkedInIds.length !== targetPlayerCount) {
+      alert(`Debes seleccionar exactamente ${targetPlayerCount} jugadores. Actualmente tienes ${checkedInIds.length}.`);
       return;
     }
 
     const dayId = `jornada_${Date.now()}`;
     const participatingPlayers = players.filter(p => checkedInIds.includes(p.id));
-    const isFirstDay = days.length === 0;
+    const isRandom = pairingMode === 'random';
 
-    // Use current ranking points for exact parity optimization
+    // Build ranking order map
     const rankingMap = new Map<string, number>(
-      statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (17 - (s.currentRank || 16)) * 4])
+      statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (50 - (s.currentRank || 20)) * 2])
     );
 
     const rounds = generatePreliminaryRounds(
       dayId,
       participatingPlayers,
-      isFirstDay,
-      rankingMap,
+      isRandom,
+      isRandom ? undefined : rankingMap,
       config.courtNames
     );
 
@@ -201,7 +239,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
     const finalRound = currentDay.rounds.find(r => r.roundNumber === 4);
     if (!finalRound || !finalRound.matches.every(m => m.score.completed)) {
-      alert('Completa todos los marcadores de las 4 Finales antes de cerrar la fecha.');
+      alert('Completa todos los marcadores de las Finales antes de cerrar la fecha.');
       return;
     }
 
@@ -224,6 +262,12 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     });
   };
 
+  const filteredPlayers = players.filter(p => {
+    if (!playerSearchQuery.trim()) return true;
+    const q = playerSearchQuery.toLowerCase();
+    return p.name.toLowerCase().includes(q) || (p.nickname && p.nickname.toLowerCase().includes(q));
+  });
+
   return (
     <div className="space-y-6">
       {/* Top Matchday Header & Switcher */}
@@ -242,6 +286,10 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 {currentDay && (
                   <>
                     <span>•</span>
+                    <span className="text-slate-300 font-bold">
+                      {currentDay.checkedInPlayerIds.length} Jugadores ({Math.floor(currentDay.checkedInPlayerIds.length / 4)} Canchas)
+                    </span>
+                    <span>•</span>
                     <span className={`px-2.5 py-0.5 rounded-full font-black uppercase text-[10px] ${
                       currentDay.status === 'completed'
                         ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
@@ -258,7 +306,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           </div>
         </div>
 
-        {/* Day Selector & New Day Trigger */}
+        {/* Day Selector & Action Buttons */}
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           {days.length > 0 && (
             <select
@@ -271,7 +319,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
             >
               {days.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.name} ({d.date})
+                  {d.name} ({d.date}) - {d.checkedInPlayerIds.length} Jugadores
                 </option>
               ))}
             </select>
@@ -283,7 +331,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 if (confirm('¿Regenerar los 3 juegos preliminares de esta fecha con el optimizador de máximo equilibrio 50-50?')) {
                   const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
                   const rankingMap = new Map<string, number>(
-                    statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (17 - (s.currentRank || 16)) * 4])
+                    statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (50 - (s.currentRank || 20)) * 2])
                   );
                   const rounds = generatePreliminaryRounds(
                     currentDay.id,
@@ -304,16 +352,13 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 font-extrabold text-xs sm:text-sm border border-slate-700 flex items-center transition-all"
             >
               <RefreshCw className="w-4 h-4 mr-1.5" />
-              Reequilibrar Cruces (50-50)
+              Reequilibrar (50-50)
             </button>
           )}
 
           {isAdmin && (
             <button
-              onClick={() => {
-                setIsCreatingNewDay(!isCreatingNewDay);
-                setCheckedInIds(players.map(p => p.id));
-              }}
+              onClick={handleOpenWizard}
               className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
             >
               <Plus className="w-4 h-4 mr-1.5" />
@@ -323,30 +368,67 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
         </div>
       </div>
 
-      {/* New Day Creation Form / Check-in Modal */}
+      {/* Step-by-Step New Day Creation Wizard */}
       {isCreatingNewDay && (
-        <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-5 animate-fade-in border-2 border-emerald-500/40">
+        <div className="glass-panel-neon p-5 sm:p-7 rounded-3xl space-y-6 animate-fade-in border-2 border-emerald-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <div className="flex items-center space-x-2">
-              <Users className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-lg font-black text-white">Check-in de Asistencia y Emparejamiento Parejo</h3>
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500 text-black flex items-center justify-center font-black text-sm">
+                +
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-white">Programar Nueva Fecha del G20</h3>
             </div>
             <button
               onClick={() => setIsCreatingNewDay(false)}
-              className="text-xs font-bold text-slate-400 hover:text-white px-2.5 py-1 bg-slate-800 rounded-lg"
+              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 rounded-xl"
             >
               Cancelar
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* PASO 1: ¿Cuántos jugadores van a jugar? */}
+          <div className="space-y-2.5">
+            <label className="text-xs font-black uppercase text-emerald-400 tracking-wider flex items-center">
+              Paso 1: ¿Cuántos jugadores van a participar en esta fecha?
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+              {[4, 8, 12, 16, 20].map((num) => {
+                const courts = num / 4;
+                const isSelected = targetPlayerCount === num;
+                return (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => {
+                      setTargetPlayerCount(num);
+                      // Auto adjust selection if needed
+                      if (checkedInIds.length > num) {
+                        setCheckedInIds(checkedInIds.slice(0, num));
+                      }
+                    }}
+                    className={`p-3.5 rounded-2xl text-center transition-all border ${
+                      isSelected
+                        ? 'bg-emerald-500 text-black border-emerald-400 shadow-neon font-black scale-105'
+                        : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                    }`}
+                  >
+                    <div className="text-xl sm:text-2xl font-black font-display">{num} Jugadores</div>
+                    <div className="text-[11px] opacity-80 font-bold">{courts} {courts === 1 ? 'Cancha' : 'Canchas'}</div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Fecha y Nombre Inputs */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-bold text-slate-300 block mb-1">Nombre de la Fecha</label>
               <input
                 type="text"
                 value={newDayName}
                 onChange={(e) => setNewDayName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
@@ -355,64 +437,142 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 type="date"
                 value={newDayDate}
                 onChange={(e) => setNewDayDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
 
-          {/* Player Check-in Selector */}
+          {/* PASO 2: Selección de Jugadores con Buscador */}
           <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-black text-slate-300">
-                Jugadores Confirmados ({checkedInIds.length} seleccionados - Múltiplo de 4)
-              </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center space-x-2">
+                <label className="text-xs font-black uppercase text-cyan-400 tracking-wider">
+                  Paso 2: Elegir a los {targetPlayerCount} Participantes
+                </label>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
+                  checkedInIds.length === targetPlayerCount
+                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                }`}>
+                  {checkedInIds.length} / {targetPlayerCount} Seleccionados
+                </span>
+              </div>
+
               <button
                 type="button"
-                onClick={handleSelectAllPlayers}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-extrabold"
+                onClick={handleSelectTopByRanking}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-extrabold flex items-center bg-slate-900 px-3 py-1.5 rounded-xl border border-slate-800"
               >
-                Seleccionar Todos
+                <Zap className="w-3.5 h-3.5 mr-1" />
+                Auto-seleccionar Top {targetPlayerCount} del Ranking
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2.5 bg-slate-950 rounded-2xl border border-slate-800">
-              {players.map((p) => {
+            {/* Search filter for large roster (50+ players) */}
+            <div className="relative">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="text"
+                value={playerSearchQuery}
+                onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                placeholder="Buscar jugador por nombre o apodo..."
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white focus:border-cyan-400 focus:outline-none"
+              />
+            </div>
+
+            {/* Players Selection Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-3 bg-slate-950 rounded-2xl border border-slate-800">
+              {filteredPlayers.map((p) => {
                 const isChecked = checkedInIds.includes(p.id);
+                const st = statsList.find(s => s.playerId === p.id);
                 return (
                   <div
                     key={p.id}
                     onClick={() => handleToggleCheckin(p.id)}
-                    className={`flex items-center p-2.5 rounded-xl cursor-pointer transition-all border ${
+                    className={`flex items-center justify-between p-2.5 rounded-xl cursor-pointer transition-all border ${
                       isChecked
-                        ? 'bg-emerald-500/20 border-emerald-500/50 text-white font-bold'
+                        ? 'bg-emerald-500/20 border-emerald-500/60 text-white font-bold'
                         : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                     }`}
                   >
-                    {isChecked ? (
-                      <CheckSquare className="w-4 h-4 mr-2 text-emerald-400 flex-shrink-0" />
-                    ) : (
-                      <Square className="w-4 h-4 mr-2 text-slate-600 flex-shrink-0" />
+                    <div className="flex items-center space-x-2 truncate">
+                      {isChecked ? (
+                        <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                      ) : (
+                        <Square className="w-4 h-4 text-slate-600 flex-shrink-0" />
+                      )}
+                      <div className="truncate text-xs">
+                        <span className="block truncate font-bold text-white">{p.name}</span>
+                        {p.nickname && <span className="text-[10px] text-slate-400 italic">"{p.nickname}"</span>}
+                      </div>
+                    </div>
+                    {st && st.currentRank && (
+                      <span className="text-[10px] font-mono text-emerald-400 font-black pl-1">
+                        #{st.currentRank}
+                      </span>
                     )}
-                    <span className="text-xs font-semibold truncate">{p.name}</span>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="p-3.5 bg-slate-900 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1">
-            <span className="font-extrabold text-emerald-400 block">⚖️ Algoritmo de Emparejamiento Parejo:</span>
-            <p>
-              Divide a los jugadores en <strong>Bombo 1 (Top 8)</strong> y <strong>Bombo 2 (Bottom 8)</strong> según la tabla anterior. Los Top 8 nunca jugarán juntos en los 3 juegos preliminares, y las sumas de ranking entre duplas rivales son exactamente iguales (ej. 1+16 vs 8+9).
-            </p>
+          {/* PASO 3: Criterio de Emparejamiento */}
+          <div className="space-y-2 pt-2 border-t border-slate-800">
+            <label className="text-xs font-black uppercase text-amber-400 tracking-wider">
+              Paso 3: Criterio de Emparejamiento para los 3 Juegos Cortos
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div
+                onClick={() => setPairingMode('ranking')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  pairingMode === 'ranking'
+                    ? 'bg-emerald-500/15 border-emerald-500/50 text-white'
+                    : 'bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-emerald-400" />
+                  <span className="font-extrabold text-xs text-emerald-400">Por Ranking Global / Histórico (50-50)</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Usa los puntos y nivel de cada jugador para garantizar que las duplas y los 4 partidos sean parejos y competitivos.
+                </p>
+              </div>
+
+              <div
+                onClick={() => setPairingMode('random')}
+                className={`p-3.5 rounded-2xl border cursor-pointer transition-all ${
+                  pairingMode === 'random'
+                    ? 'bg-blue-500/15 border-blue-500/50 text-white'
+                    : 'bg-slate-900/70 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <Dice5 className="w-4 h-4 text-blue-400" />
+                  <span className="font-extrabold text-xs text-blue-400">Sorteo al Azar Puro</span>
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  Ideal si es el primerísimo día de un nuevo torneo y quieres que la suerte determine los grupos iniciales.
+                </p>
+              </div>
+            </div>
           </div>
 
+          {/* Submit Action */}
           <button
             onClick={handleStartNewDay}
-            className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm sm:text-base shadow-neon flex items-center justify-center transition-all"
+            disabled={checkedInIds.length !== targetPlayerCount}
+            className={`w-full py-4 rounded-2xl font-black text-sm sm:text-base flex items-center justify-center transition-all ${
+              checkedInIds.length === targetPlayerCount
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-neon cursor-pointer'
+                : 'bg-slate-800 text-slate-500 cursor-not-allowed border border-slate-700'
+            }`}
           >
             <Play className="w-5 h-5 mr-2" />
-            Generar Cruces Parejos y Arrancar Fecha
+            {checkedInIds.length === targetPlayerCount
+              ? `Generar Cruces Parejos y Arrancar Fecha (${targetPlayerCount} Jugadores)`
+              : `Selecciona exactamente ${targetPlayerCount} jugadores (Llevas ${checkedInIds.length})`}
           </button>
         </div>
       )}
@@ -454,7 +614,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               }`}
             >
               <Trophy className="w-4 h-4 mr-1.5 text-amber-400" />
-              Tabla Preliminar (1-16)
+              Tabla Fecha (1-{currentDay.checkedInPlayerIds.length})
             </button>
 
             {/* Daily Final Round Tab */}
@@ -479,11 +639,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                   <span>Juego Corto #{activeRoundTab} - Al mejor de 7 games</span>
                 </h3>
                 <span className="text-xs text-slate-400 font-semibold">
-                  Parejas Equilibradas en Suma de Ranks
+                  {currentDay.checkedInPlayerIds.length} Jugadores • {Math.floor(currentDay.checkedInPlayerIds.length / 4)} Canchas
                 </span>
               </div>
 
-              {/* Grid of 4 Courts */}
+              {/* Grid of Courts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentDay.rounds
                   .find(r => r.roundNumber === activeRoundTab)
@@ -510,7 +670,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                     Tabla de la Fecha (Tras 3 Juegos Cortos)
                   </h3>
                   <p className="text-xs text-slate-300 mt-0.5">
-                    Games ganados base mandan la tabla + desempate por margen y récord. Esta tabla define las 4 Finales.
+                    Games ganados base mandan la tabla + desempate por margen y récord. Esta tabla define las Finales del día.
                   </p>
                 </div>
 
@@ -546,7 +706,8 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                       if (s.prelimRank <= 4) courtBadge = '👑 Cancha 1 (Oro: 1º-4º)';
                       else if (s.prelimRank <= 8) courtBadge = '🥈 Cancha 2 (Plata: 5º-8º)';
                       else if (s.prelimRank <= 12) courtBadge = '🥉 Cancha 3 (Bronce: 9º-12º)';
-                      else courtBadge = '🍖 Cancha 4 (Cobre: 13º-16º)';
+                      else if (s.prelimRank <= 16) courtBadge = '🍖 Cancha 4 (Cobre: 13º-16º)';
+                      else courtBadge = '🪵 Cancha 5 (Madera: 17º-20º)';
 
                       return (
                         <tr key={s.playerId} className="hover:bg-slate-800/40">
@@ -579,7 +740,9 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                                 ? 'bg-slate-400/20 text-slate-300 border border-slate-400/30'
                                 : s.prelimRank <= 12
                                 ? 'bg-amber-700/20 text-amber-400 border border-amber-700/30'
-                                : 'bg-orange-600/20 text-orange-300 border border-orange-600/30'
+                                : s.prelimRank <= 16
+                                ? 'bg-orange-600/20 text-orange-300 border border-orange-600/30'
+                                : 'bg-stone-600/20 text-stone-300 border border-stone-600/30'
                             }`}>
                               {courtBadge}
                             </span>
@@ -618,7 +781,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 )}
               </div>
 
-              {/* Grid of 4 Final Courts */}
+              {/* Grid of Final Courts */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentDay.rounds
                   .find(r => r.roundNumber === 4)

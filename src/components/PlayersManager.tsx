@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Check, X, Shield, Phone, Mail, FileText, Sparkles } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 
 interface PlayersManagerProps {
@@ -20,6 +20,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const [isAddingPlayer, setIsAddingPlayer] = useState(false);
   const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [bulkText, setBulkText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [newName, setNewName] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newPhone, setNewPhone] = useState('');
@@ -57,7 +58,6 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     if (lines.length === 0) return;
 
     const createdPlayers: Player[] = lines.map((line, idx) => {
-      // Support format "Nombre (Apodo)" or "Nombre"
       let name = line;
       let nickname: string | undefined = undefined;
 
@@ -106,6 +106,12 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     }
   };
 
+  const filteredPlayers = players.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return p.name.toLowerCase().includes(q) || (p.nickname && p.nickname.toLowerCase().includes(q));
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -118,18 +124,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             <div>
               <div className="flex items-center space-x-2">
                 <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                  Roster de Jugadores
+                  Roster General de Jugadores
                 </h2>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-black ${
-                  players.length === 16
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                }`}>
-                  {players.length} / 16 Jugadores
+                <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  {players.length} Registrados
                 </span>
               </div>
               <p className="text-xs sm:text-sm text-slate-400">
-                Inscribe a los participantes del G20. Puedes agregarlos de a uno o pegar la lista completa.
+                Base de datos de jugadores del club/liga. En cada fecha podrás seleccionar cuántos y quiénes juegan.
               </p>
             </div>
           </div>
@@ -162,12 +164,26 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         )}
       </div>
 
+      {/* Search Filter Bar */}
+      {players.length > 0 && (
+        <div className="relative">
+          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-3.5" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={`Buscar entre los ${players.length} jugadores inscritos...`}
+            className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-11 pr-4 py-3 text-xs sm:text-sm text-white focus:border-cyan-400 focus:outline-none"
+          />
+        </div>
+      )}
+
       {/* Bulk Import Modal / Form */}
       {isBulkAdding && (
         <form onSubmit={handleBulkImport} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-cyan-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-2">
             <h3 className="text-sm font-black text-cyan-300 flex items-center">
-              <FileText className="w-4 h-4 mr-1.5" /> Pegar Lista de Nombres (1 por línea)
+              <FileText className="w-4 h-4 mr-1.5" /> Pegar Lista de Nombres (Cualquier cantidad)
             </h3>
             <button
               type="button"
@@ -179,7 +195,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           </div>
 
           <p className="text-xs text-slate-300">
-            Pega aquí los nombres copiados de WhatsApp, Excel o Notas (un nombre por renglón). Opcional: puedes poner apodos entre paréntesis como <code>Juan Pérez (El Rayo)</code>.
+            Pega los nombres copiados de WhatsApp, Excel o Notas (un nombre por renglón). Opcional con apodo: <code>Juan Pérez (El Rayo)</code>.
           </p>
 
           <textarea
@@ -268,14 +284,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           <Users className="w-16 h-16 text-slate-600 mx-auto" />
           <h3 className="text-xl font-black text-white">No hay jugadores inscritos todavía</h3>
           <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            Comienza inscribiendo a los 16 jugadores de tu torneo G20. Puedes escribir uno por uno o usar el botón de <strong>"Pegar Lista Rápida"</strong> para cargarlos todos de un solo golpe.
+            Comienza inscribiendo a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y luego en cada fecha elegir quiénes asisten.
           </p>
           {isAdmin && (
             <button
               onClick={() => setIsBulkAdding(true)}
               className="px-6 py-3 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm shadow-neon inline-flex items-center"
             >
-              <FileText className="w-4 h-4 mr-2" /> Pegar Lista de 16 Jugadores
+              <FileText className="w-4 h-4 mr-2" /> Pegar Lista de Jugadores
             </button>
           )}
         </div>
@@ -283,7 +299,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
       {/* Players List Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {players.map((player) => {
+        {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
           const isEditing = editingPlayerId === player.id;
 

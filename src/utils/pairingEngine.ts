@@ -15,34 +15,44 @@ export function shuffleArray<T>(array: T[]): T[] {
   return arr;
 }
 
+const DEFAULT_COURT_NAMES = [
+  'Cancha 1 (Central Oro)',
+  'Cancha 2 (Plata)',
+  'Cancha 3 (Bronce)',
+  'Cancha 4 (Cobre)',
+  'Cancha 5 (Madera / El Asador)',
+  'Cancha 6',
+];
+
 /**
  * Intelligent Matchup Optimizer for Preliminary Rounds (1, 2, and 3):
- * 1. Top half (Top 8) NEVER pair together in rounds 1, 2, 3 (strictly 1 Top-8 + 1 Bottom-8 in every team).
+ * Works dynamically for any N players (4, 8, 12, 16, 20, etc.):
+ * 1. Top half (Top N/2) NEVER pair together in rounds 1, 2, 3 (strictly 1 Top-half + 1 Bottom-half in every team).
  * 2. NO player repeats a partner in the 3 rounds.
  * 3. Matchups between Team A and Team B are optimized to minimize point/strength differences (Delta -> 0).
- * 4. Yields the most balanced, competitive (close to 50% vs 50%) matches possible across all 4 courts.
+ * 4. Yields the most balanced, competitive (close to 50% vs 50%) matches possible across all courts.
  */
 export function generatePreliminaryRounds(
   dayId: string,
   players: Player[],
   isFirstDay: boolean = false,
   rankingOrder?: Map<string, number>, // Map of playerId -> rank (1..N) or points
-  courtNames: string[] = ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)']
+  courtNames: string[] = DEFAULT_COURT_NAMES
 ): DailyRound[] {
   const numPlayers = players.length;
 
   if (numPlayers % 4 !== 0 || numPlayers < 4) {
-    throw new Error(`Se requiere un número de jugadores múltiplo de 4 (ej. 8, 12, 16). Actual: ${numPlayers}`);
+    throw new Error(`Se requiere un número de jugadores múltiplo de 4 (ej. 4, 8, 12, 16, 20). Actual: ${numPlayers}`);
   }
 
-  // 1. Determine player ordering based on previous date rankings or random on day 1
+  // 1. Determine player ordering based on previous date/historical rankings or random on day 1
   let sortedPlayers: { player: Player; score: number; rank: number }[] = [];
 
   if (isFirstDay || !rankingOrder || rankingOrder.size === 0) {
     const shuffled = shuffleArray(players);
     sortedPlayers = shuffled.map((p, idx) => ({
       player: p,
-      score: (numPlayers - idx) * 2, // simulated gradient
+      score: (numPlayers - idx) * 2,
       rank: idx + 1,
     }));
   } else {
@@ -52,7 +62,6 @@ export function generatePreliminaryRounds(
         const val = rankingOrder.get(p.id) ?? 999;
         return {
           player: p,
-          // If value is small (rank 1..16), invert to score; if points (>16), keep points
           score: val <= numPlayers ? (numPlayers - val + 1) * 3 : val,
           rank: 0,
         };
@@ -64,9 +73,9 @@ export function generatePreliminaryRounds(
     });
   }
 
-  const half = numPlayers / 2; // 8 for 16 players
-  const topPot = sortedPlayers.slice(0, half);     // Rank 1..8
-  const bottomPot = sortedPlayers.slice(half);     // Rank 9..16
+  const half = numPlayers / 2; // e.g. 2 for 4, 4 for 8, 6 for 12, 8 for 16, 10 for 20
+  const topPot = sortedPlayers.slice(0, half);     // Rank 1..half
+  const bottomPot = sortedPlayers.slice(half);     // Rank (half+1)..N
 
   const partnerHistory = new Set<string>();
   const rounds: DailyRound[] = [];
@@ -76,7 +85,7 @@ export function generatePreliminaryRounds(
     let bestCandidateCourtMatches: { teamA: [{ player: Player; score: number }, { player: Player; score: number }]; teamB: [{ player: Player; score: number }, { player: Player; score: number }]; diff: number }[] | null = null;
     let minImbalance = Infinity;
 
-    // Search through all candidate pairings of Top 8 + Bottom 8
+    // Search through candidate pairings of Top Half + Bottom Half
     const permutationsToTry: { player: Player; score: number; rank: number }[][] = [];
 
     // Deterministic rotated permutations
@@ -97,7 +106,8 @@ export function generatePreliminaryRounds(
     }
 
     // Randomized search to find absolute global minimum variance
-    for (let trial = 0; trial < 1500; trial++) {
+    const searchIterations = numPlayers <= 8 ? 200 : 1500;
+    for (let trial = 0; trial < searchIterations; trial++) {
       const shuffled = [...bottomPot];
       for (let i = shuffled.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -123,7 +133,7 @@ export function generatePreliminaryRounds(
 
       if (!valid) continue;
 
-      // Group into 4 courts that maximize parity (Team A vs Team B)
+      // Group into courts that maximize parity (Team A vs Team B)
       const pairsWithStrength = candidatePairs.map(p => ({
         top: p[0],
         bot: p[1],
@@ -159,9 +169,9 @@ export function generatePreliminaryRounds(
       // Fallback
       bestCandidateCourtMatches = [];
       for (let c = 0; c < courtsPerRound; c++) {
-        const topA = topPot[c];
+        const topA = topPot[c % half];
         const botA = bottomPot[(half - 1 - c + r) % half];
-        const topB = topPot[half - 1 - c];
+        const topB = topPot[(half - 1 - c + half) % half];
         const botB = bottomPot[(c + r) % half];
         bestCandidateCourtMatches.push({
           teamA: [topA, botA],
@@ -216,19 +226,19 @@ export function generatePreliminaryRounds(
 }
 
 /**
- * Generates Round 4 (Daily Finals) based on the preliminary standings (1 to 16):
- * Cancha 1 (Final Oro): 1 y 4 vs 2 y 3
- * Cancha 2 (Final Plata): 5 y 8 vs 6 y 7
- * Cancha 3 (Final Bronce): 9 y 12 vs 10 y 11
- * Cancha 4 (Final Cobre / El Asador): 13 y 16 vs 14 y 15
+ * Generates Round 4 (Daily Finals) dynamically based on daily preliminary standings (for any N = 4, 8, 12, 16, 20):
+ * Court 1 (Final Oro): 1 y 4 vs 2 y 3
+ * Court 2 (Final Plata): 5 y 8 vs 6 y 7
+ * Court 3 (Final Bronce): 9 y 12 vs 10 y 11
+ * Court 4 (Final Cobre): 13 y 16 vs 14 y 15
+ * Court 5 (Final Madera / Asador): 17 y 20 vs 18 y 19
  */
 export function generateDailyFinalRound(
   dayId: string,
   prelimStandings: DailyPlayerStanding[],
-  courtNames: string[] = ['Cancha 1 (Oro - Corona)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)']
+  courtNames: string[] = DEFAULT_COURT_NAMES
 ): DailyRound {
   const sorted = [...prelimStandings].sort((a, b) => {
-    // Primary: Total Points (Games + Decimals). Base games rule, decimals break ties!
     if (b.totalDailyScore !== a.totalDailyScore) {
       return b.totalDailyScore - a.totalDailyScore;
     }
@@ -242,14 +252,14 @@ export function generateDailyFinalRound(
   const courts = Math.floor(numPlayers / 4);
 
   const matches: Match[] = [];
-  const categories = ['gold', 'silver', 'bronze', 'copper'] as const;
+  const categories = ['gold', 'silver', 'bronze', 'copper', 'wood'] as const;
 
   for (let c = 0; c < courts; c++) {
     const baseIdx = c * 4;
-    const p1 = sorted[baseIdx + 0]; // 1, 5, 9, 13
-    const p2 = sorted[baseIdx + 1]; // 2, 6, 10, 14
-    const p3 = sorted[baseIdx + 2]; // 3, 7, 11, 15
-    const p4 = sorted[baseIdx + 3]; // 4, 8, 12, 16
+    const p1 = sorted[baseIdx + 0]; // 1, 5, 9, 13, 17
+    const p2 = sorted[baseIdx + 1]; // 2, 6, 10, 14, 18
+    const p3 = sorted[baseIdx + 2]; // 3, 7, 11, 15, 19
+    const p4 = sorted[baseIdx + 3]; // 4, 8, 12, 16, 20
 
     const courtName = courtNames[c] || `Cancha ${c + 1}`;
     const finalCategory = categories[c % categories.length];
@@ -261,7 +271,7 @@ export function generateDailyFinalRound(
       courtNumber: c + 1,
       courtName,
       matchType: 'daily_final',
-      finalCategory,
+      finalCategory: finalCategory as any,
       teamA: {
         player1Id: p1.playerId,
         player1Name: p1.playerName,
