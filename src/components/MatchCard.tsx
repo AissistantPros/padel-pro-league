@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trophy, Clock, Zap, Edit3, Flame, CheckCircle2 } from 'lucide-react';
+import { Trophy, Clock, Zap, Edit3, Flame, CheckCircle2, Swords } from 'lucide-react';
 import type { Match, PlayerIntelligenceStats } from '../types/index.ts';
 import { predictMatchWinProbability } from '../utils/intelligenceEngine.ts';
 
@@ -30,26 +30,26 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   const getCategoryBadge = () => {
     switch (match.finalCategory) {
       case 'gold':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">FINAL ORO (1º-4º)</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 FINAL ORO (1º-4º)</span>;
       case 'silver':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black bg-slate-400/20 text-slate-300 border border-slate-400/40">FINAL PLATA (5º-8º)</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-slate-400/20 text-slate-300 border border-slate-400/40">🥈 FINAL PLATA (5º-8º)</span>;
       case 'bronze':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black bg-amber-700/20 text-amber-500 border border-amber-700/40">FINAL BRONCE (9º-12º)</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-amber-700/20 text-amber-400 border border-amber-700/40">🥉 FINAL BRONCE (9º-12º)</span>;
       case 'copper':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-black bg-orange-600/20 text-orange-400 border border-orange-600/40">FINAL COBRE (13º-16º)</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-black bg-orange-600/20 text-orange-300 border border-orange-600/40">🍖 FINAL COBRE / ASADOR (13º-16º)</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Juego {match.roundNumber}</span>;
+        return <span className="px-2.5 py-1 rounded-lg text-xs font-bold bg-slate-800 text-slate-300 border border-slate-700">Juego Corto {match.roundNumber}</span>;
     }
   };
 
   return (
     <div className={`glass-panel rounded-2xl p-4 sm:p-5 border transition-all duration-200 ${
-      isCompleted ? 'border-slate-800' : 'border-slate-700/80 hover:border-emerald-500/40'
+      isCompleted ? 'border-slate-800 bg-slate-950/80' : 'border-slate-700 hover:border-emerald-500/50 bg-[#121826]'
     }`}>
       {/* Top Court & Prediction Bar */}
-      <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+      <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center space-x-2">
-          <span className="text-xs font-bold text-white flex items-center">
+          <span className="text-sm font-extrabold text-white flex items-center">
             🎾 {match.courtName || `Cancha ${match.courtNumber}`}
           </span>
           {getCategoryBadge()}
@@ -57,45 +57,45 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
         {/* Prediction probability pill */}
         {!isCompleted && (
-          <div className="flex items-center space-x-1.5 text-[11px] font-mono bg-slate-900/90 px-2.5 py-1 rounded-full border border-slate-800">
-            <Zap className="w-3 h-3 text-cyan-400" />
-            <span className="text-emerald-400 font-bold">{prediction.probTeamA}%</span>
-            <span className="text-slate-500">vs</span>
-            <span className="text-blue-400 font-bold">{prediction.probTeamB}%</span>
+          <div className="flex items-center space-x-1.5 text-xs font-mono bg-slate-900 px-3 py-1 rounded-full border border-slate-700">
+            <Zap className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-emerald-400 font-extrabold">{prediction.probTeamA}%</span>
+            <span className="text-slate-500 font-bold">vs</span>
+            <span className="text-blue-400 font-extrabold">{prediction.probTeamB}%</span>
           </div>
         )}
 
         {isCompleted && (
-          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/10 text-emerald-400">
-            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizado
+          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Terminado
           </span>
         )}
       </div>
 
-      {/* Matchup Teams */}
-      <div className="py-3.5 space-y-2.5">
+      {/* Matchup Teams - EQUAL SIZES FOR ALL PLAYERS */}
+      <div className="py-3.5 space-y-3">
         {/* Team A */}
-        <div className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${
-          isTeamAWinner ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-slate-900/60'
+        <div className={`flex items-center justify-between p-3 sm:p-3.5 rounded-xl transition-colors ${
+          isTeamAWinner ? 'bg-emerald-500/20 border-2 border-emerald-500/50' : 'bg-slate-900/90 border border-slate-800'
         }`}>
-          <div className="flex items-center space-x-2">
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px] ${
-              isTeamAWinner ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-300'
+          <div className="flex items-center space-x-3">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+              isTeamAWinner ? 'bg-emerald-500 text-black shadow-neon' : 'bg-slate-800 text-slate-300'
             }`}>
               A
             </div>
-            <div>
-              <div className={`text-xs sm:text-sm font-bold ${isTeamAWinner ? 'text-white' : 'text-slate-200'}`}>
-                {match.teamA.player1Name}
-              </div>
-              <div className="text-[11px] text-slate-400">
-                {match.teamA.player2Name}
+            {/* EQUAL SIZE FOR BOTH PLAYERS */}
+            <div className="space-y-0.5">
+              <div className="text-sm sm:text-base font-bold text-white flex items-center flex-wrap gap-x-2">
+                <span>{match.teamA.player1Name}</span>
+                <span className="text-emerald-400 font-black text-xs">&</span>
+                <span>{match.teamA.player2Name}</span>
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <span className={`font-mono text-xl sm:text-2xl font-black ${
-              isTeamAWinner ? 'text-emerald-400' : 'text-slate-400'
+          <div className="text-right pl-2">
+            <span className={`font-mono text-2xl sm:text-3xl font-black ${
+              isTeamAWinner ? 'text-emerald-400 glow-text-neon' : 'text-slate-400'
             }`}>
               {isCompleted ? match.score.scoreA : '-'}
             </span>
@@ -103,27 +103,27 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </div>
 
         {/* Team B */}
-        <div className={`flex items-center justify-between p-2.5 rounded-xl transition-colors ${
-          isTeamBWinner ? 'bg-emerald-500/15 border border-emerald-500/30' : 'bg-slate-900/60'
+        <div className={`flex items-center justify-between p-3 sm:p-3.5 rounded-xl transition-colors ${
+          isTeamBWinner ? 'bg-emerald-500/20 border-2 border-emerald-500/50' : 'bg-slate-900/90 border border-slate-800'
         }`}>
-          <div className="flex items-center space-x-2">
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-[10px] ${
-              isTeamBWinner ? 'bg-emerald-500 text-black' : 'bg-slate-800 text-slate-300'
+          <div className="flex items-center space-x-3">
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs ${
+              isTeamBWinner ? 'bg-emerald-500 text-black shadow-neon' : 'bg-slate-800 text-slate-300'
             }`}>
               B
             </div>
-            <div>
-              <div className={`text-xs sm:text-sm font-bold ${isTeamBWinner ? 'text-white' : 'text-slate-200'}`}>
-                {match.teamB.player1Name}
-              </div>
-              <div className="text-[11px] text-slate-400">
-                {match.teamB.player2Name}
+            {/* EQUAL SIZE FOR BOTH PLAYERS */}
+            <div className="space-y-0.5">
+              <div className="text-sm sm:text-base font-bold text-white flex items-center flex-wrap gap-x-2">
+                <span>{match.teamB.player1Name}</span>
+                <span className="text-blue-400 font-black text-xs">&</span>
+                <span>{match.teamB.player2Name}</span>
               </div>
             </div>
           </div>
-          <div className="text-right">
-            <span className={`font-mono text-xl sm:text-2xl font-black ${
-              isTeamBWinner ? 'text-emerald-400' : 'text-slate-400'
+          <div className="text-right pl-2">
+            <span className={`font-mono text-2xl sm:text-3xl font-black ${
+              isTeamBWinner ? 'text-emerald-400 glow-text-neon' : 'text-slate-400'
             }`}>
               {isCompleted ? match.score.scoreB : '-'}
             </span>
@@ -133,37 +133,37 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
       {/* Tie Break or Cut-off Notes */}
       {isCompleted && (match.score.tieBreakPointsA !== undefined || match.score.isCutoff) && (
-        <div className="text-[11px] text-slate-400 bg-slate-900/70 px-3 py-1 rounded-lg flex items-center justify-between mb-3">
+        <div className="text-xs text-slate-300 bg-slate-900 px-3.5 py-1.5 rounded-xl flex items-center justify-between mb-3 border border-slate-800">
           {match.score.tieBreakPointsA !== undefined && (
-            <span className="text-amber-400 flex items-center">
-              <Flame className="w-3 h-3 mr-1" /> Tie-Break: {match.score.tieBreakPointsA} - {match.score.tieBreakPointsB}
+            <span className="text-amber-400 font-bold flex items-center">
+              <Flame className="w-3.5 h-3.5 mr-1 text-amber-400" /> Tie-Break: {match.score.tieBreakPointsA} - {match.score.tieBreakPointsB}
             </span>
           )}
           {match.score.isCutoff && (
-            <span className="text-slate-400 flex items-center">
-              <Clock className="w-3 h-3 mr-1 text-amber-400" /> Corte por tiempo
+            <span className="text-slate-300 font-medium flex items-center">
+              <Clock className="w-3.5 h-3.5 mr-1 text-amber-400" /> Corte por tiempo (Validado)
             </span>
           )}
         </div>
       )}
 
-      {/* Score Button */}
+      {/* Score Button - Extra Large for phone screens */}
       {isAdmin ? (
         <button
           onClick={() => onOpenScoreModal(match)}
-          className={`w-full py-2 px-3 rounded-xl font-bold text-xs sm:text-sm flex items-center justify-center transition-all ${
+          className={`w-full py-3 px-4 rounded-xl font-black text-sm sm:text-base flex items-center justify-center transition-all ${
             isCompleted
-              ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700'
+              ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
               : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-neon'
           }`}
         >
-          <Edit3 className="w-3.5 h-3.5 mr-1.5" />
+          <Edit3 className="w-4 h-4 mr-2" />
           {isCompleted ? 'Editar Marcador' : 'Cargar Marcador'}
         </button>
       ) : (
         !isCompleted && (
-          <div className="text-center text-xs text-slate-500 italic py-1">
-            Esperando resultado en cancha...
+          <div className="text-center text-xs sm:text-sm text-slate-400 italic py-1 font-medium">
+            ⏳ Partido en juego en cancha...
           </div>
         )
       )}

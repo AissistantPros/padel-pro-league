@@ -11,7 +11,9 @@ import {
   Plus,
   RefreshCw,
   Sparkles,
-  Users
+  Users,
+  ShieldCheck,
+  Beer
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type {
@@ -47,16 +49,15 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
   onSaveDays,
   onRequestAdmin,
 }) => {
-  // Select active day or default to latest
   const [selectedDayId, setSelectedDayId] = useState<string>(
     days.length > 0 ? days[days.length - 1].id : ''
   );
-  const [activeRoundTab, setActiveRoundTab] = useState<number>(1); // 1, 2, 3 for prelims, 99 for prelim table, 4 for final
+  const [activeRoundTab, setActiveRoundTab] = useState<number>(1);
   const [activeScoreMatch, setActiveScoreMatch] = useState<Match | null>(null);
 
   // Check-in state for new day creation
   const [isCreatingNewDay, setIsCreatingNewDay] = useState(false);
-  const [newDayName, setNewDayName] = useState(`Jornada ${days.length + 1}`);
+  const [newDayName, setNewDayName] = useState(`Fecha G20 #${days.length + 1}`);
   const [newDayDate, setNewDayDate] = useState(new Date().toISOString().split('T')[0]);
   const [checkedInIds, setCheckedInIds] = useState<string[]>(players.map(p => p.id));
 
@@ -72,10 +73,10 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     setCheckedInIds(players.map(p => p.id));
   };
 
-  // Start new matchday
+  // Start new matchday with equal sum balancing
   const handleStartNewDay = () => {
     if (checkedInIds.length % 4 !== 0 || checkedInIds.length < 4) {
-      alert(`Por favor confirma un número de jugadores múltiplo de 4 (ej. 8, 12, 16). Seleccionados actualmente: ${checkedInIds.length}`);
+      alert(`Se requiere un múltiplo de 4 jugadores (ej. 8, 12, 16). Seleccionados: ${checkedInIds.length}`);
       return;
     }
 
@@ -139,7 +140,6 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       };
     });
 
-    // Recompute preliminary standings
     const prelimMatches = updatedRounds
       .filter(r => r.roundNumber <= 3)
       .flatMap(r => r.matches);
@@ -147,7 +147,6 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
     const newPrelimStandings = calculateDailyPrelimStandings(participatingPlayers, prelimMatches);
 
-    // If final round exists, recompute final standings
     const finalRound = updatedRounds.find(r => r.roundNumber === 4);
     const newFinalStandings = finalRound
       ? calculateDailyFinalStandings(newPrelimStandings, finalRound.matches)
@@ -181,7 +180,6 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       config.courtNames
     );
 
-    // Keep rounds 1,2,3 and append/replace round 4
     const existingRounds = currentDay.rounds.filter(r => r.roundNumber <= 3);
     const updatedRounds = [...existingRounds, finalRound];
 
@@ -203,7 +201,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
     const finalRound = currentDay.rounds.find(r => r.roundNumber === 4);
     if (!finalRound || !finalRound.matches.every(m => m.score.completed)) {
-      alert('Por favor completa todos los marcadores de las Finales del Día antes de cerrar la jornada.');
+      alert('Completa todos los marcadores de las 4 Finales antes de cerrar la fecha.');
       return;
     }
 
@@ -219,10 +217,9 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     const updatedDays = days.map(d => (d.id === currentDay.id ? updatedDay : d));
     onSaveDays(updatedDays);
 
-    // Confetti celebration!
     confetti({
-      particleCount: 120,
-      spread: 70,
+      particleCount: 150,
+      spread: 80,
       origin: { y: 0.6 },
     });
   };
@@ -230,29 +227,29 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
   return (
     <div className="space-y-6">
       {/* Top Matchday Header & Switcher */}
-      <div className="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center space-x-3">
-            <span className="p-2 rounded-xl bg-emerald-500/20 text-emerald-400">
-              <Calendar className="w-5 h-5" />
+            <span className="p-2.5 rounded-2xl bg-emerald-500/20 text-emerald-400">
+              <Calendar className="w-6 h-6" />
             </span>
             <div>
-              <h2 className="text-xl sm:text-2xl font-bold font-display text-white">
-                {currentDay ? currentDay.name : 'Gestión de Jornada'}
+              <h2 className="text-xl sm:text-2xl font-black font-display text-white">
+                {currentDay ? currentDay.name : 'Gestión de Fecha'}
               </h2>
               <div className="text-xs text-slate-400 flex items-center space-x-2 mt-0.5">
-                <span>{currentDay ? currentDay.date : ''}</span>
+                <span className="font-semibold">{currentDay ? currentDay.date : ''}</span>
                 {currentDay && (
                   <>
                     <span>•</span>
-                    <span className={`px-2 py-0.5 rounded-full font-bold uppercase text-[10px] ${
+                    <span className={`px-2.5 py-0.5 rounded-full font-black uppercase text-[10px] ${
                       currentDay.status === 'completed'
-                        ? 'bg-emerald-500/20 text-emerald-400'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                         : currentDay.status === 'finals'
-                        ? 'bg-amber-500/20 text-amber-300'
-                        : 'bg-blue-500/20 text-blue-400'
+                        ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                     }`}>
-                      {currentDay.status === 'completed' ? 'Completada' : currentDay.status === 'finals' ? 'Fase Final' : 'Juegos Preliminares'}
+                      {currentDay.status === 'completed' ? 'Fecha Concluida' : currentDay.status === 'finals' ? 'Fase Finales' : 'Juegos Preliminares'}
                     </span>
                   </>
                 )}
@@ -270,7 +267,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 setSelectedDayId(e.target.value);
                 setIsCreatingNewDay(false);
               }}
-              className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:border-emerald-500"
+              className="bg-slate-900 border border-slate-700 text-white rounded-xl px-3 py-2.5 text-xs sm:text-sm font-extrabold focus:outline-none focus:border-emerald-500"
             >
               {days.map((d) => (
                 <option key={d.id} value={d.id}>
@@ -286,7 +283,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 setIsCreatingNewDay(!isCreatingNewDay);
                 setCheckedInIds(players.map(p => p.id));
               }}
-              className="px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm shadow-neon flex items-center transition-all"
+              className="px-4 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
             >
               <Plus className="w-4 h-4 mr-1.5" />
               Nueva Fecha
@@ -297,15 +294,15 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
       {/* New Day Creation Form / Check-in Modal */}
       {isCreatingNewDay && (
-        <div className="glass-panel-neon p-5 sm:p-6 rounded-2xl space-y-5 animate-fade-in border border-emerald-500/40">
+        <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-5 animate-fade-in border-2 border-emerald-500/40">
           <div className="flex items-center justify-between border-b border-slate-800 pb-3">
             <div className="flex items-center space-x-2">
               <Users className="w-5 h-5 text-emerald-400" />
-              <h3 className="text-lg font-bold text-white">Confirmar Asistencia y Crear Jornada</h3>
+              <h3 className="text-lg font-black text-white">Check-in de Asistencia y Emparejamiento Parejo</h3>
             </div>
             <button
               onClick={() => setIsCreatingNewDay(false)}
-              className="text-xs text-slate-400 hover:text-white px-2 py-1 bg-slate-800 rounded-lg"
+              className="text-xs font-bold text-slate-400 hover:text-white px-2.5 py-1 bg-slate-800 rounded-lg"
             >
               Cancelar
             </button>
@@ -313,21 +310,21 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Nombre de la Fecha</label>
+              <label className="text-xs font-bold text-slate-300 block mb-1">Nombre de la Fecha</label>
               <input
                 type="text"
                 value={newDayName}
                 onChange={(e) => setNewDayName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">Fecha</label>
+              <label className="text-xs font-bold text-slate-300 block mb-1">Fecha de Juego</label>
               <input
                 type="date"
                 value={newDayDate}
                 onChange={(e) => setNewDayDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-emerald-500"
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-sm text-white font-bold focus:border-emerald-500 focus:outline-none"
               />
             </div>
           </div>
@@ -335,29 +332,29 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           {/* Player Check-in Selector */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-300">
-                Jugadores Confirmados ({checkedInIds.length} seleccionados - Ideal 16)
+              <span className="text-xs font-black text-slate-300">
+                Jugadores Confirmados ({checkedInIds.length} seleccionados - Múltiplo de 4)
               </span>
               <button
                 type="button"
                 onClick={handleSelectAllPlayers}
-                className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold"
+                className="text-xs text-emerald-400 hover:text-emerald-300 font-extrabold"
               >
                 Seleccionar Todos
               </button>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto p-2 bg-slate-950/70 rounded-xl border border-slate-800">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-64 overflow-y-auto p-2.5 bg-slate-950 rounded-2xl border border-slate-800">
               {players.map((p) => {
                 const isChecked = checkedInIds.includes(p.id);
                 return (
                   <div
                     key={p.id}
                     onClick={() => handleToggleCheckin(p.id)}
-                    className={`flex items-center p-2 rounded-lg cursor-pointer transition-all border ${
+                    className={`flex items-center p-2.5 rounded-xl cursor-pointer transition-all border ${
                       isChecked
-                        ? 'bg-emerald-500/20 border-emerald-500/40 text-white'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                        ? 'bg-emerald-500/20 border-emerald-500/50 text-white font-bold'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
                     }`}
                   >
                     {isChecked ? (
@@ -365,26 +362,26 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                     ) : (
                       <Square className="w-4 h-4 mr-2 text-slate-600 flex-shrink-0" />
                     )}
-                    <span className="text-xs font-medium truncate">{p.name}</span>
+                    <span className="text-xs font-semibold truncate">{p.name}</span>
                   </div>
                 );
               })}
             </div>
           </div>
 
-          <div className="p-3 bg-slate-900/80 rounded-xl border border-slate-800 text-xs text-slate-400 space-y-1">
-            <span className="font-semibold text-emerald-400 block">✨ Regla de Oro de Emparejamientos:</span>
+          <div className="p-3.5 bg-slate-900 rounded-2xl border border-slate-800 text-xs text-slate-300 space-y-1">
+            <span className="font-extrabold text-emerald-400 block">⚖️ Algoritmo de Emparejamiento Parejo:</span>
             <p>
-              El algoritmo sorteará las parejas dividiendo a los 16 jugadores en <strong>Bombo 1 (Top 8)</strong> y <strong>Bombo 2 (Bottom 8)</strong>. Los primeros 8 del ranking <strong>NUNCA</strong> serán pareja entre ellos en los 3 juegos preliminares.
+              Divide a los jugadores en <strong>Bombo 1 (Top 8)</strong> y <strong>Bombo 2 (Bottom 8)</strong> según la tabla anterior. Los Top 8 nunca jugarán juntos en los 3 juegos preliminares, y las sumas de ranking entre duplas rivales son exactamente iguales (ej. 1+16 vs 8+9).
             </p>
           </div>
 
           <button
             onClick={handleStartNewDay}
-            className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-sm shadow-neon flex items-center justify-center transition-all"
+            className="w-full py-3.5 rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-sm sm:text-base shadow-neon flex items-center justify-center transition-all"
           >
-            <Play className="w-4 h-4 mr-2" />
-            Generar Emparejamientos y Comenzar Fecha
+            <Play className="w-5 h-5 mr-2" />
+            Generar Cruces Parejos y Arrancar Fecha
           </button>
         </div>
       )}
@@ -402,7 +399,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 <button
                   key={rNum}
                   onClick={() => setActiveRoundTab(rNum)}
-                  className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+                  className={`flex items-center px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all border ${
                     activeRoundTab === rNum
                       ? 'bg-emerald-500 text-black border-emerald-400 shadow-neon'
                       : isDone
@@ -410,7 +407,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                       : 'bg-slate-900/60 text-slate-400 border-slate-800 hover:bg-slate-800'
                   }`}
                 >
-                  {isDone && <CheckCircle className="w-3.5 h-3.5 mr-1.5 text-emerald-400" />}
+                  {isDone && <CheckCircle className="w-4 h-4 mr-1.5 text-emerald-400" />}
                   Juego Corto {rNum}
                 </button>
               );
@@ -419,26 +416,26 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
             {/* Preliminary Standings Tab */}
             <button
               onClick={() => setActiveRoundTab(99)}
-              className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+              className={`flex items-center px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all border ${
                 activeRoundTab === 99
                   ? 'bg-blue-600 text-white border-blue-500 shadow-blue-glow'
                   : 'bg-slate-900 text-slate-300 border-slate-800 hover:bg-slate-800'
               }`}
             >
-              <Trophy className="w-3.5 h-3.5 mr-1.5 text-amber-400" />
+              <Trophy className="w-4 h-4 mr-1.5 text-amber-400" />
               Tabla Preliminar (1-16)
             </button>
 
             {/* Daily Final Round Tab */}
             <button
               onClick={() => setActiveRoundTab(4)}
-              className={`flex items-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all border ${
+              className={`flex items-center px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-black whitespace-nowrap transition-all border ${
                 activeRoundTab === 4
                   ? 'bg-amber-500 text-black border-amber-400 shadow-gold-glow'
                   : 'bg-slate-900 text-amber-300 border-amber-500/30 hover:bg-slate-800'
               }`}
             >
-              <Flame className="w-3.5 h-3.5 mr-1.5" />
+              <Flame className="w-4 h-4 mr-1.5" />
               Finales del Día (Juego 4)
             </button>
           </div>
@@ -447,11 +444,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           {[1, 2, 3].includes(activeRoundTab) && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-white flex items-center">
-                  <span>Juego Corto #{activeRoundTab} - Mejor de 7 games</span>
+                <h3 className="text-base sm:text-lg font-black text-white flex items-center">
+                  <span>Juego Corto #{activeRoundTab} - Al mejor de 7 games</span>
                 </h3>
-                <span className="text-xs text-slate-400">
-                  4 Canchas en simultáneo • Rotación de parejas
+                <span className="text-xs text-slate-400 font-semibold">
+                  Parejas Equilibradas en Suma de Ranks
                 </span>
               </div>
 
@@ -475,21 +472,21 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           {/* Intermediate Daily Standings View (Tab 99) */}
           {activeRoundTab === 99 && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
+                  <h3 className="text-lg font-black text-white flex items-center">
                     <Trophy className="w-5 h-5 mr-2 text-amber-400" />
-                    Posiciones de la Jornada (Tras 3 Juegos Cortos)
+                    Tabla de la Fecha (Tras 3 Juegos Cortos)
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Ordenados por suma de games ganados + margen decimal + récord 3-0. Estos lugares definen los cruces de la Final.
+                  <p className="text-xs text-slate-300 mt-0.5">
+                    Games ganados base mandan la tabla + desempate por margen y récord. Esta tabla define las 4 Finales.
                   </p>
                 </div>
 
                 {isAdmin && (
                   <button
                     onClick={handleGenerateDailyFinals}
-                    className="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-extrabold text-xs sm:text-sm shadow-gold-glow flex items-center transition-all"
+                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-black text-xs sm:text-sm shadow-gold-glow flex items-center transition-all"
                   >
                     <Flame className="w-4 h-4 mr-1.5" />
                     Generar Cruces de Finales (1&4 vs 2&3...)
@@ -498,66 +495,60 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               </div>
 
               {/* Prelim Standings Table */}
-              <div className="glass-panel rounded-2xl overflow-hidden border border-slate-800">
+              <div className="glass-panel rounded-3xl overflow-hidden border border-slate-800">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-slate-900 text-slate-400 text-xs uppercase font-semibold border-b border-slate-800">
-                      <th className="py-3 px-4 text-center">Pos</th>
-                      <th className="py-3 px-4">Jugador</th>
-                      <th className="py-3 px-3 text-center">PJ</th>
-                      <th className="py-3 px-3 text-center">V - D</th>
-                      <th className="py-3 px-3 text-center">Games Base</th>
-                      <th className="py-3 px-3 text-center">Bono Margen</th>
-                      <th className="py-3 px-3 text-center">Bono Récord</th>
-                      <th className="py-3 px-4 text-right">Puntaje Preliminar</th>
-                      <th className="py-3 px-4 text-center">Cancha Final Asignada</th>
+                    <tr className="bg-slate-950 text-slate-400 text-xs uppercase font-extrabold border-b border-slate-800">
+                      <th className="py-3.5 px-3 sm:px-4 text-center">Pos</th>
+                      <th className="py-3.5 px-3 sm:px-4">Jugador</th>
+                      <th className="py-3.5 px-2 sm:px-3 text-center">PJ</th>
+                      <th className="py-3.5 px-2 sm:px-3 text-center">V - D</th>
+                      <th className="py-3.5 px-3 text-center">Games Base</th>
+                      <th className="py-3.5 px-3 text-center">Desempates</th>
+                      <th className="py-3.5 px-4 text-right">Puntaje Fecha</th>
+                      <th className="py-3.5 px-4 text-center">Cancha Asignada</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800 text-sm">
                     {currentDay.prelimStandings.map((s) => {
                       let courtBadge = '';
-                      if (s.prelimRank <= 4) courtBadge = 'Cancha 1 (Oro: 1º-4º)';
-                      else if (s.prelimRank <= 8) courtBadge = 'Cancha 2 (Plata: 5º-8º)';
-                      else if (s.prelimRank <= 12) courtBadge = 'Cancha 3 (Bronce: 9º-12º)';
-                      else courtBadge = 'Cancha 4 (Cobre: 13º-16º)';
+                      if (s.prelimRank <= 4) courtBadge = '👑 Cancha 1 (Oro: 1º-4º)';
+                      else if (s.prelimRank <= 8) courtBadge = '🥈 Cancha 2 (Plata: 5º-8º)';
+                      else if (s.prelimRank <= 12) courtBadge = '🥉 Cancha 3 (Bronce: 9º-12º)';
+                      else courtBadge = '🍖 Cancha 4 (Cobre: 13º-16º)';
 
                       return (
-                        <tr key={s.playerId} className="hover:bg-slate-800/30">
-                          <td className="py-3 px-4 text-center font-bold font-display">
+                        <tr key={s.playerId} className="hover:bg-slate-800/40">
+                          <td className="py-3 px-3 sm:px-4 text-center font-black font-display">
                             #{s.prelimRank}
                           </td>
-                          <td className="py-3 px-4 font-bold text-white">
+                          <td className="py-3 px-3 sm:px-4 font-bold text-white">
                             {s.playerName}
                           </td>
-                          <td className="py-3 px-3 text-center text-slate-300">{s.matchesPlayed}</td>
-                          <td className="py-3 px-3 text-center font-mono text-xs text-slate-300">
+                          <td className="py-3 px-2 sm:px-3 text-center text-slate-300 font-semibold">{s.matchesPlayed}</td>
+                          <td className="py-3 px-2 sm:px-3 text-center font-mono text-xs text-slate-300 font-bold">
                             {s.matchesWon}V - {s.matchesLost}D
                           </td>
-                          <td className="py-3 px-3 text-center font-bold text-slate-200">
+                          <td className="py-3 px-3 text-center font-extrabold text-slate-200">
                             {s.basePoints} pts
                           </td>
-                          <td className="py-3 px-3 text-center font-mono text-xs">
-                            <span className={s.marginBonus >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                              {s.marginBonus >= 0 ? `+${s.marginBonus.toFixed(3)}` : s.marginBonus.toFixed(3)}
+                          <td className="py-3 px-3 text-center font-mono text-xs font-bold">
+                            <span className={s.marginBonus + s.roundRecordBonus >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
+                              {s.marginBonus + s.roundRecordBonus >= 0 ? `+${(s.marginBonus + s.roundRecordBonus).toFixed(3)}` : (s.marginBonus + s.roundRecordBonus).toFixed(3)}
                             </span>
                           </td>
-                          <td className="py-3 px-3 text-center font-mono text-xs">
-                            <span className={s.roundRecordBonus >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                              {s.roundRecordBonus >= 0 ? `+${s.roundRecordBonus.toFixed(3)}` : s.roundRecordBonus.toFixed(3)}
-                            </span>
-                          </td>
-                          <td className="py-3 px-4 text-right font-mono font-bold text-emerald-400">
+                          <td className="py-3 px-4 text-right font-mono font-black text-emerald-400">
                             {formatScoreDisplay(s.prelimTotalScore)}
                           </td>
                           <td className="py-3 px-4 text-center">
-                            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                            <span className={`text-[11px] font-black px-2.5 py-1 rounded-full ${
                               s.prelimRank <= 4
-                                ? 'bg-amber-500/20 text-amber-300'
+                                ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
                                 : s.prelimRank <= 8
-                                ? 'bg-slate-400/20 text-slate-300'
+                                ? 'bg-slate-400/20 text-slate-300 border border-slate-400/30'
                                 : s.prelimRank <= 12
-                                ? 'bg-amber-700/20 text-amber-400'
-                                : 'bg-orange-600/20 text-orange-300'
+                                ? 'bg-amber-700/20 text-amber-400 border border-amber-700/30'
+                                : 'bg-orange-600/20 text-orange-300 border border-orange-600/30'
                             }`}>
                               {courtBadge}
                             </span>
@@ -574,13 +565,13 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           {/* Daily Final Round (Round 4) */}
           {activeRoundTab === 4 && (
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-xl border border-slate-800">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900 p-4 rounded-2xl border border-slate-800">
                 <div>
-                  <h3 className="text-lg font-bold text-white flex items-center">
+                  <h3 className="text-lg font-black text-white flex items-center">
                     <Flame className="w-5 h-5 mr-2 text-amber-400" />
-                    Finales del Día (Juego 4)
+                    Finales del Día (Juego 4 - Definición)
                   </h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-300 mt-0.5">
                     1 y 4 vs 2 y 3 (Oro) • 5 y 8 vs 6 y 7 (Plata) • 9 y 12 vs 10 y 11 (Bronce) • 13 y 16 vs 14 y 15 (Cobre)
                   </p>
                 </div>
@@ -588,10 +579,10 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                 {isAdmin && currentDay.status !== 'completed' && (
                   <button
                     onClick={handleCompleteDay}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-extrabold text-xs sm:text-sm shadow-neon flex items-center transition-all"
+                    className="px-5 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-black font-black text-sm shadow-neon flex items-center transition-all"
                   >
-                    <CheckCircle className="w-4 h-4 mr-1.5" />
-                    Cerrar y Guardar Jornada
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    Cerrar Fecha y Sumar a la Tabla General
                   </button>
                 )}
               </div>

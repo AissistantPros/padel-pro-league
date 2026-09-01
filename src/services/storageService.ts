@@ -17,10 +17,10 @@ const STORAGE_KEYS = {
 };
 
 export const DEFAULT_CONFIG: TournamentConfig = {
-  tournamentName: 'Liga Pro Padel Master 🎾',
-  courtNames: ['Cancha 1 (Central)', 'Cancha 2', 'Cancha 3', 'Cancha 4'],
+  tournamentName: 'G20 by Peter Inc. 🎾',
+  courtNames: ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)'],
   adminPin: '1234', // Default PIN for admin actions
-  rankingSystem: 'bayesian',
+  rankingSystem: 'total_points',
   bayesianFactorK: 4,
   attendanceBonusPoints: 0.5,
   tieBreakMaxPoints: 10,
