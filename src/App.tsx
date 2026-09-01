@@ -21,8 +21,8 @@ export function App() {
   const [players, setPlayers] = useState<Player[]>(() => StorageService.getPlayers());
   const [days, setDays] = useState<TournamentDay[]>(() => StorageService.getTournamentDays());
   const [config, setConfig] = useState<TournamentConfig>(() => StorageService.getConfig());
-  const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinale());
-  const [isAdmin, setIsAdmin] = useState<boolean>(() => StorageService.isAdminAuthenticated());
+  const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => StorageService.getIsAdminAuthenticated());
   const [isAdminModalOpen, setIsAdminModalOpen] = useState<boolean>(false);
 
   // Automatic Supabase initial hydration and Realtime live subscription
@@ -32,12 +32,12 @@ export function App() {
       if (!supabase) return;
 
       // 1. Initial Pull from cloud
-      const cloudData = await StorageService.syncFromSupabase();
+      const cloudData = await StorageService.pullFromCloud();
       if (cloudData) {
         if (cloudData.players) setPlayers(cloudData.players);
         if (cloudData.days) setDays(cloudData.days);
         if (cloudData.config) setConfig(cloudData.config);
-        if (cloudData.grandFinale !== undefined) setGrandFinale(cloudData.grandFinale);
+        if (cloudData.bracket !== undefined) setGrandFinale(cloudData.bracket);
       }
 
       // 2. Realtime listener for live score updates on courts
@@ -106,7 +106,7 @@ export function App() {
 
   const handleSaveGrandFinale = (bracket: GrandFinaleBracket | null) => {
     setGrandFinale(bracket);
-    StorageService.saveGrandFinale(bracket);
+    StorageService.saveGrandFinaleBracket(bracket);
   };
 
   const handleAuthenticateAdmin = () => {
@@ -120,12 +120,19 @@ export function App() {
   };
 
   const handleExportData = () => {
-    const jsonStr = StorageService.exportDatabase();
+    const backup = {
+      config,
+      players,
+      days,
+      grandFinale,
+      exportedAt: new Date().toISOString(),
+    };
+    const jsonStr = JSON.stringify(backup, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `padel_torneo_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `g20_torneo_backup_${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -133,21 +140,23 @@ export function App() {
   };
 
   const handleImportData = (jsonStr: string): boolean => {
-    const success = StorageService.importDatabase(jsonStr);
-    if (success) {
-      setPlayers(StorageService.getPlayers());
-      setDays(StorageService.getTournamentDays());
-      setConfig(StorageService.getConfig());
-      setGrandFinale(StorageService.getGrandFinale());
+    try {
+      const data = JSON.parse(jsonStr);
+      if (data.players) handleSavePlayers(data.players);
+      if (data.days) handleSaveDays(data.days);
+      if (data.config) handleSaveConfig(data.config);
+      if (data.grandFinale !== undefined) handleSaveGrandFinale(data.grandFinale);
+      return true;
+    } catch (e) {
+      console.error('Error importing backup:', e);
+      return false;
     }
-    return success;
   };
 
-  const handleResetData = () => {
-    StorageService.resetTournamentData();
-    setPlayers(StorageService.getPlayers());
-    setDays(StorageService.getTournamentDays());
-    setConfig(StorageService.getConfig());
+  const handleResetData = async () => {
+    await StorageService.resetAllData();
+    setPlayers([]);
+    setDays([]);
     setGrandFinale(null);
   };
 
@@ -240,8 +249,8 @@ export function App() {
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-6 text-center text-xs text-slate-500 glass-panel">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>🎾 Padel Pro Tournament Manager & Intelligence Engine</span>
-          <span className="font-mono text-slate-600">v1.0.0 • React + TypeScript + Tailwind</span>
+          <span>🎾 G20 by Peter Inc. • Padel Tournament Intelligence</span>
+          <span className="font-mono text-slate-600">v1.0.0 • React + Supabase Realtime</span>
         </div>
       </footer>
 

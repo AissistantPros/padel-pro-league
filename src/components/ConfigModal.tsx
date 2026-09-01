@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Settings,
   Save,
@@ -10,11 +10,8 @@ import {
   Sparkles,
   Check,
   AlertTriangle,
-  Cloud,
-  CloudCheck,
   Radio,
-  ExternalLink,
-  Copy
+  Trash2
 } from 'lucide-react';
 import type { TournamentConfig } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
@@ -27,7 +24,6 @@ interface ConfigModalProps {
   onExportData: () => void;
   onImportData: (jsonStr: string) => boolean;
   onResetData: () => void;
-  onRefreshData?: () => void;
 }
 
 export const ConfigModal: React.FC<ConfigModalProps> = ({
@@ -37,13 +33,12 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   onExportData,
   onImportData,
   onResetData,
-  onRefreshData,
 }) => {
   const [tournamentName, setTournamentName] = useState(config.tournamentName);
-  const [court1, setCourt1] = useState(config.courtNames[0] || 'Cancha 1 (Central)');
-  const [court2, setCourt2] = useState(config.courtNames[1] || 'Cancha 2');
-  const [court3, setCourt3] = useState(config.courtNames[2] || 'Cancha 3');
-  const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4');
+  const [court1, setCourt1] = useState(config.courtNames[0] || 'Cancha 1 (Central Oro)');
+  const [court2, setCourt2] = useState(config.courtNames[1] || 'Cancha 2 (Plata)');
+  const [court3, setCourt3] = useState(config.courtNames[2] || 'Cancha 3 (Bronce)');
+  const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4 (Cobre / El Asador)');
   const [adminPin, setAdminPin] = useState(config.adminPin);
   const [rankingSystem, setRankingSystem] = useState(config.rankingSystem);
   const [bayesianFactorK, setBayesianFactorK] = useState(config.bayesianFactorK);
@@ -90,12 +85,10 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         throw new Error('URL o Clave inválida.');
       }
 
-      // Quick test query
-      const { data, error } = await client.from('tournament_settings').select('*').limit(1);
+      const { error } = await client.from('tournament_settings').select('*').limit(1);
       if (error && error.code !== 'PGRST116') {
-        // Table might not exist yet
         setSupabaseStatus('connected');
-        setSupabaseMessage('⚠️ Conectado a Supabase, pero recuerda ejecutar el script supabase_schema.sql en tu SQL Editor.');
+        setSupabaseMessage('⚠️ Conectado a Supabase.');
       } else {
         setSupabaseStatus('connected');
         setSupabaseMessage('✅ ¡Conexión con Supabase exitosa y en tiempo real!');
@@ -108,20 +101,23 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handlePushToSupabase = async () => {
     setSupabaseMessage('Subiendo base de datos a Supabase...');
-    const ok = await StorageService.pushAllToSupabase();
+    const currentPlayers = StorageService.getPlayers();
+    const currentDays = StorageService.getTournamentDays();
+    const currentBracket = StorageService.getGrandFinaleBracket();
+    const ok = await StorageService.pushToCloud(config, currentPlayers, currentDays, currentBracket);
     if (ok) {
       setSupabaseMessage('✅ Todos los datos se sincronizaron con Supabase exitosamente.');
     } else {
-      setSupabaseMessage('❌ Error al subir datos. Asegúrate de haber ejecutado supabase_schema.sql.');
+      setSupabaseMessage('❌ Error al subir datos.');
     }
   };
 
   const handlePullFromSupabase = async () => {
     setSupabaseMessage('Descargando datos desde Supabase...');
-    const result = await StorageService.syncFromSupabase();
+    const result = await StorageService.pullFromCloud();
     if (result) {
       setSupabaseMessage('✅ Datos descargados de Supabase y cargados en memoria.');
-      setTimeout(() => window.location.reload(), 1000);
+      setTimeout(() => window.location.reload(), 800);
     } else {
       setSupabaseMessage('❌ No se pudieron descargar los datos de Supabase.');
     }
@@ -137,7 +133,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       const success = onImportData(content);
       if (success) {
         setImportStatus('✅ Base de datos restaurada correctamente.');
-        setTimeout(() => window.location.reload(), 1200);
+        setTimeout(() => window.location.reload(), 1000);
       } else {
         setImportStatus('❌ Error al procesar el archivo de respaldo.');
       }
@@ -148,31 +144,31 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Top Banner */}
-      <div className="glass-panel p-4 sm:p-6 rounded-2xl border border-slate-800 flex items-center justify-between">
+      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <span className="p-2 rounded-xl bg-slate-800 text-slate-300">
+          <span className="p-2.5 rounded-2xl bg-slate-800 text-slate-300">
             <Settings className="w-6 h-6" />
           </span>
           <div>
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-white">
-              Configuración & Conexiones Cloud
+            <h2 className="text-xl sm:text-2xl font-black font-display text-white">
+              Configuración del Torneo & Nube
             </h2>
             <p className="text-xs sm:text-sm text-slate-400">
-              Conexión a Supabase (Base de datos en la nube y Realtime), parámetros de ranking y respaldos.
+              Conexión en tiempo real con Supabase, nombres de canchas, PIN de seguridad y respaldos.
             </p>
           </div>
         </div>
       </div>
 
       {/* Supabase Cloud Connection Box */}
-      <div className="glass-panel-neon p-5 sm:p-6 rounded-2xl border border-emerald-500/40 space-y-4 shadow-neon">
+      <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-emerald-500/40 space-y-4 shadow-neon">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3">
           <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
               ⚡
             </div>
             <div>
-              <h3 className="text-base font-bold text-white flex items-center">
+              <h3 className="text-base font-black text-white flex items-center">
                 Conexión Cloud con Supabase (Realtime Sync)
               </h3>
               <span className="text-xs text-slate-400">
@@ -182,13 +178,13 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className={`px-2.5 py-1 rounded-full text-xs font-bold flex items-center ${
+            <span className={`px-2.5 py-1 rounded-full text-xs font-black flex items-center ${
               supabaseStatus === 'connected'
                 ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
                 : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
             }`}>
               <Radio className="w-3 h-3 mr-1.5 animate-pulse" />
-              {supabaseStatus === 'connected' ? 'Supabase Conectado' : 'Modo Local / Sin Conectar'}
+              {supabaseStatus === 'connected' ? '🟢 Supabase Conectado' : 'Modo Local'}
             </span>
           </div>
         </div>
@@ -196,8 +192,8 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         {/* Credentials Inputs */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 block mb-1">
-              Project URL de Supabase (VITE_SUPABASE_URL)
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Project URL de Supabase
             </label>
             <input
               type="text"
@@ -210,8 +206,8 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-400 block mb-1">
-              Anon / Public API Key (VITE_SUPABASE_ANON_KEY)
+            <label className="text-xs font-bold text-slate-300 block mb-1">
+              Anon / Public API Key
             </label>
             <input
               type="password"
@@ -225,7 +221,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         </div>
 
         {supabaseMessage && (
-          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700 text-xs text-slate-200">
+          <div className="p-3 bg-slate-900/90 rounded-xl border border-slate-700 text-xs text-slate-200 font-semibold">
             {supabaseMessage}
           </div>
         )}
@@ -236,7 +232,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             <button
               type="button"
               onClick={handleTestSupabase}
-              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs shadow-neon transition-all"
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs shadow-neon transition-all"
             >
               Probar y Guardar Conexión
             </button>
@@ -259,20 +255,16 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 </button>
               </>
             )}
-
-            <span className="text-[11px] text-slate-400 ml-auto">
-              Script SQL disponible en <code className="text-emerald-400">supabase_schema.sql</code>
-            </span>
           </div>
         )}
       </div>
 
       {/* Main Settings Form */}
-      <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-6">
+      <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6">
         {/* Tournament Name & PIN */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 block mb-1">Nombre del Torneo / Liga</label>
+            <label className="text-xs font-bold text-slate-300 block mb-1">Nombre del Torneo</label>
             <input
               type="text"
               disabled={!isAdmin}
@@ -282,7 +274,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
             />
           </div>
           <div>
-            <label className="text-xs font-semibold text-slate-400 block mb-1">PIN de Seguridad Administrador</label>
+            <label className="text-xs font-bold text-slate-300 block mb-1">PIN de Administrador</label>
             <input
               type="password"
               maxLength={6}
@@ -296,129 +288,36 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
         {/* Court Names */}
         <div className="space-y-2">
-          <label className="text-xs font-semibold text-slate-400 block">Nombres de las 4 Canchas</label>
+          <label className="text-xs font-bold text-slate-300 block">Nombres de las 4 Canchas</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
             <input
               type="text"
               disabled={!isAdmin}
               value={court1}
               onChange={(e) => setCourt1(e.target.value)}
-              placeholder="Cancha 1"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court2}
               onChange={(e) => setCourt2(e.target.value)}
-              placeholder="Cancha 2"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court3}
               onChange={(e) => setCourt3(e.target.value)}
-              placeholder="Cancha 3"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
             />
             <input
               type="text"
               disabled={!isAdmin}
               value={court4}
               onChange={(e) => setCourt4(e.target.value)}
-              placeholder="Cancha 4"
-              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white disabled:opacity-60"
+              className="bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-white font-bold disabled:opacity-60"
             />
-          </div>
-        </div>
-
-        {/* Mathematical Ranking System */}
-        <div className="space-y-3 pt-2 border-t border-slate-800">
-          <div className="flex items-center space-x-2">
-            <Sparkles className="w-4 h-4 text-emerald-400" />
-            <h3 className="text-sm font-bold text-white">Fórmula de Ponderación de Ranking</h3>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <div
-              onClick={() => isAdmin && setRankingSystem('bayesian')}
-              className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                rankingSystem === 'bayesian'
-                  ? 'bg-emerald-500/15 border-emerald-500/40 text-white'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-              }`}
-            >
-              <span className="font-bold text-xs block mb-1 text-emerald-400">⭐ Rating Bayesiano (Recomendado)</span>
-              <p className="text-[11px] text-slate-400">
-                Pondera puntos, volumen de partidos y bonos de asistencia. Evita que un jugador con 1 solo partido supere injustamente a los habituales.
-              </p>
-            </div>
-
-            <div
-              onClick={() => isAdmin && setRankingSystem('total_points')}
-              className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                rankingSystem === 'total_points'
-                  ? 'bg-blue-500/15 border-blue-500/40 text-white'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-              }`}
-            >
-              <span className="font-bold text-xs block mb-1 text-blue-400">🏆 Puntos Totales Acumulados</span>
-              <p className="text-[11px] text-slate-400">
-                Suma directa de games + todos los decimales de desempate acumulados en el torneo.
-              </p>
-            </div>
-
-            <div
-              onClick={() => isAdmin && setRankingSystem('avg_points')}
-              className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
-                rankingSystem === 'avg_points'
-                  ? 'bg-slate-700/40 border-slate-500 text-white'
-                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
-              }`}
-            >
-              <span className="font-bold text-xs block mb-1 text-slate-300">📈 Promedio Puro de Games</span>
-              <p className="text-[11px] text-slate-400">
-                Games ganados dividido entre número de partidos jugados.
-              </p>
-            </div>
-          </div>
-
-          {/* Regularity Factor & Attendance bonus */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">
-                Factor de Regularidad K (Bayesiano): {bayesianFactorK}
-              </label>
-              <input
-                type="range"
-                min="1"
-                max="10"
-                step="1"
-                disabled={!isAdmin}
-                value={bayesianFactorK}
-                onChange={(e) => setBayesianFactorK(parseInt(e.target.value))}
-                className="w-full accent-emerald-500"
-              />
-              <span className="text-[10px] text-slate-500">Mayor K suaviza más a los que han jugado pocas fechas.</span>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-400 block mb-1">
-                Bono de Asistencia por Fecha Asistida: +{attendanceBonus} pts
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="2"
-                step="0.1"
-                disabled={!isAdmin}
-                value={attendanceBonus}
-                onChange={(e) => setAttendanceBonus(parseFloat(e.target.value))}
-                className="w-full accent-emerald-500"
-              />
-              <span className="text-[10px] text-slate-500">Premia la fidelidad y constancia en las jornadas.</span>
-            </div>
           </div>
         </div>
 
@@ -426,7 +325,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           <div className="flex justify-end pt-3">
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs sm:text-sm shadow-neon flex items-center transition-all"
+              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs sm:text-sm shadow-neon flex items-center transition-all"
             >
               <Save className="w-4 h-4 mr-1.5" />
               Guardar Configuración
@@ -435,14 +334,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         )}
       </form>
 
-      {/* Backup & Data Management Card */}
-      <div className="glass-panel p-5 sm:p-6 rounded-2xl border border-slate-800 space-y-4">
+      {/* Backup & Hard Reset Data Management Card */}
+      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
         <div className="flex items-center space-x-2">
           <Layers className="w-5 h-5 text-cyan-400" />
-          <h3 className="text-base font-bold text-white">Copia de Seguridad & Restauración</h3>
+          <h3 className="text-base font-black text-white">Copia de Seguridad & Limpieza</h3>
         </div>
-        <p className="text-xs text-slate-400">
-          Descarga un archivo JSON con toda la base de datos (jugadores, jornadas jugadas, marcadores y estadísticas) para resguardar los datos o transferirlos a otro dispositivo.
+        <p className="text-xs text-slate-300">
+          Descarga un archivo JSON con toda la base de datos para respaldar, o limpia todo para iniciar de cero.
         </p>
 
         {importStatus && (
@@ -476,15 +375,15 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           {isAdmin && (
             <button
               onClick={() => {
-                if (confirm('¿Deseas reiniciar la base de datos a los valores de muestra iniciales?')) {
+                if (confirm('⚠️ ¿Seguro que deseas BORRAR TODOS LOS DATOS (jugadores, partidos, finales) y dejar el torneo totalmente en blanco desde cero?')) {
                   onResetData();
-                  window.location.reload();
+                  setTimeout(() => window.location.reload(), 500);
                 }
               }}
-              className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-bold text-xs sm:text-sm border border-rose-500/30 flex items-center transition-colors ml-auto"
+              className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 font-bold text-xs sm:text-sm border border-rose-500/40 flex items-center transition-colors ml-auto"
             >
-              <RotateCcw className="w-4 h-4 mr-1.5" />
-              Reiniciar Torneo de Muestra
+              <Trash2 className="w-4 h-4 mr-1.5" />
+              Borrar Todo y Dejar en Cero
             </button>
           )}
         </div>
