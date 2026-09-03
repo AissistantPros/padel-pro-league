@@ -48,8 +48,8 @@ export const Header: React.FC<HeaderProps> = ({
                 {config.tournamentName || 'G20 by Peter Inc. 🎾'}
               </h1>
               <div className="flex items-center space-x-1.5 mt-0.5">
-                <span className="text-[11px] font-semibold text-[#8E8E93]">
-                  {config.editionName || `${config.editionNumber || 3}er Torneo`}
+                <span className="text-xs sm:text-sm font-semibold text-[#FFD60A]">
+                  {config.editionName || 'Tercera Edición'}
                 </span>
               </div>
             </div>

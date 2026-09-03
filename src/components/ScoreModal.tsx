@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Check, Clock, Flame } from 'lucide-react';
+import { X, Check, Flame, Trophy, Frown, Sparkles } from 'lucide-react';
+import confetti from 'canvas-confetti';
 import type { Match, MatchScore } from '../types/index.ts';
-import { calculateMarginBonus } from '../utils/tieBreakerEngine.ts';
 
 interface ScoreModalProps {
   match: Match | null;
@@ -19,52 +19,82 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   if (!isOpen || !match) return null;
 
   const isShortGame = match.matchType === 'preliminary';
-  const [scoreA, setScoreA] = useState<number>(match.score?.scoreA ?? 0);
-  const [scoreB, setScoreB] = useState<number>(match.score?.scoreB ?? 0);
+  const [scoreA, setScoreA] = useState<number | null>(match.score?.completed ? match.score.scoreA : null);
+  const [scoreB, setScoreB] = useState<number | null>(match.score?.completed ? match.score.scoreB : null);
+  const [activeSide, setActiveSide] = useState<'A' | 'B'>('A');
   const [tieBreakPointsA, setTieBreakPointsA] = useState<number | undefined>(match.score?.tieBreakPointsA);
   const [tieBreakPointsB, setTieBreakPointsB] = useState<number | undefined>(match.score?.tieBreakPointsB);
-  const [isCutoff, setIsCutoff] = useState<boolean>(match.score?.isCutoff ?? false);
+  const [isClosing, setIsClosing] = useState<boolean>(false);
+  const [celebrating, setCelebrating] = useState<boolean>(false);
 
   useEffect(() => {
     if (match) {
-      setScoreA(match.score?.scoreA ?? 0);
-      setScoreB(match.score?.scoreB ?? 0);
-      setTieBreakPointsA(match.score?.tieBreakPointsA);
-      setTieBreakPointsB(match.score?.tieBreakPointsB);
-      setIsCutoff(match.score?.isCutoff ?? false);
+      if (match.score?.completed) {
+        setScoreA(match.score.scoreA);
+        setScoreB(match.score.scoreB);
+        setTieBreakPointsA(match.score.tieBreakPointsA);
+        setTieBreakPointsB(match.score.tieBreakPointsB);
+        setActiveSide('A');
+      } else {
+        setScoreA(null);
+        setScoreB(null);
+        setTieBreakPointsA(undefined);
+        setTieBreakPointsB(undefined);
+        setActiveSide('A');
+      }
+      setIsClosing(false);
+      setCelebrating(false);
     }
   }, [match]);
 
   const isTieBreak = isShortGame && scoreA === 3 && scoreB === 3;
+  const isBothSelected = scoreA !== null && scoreB !== null;
 
-  const quickShortScores = [
-    { label: '7 - 0', sub: '+0.004', a: 7, b: 0 },
-    { label: '6 - 1', sub: '+0.003', a: 6, b: 1 },
-    { label: '5 - 2', sub: '+0.002', a: 5, b: 2 },
-    { label: '4 - 3', sub: '0.000', a: 4, b: 3 },
-    { label: '0 - 7', sub: '-0.004', a: 0, b: 7 },
-    { label: '1 - 6', sub: '-0.003', a: 1, b: 6 },
-    { label: '2 - 5', sub: '-0.003', a: 2, b: 5 },
-    { label: '3 - 4', sub: '-0.002', a: 3, b: 4 },
-  ];
+  const isTeamAWinner = isBothSelected && (
+    (scoreA !== null && scoreB !== null && scoreA > scoreB) ||
+    (isTieBreak && (tieBreakPointsA || 0) > (tieBreakPointsB || 0))
+  );
 
-  const quickFinalScores = [
-    { label: '6 - 0', a: 6, b: 0 },
-    { label: '6 - 1', a: 6, b: 1 },
-    { label: '6 - 2', a: 6, b: 2 },
-    { label: '6 - 3', a: 6, b: 3 },
-    { label: '6 - 4', a: 6, b: 4 },
-    { label: '7 - 5', a: 7, b: 5 },
-    { label: '7 - 6', a: 7, b: 6 },
-  ];
+  const isTeamBWinner = isBothSelected && (
+    (scoreA !== null && scoreB !== null && scoreB > scoreA) ||
+    (isTieBreak && (tieBreakPointsB || 0) > (tieBreakPointsA || 0))
+  );
 
-  const handleApplyPreset = (a: number, b: number) => {
-    setScoreA(a);
-    setScoreB(b);
-    setIsCutoff(false);
+  const triggerCelebration = () => {
+    setCelebrating(true);
+    confetti({
+      particleCount: 120,
+      spread: 70,
+      origin: { y: 0.65 },
+      colors: ['#30D158', '#FFD60A', '#FFFFFF', '#64D2FF'],
+    });
+  };
+
+  const handleSelectScoreA = (val: number) => {
+    setScoreA(val);
+    if (scoreB === null) {
+      setActiveSide('B');
+    } else {
+      checkAndCelebrate(val, scoreB);
+    }
+  };
+
+  const handleSelectScoreB = (val: number) => {
+    setScoreB(val);
+    if (scoreA !== null) {
+      checkAndCelebrate(scoreA, val);
+    }
+  };
+
+  const checkAndCelebrate = (a: number, b: number) => {
+    if (a !== b || !isShortGame || a !== 3) {
+      triggerCelebration();
+    }
   };
 
   const handleSave = () => {
+    if (scoreA === null || scoreB === null) return;
+
     let winner: 'teamA' | 'teamB' | 'draw' = 'draw';
     if (scoreA > scoreB) winner = 'teamA';
     else if (scoreB > scoreA) winner = 'teamB';
@@ -77,37 +107,47 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
       scoreB,
       tieBreakPointsA: isTieBreak ? tieBreakPointsA : undefined,
       tieBreakPointsB: isTieBreak ? tieBreakPointsB : undefined,
-      isCutoff,
       completed: true,
       winner,
     };
 
-    onSaveScore(match.id, finalScore);
-    onClose();
+    setIsClosing(true);
+    setTimeout(() => {
+      onSaveScore(match.id, finalScore);
+      onClose();
+    }, 250);
   };
 
+  const numbers = [0, 1, 2, 3, 4, 5, 6, 7];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in select-none">
+    <div className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md select-none transition-opacity duration-200 ${
+      isClosing ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-fade-in'
+    }`}>
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
       {/* iOS Modal Sheet */}
-      <div className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 max-h-[90vh] overflow-y-auto animate-slide-up space-y-4">
+      <div className={`relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/15 rounded-t-[32px] sm:rounded-[32px] p-5 sm:p-6 text-white shadow-2xl z-10 max-h-[92vh] overflow-y-auto space-y-4 transition-transform duration-200 ${
+        isClosing ? 'translate-y-12 scale-95 opacity-0' : 'translate-y-0 scale-100 animate-slide-up'
+      }`}>
         {/* iOS Drag Handle */}
-        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2 sm:hidden" />
+        <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-1 sm:hidden" />
 
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/5 pb-3">
+        {/* Modal Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-xs font-semibold text-[#FFD60A]">
+              <span className="text-xs font-bold text-[#FFD60A]">
                 🎾 {match.courtName || `Cancha ${match.courtNumber}`}
               </span>
               <span className="text-xs text-[#8E8E93]">
-                {isShortGame ? `Ronda ${match.roundNumber}` : 'Final'}
+                {isShortGame ? `Ronda ${match.roundNumber}` : 'Final del Día'}
               </span>
             </div>
-            <h3 className="text-lg font-bold text-white mt-0.5">Capturar Marcador</h3>
+            <h3 className="text-xl font-bold text-white tracking-tight mt-0.5">
+              Ingresar Marcador
+            </h3>
           </div>
           <button
             onClick={onClose}
@@ -117,77 +157,164 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
           </button>
         </div>
 
-        {/* Touch Score Steppers */}
-        <div className="grid grid-cols-2 gap-3 bg-[#2C2C2E] p-4 rounded-2xl border border-white/5">
-          {/* Team A */}
-          <div className="space-y-2 text-center">
-            <span className="text-xs font-semibold text-[#30D158] uppercase tracking-wider block">PAREJA A</span>
-            <div className="text-xs font-semibold text-white truncate">
+        {/* Score Comparison Display */}
+        <div className="grid grid-cols-2 gap-3">
+          {/* Team A Card */}
+          <div
+            onClick={() => setActiveSide('A')}
+            className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ios-touch ${
+              isTeamAWinner
+                ? 'bg-[#30D158]/20 border-[#30D158] ring-2 ring-[#30D158]/50 shadow-[0_0_20px_rgba(48,209,88,0.25)]'
+                : isTeamBWinner
+                ? 'bg-[#FF453A]/15 border-[#FF453A]/50 opacity-90'
+                : activeSide === 'A'
+                ? 'bg-[#2C2C2E] border-[#30D158] ring-1 ring-[#30D158]'
+                : 'bg-[#2C2C2E]/70 border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#30D158]">
+                PAREJA A
+              </span>
+              {isTeamAWinner && (
+                <span className="text-xs font-bold text-[#30D158] flex items-center animate-bounce">
+                  🏆 GANAN
+                </span>
+              )}
+              {isTeamBWinner && (
+                <span className="text-xs font-bold text-[#FF453A] flex items-center animate-pulse">
+                  😢 DERROTA
+                </span>
+              )}
+            </div>
+
+            <div className="text-xs font-semibold text-white truncate mt-1">
               {match.teamA.player1Name} & {match.teamA.player2Name}
             </div>
 
-            {/* Stepper Buttons */}
-            <div className="flex items-center justify-center space-x-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setScoreA(Math.max(0, scoreA - 1))}
-                className="w-11 h-11 rounded-xl bg-[#3A3A3C] active:bg-[#48484A] font-bold text-white text-xl flex items-center justify-center ios-touch"
-              >
-                -
-              </button>
-              <span className="text-3xl font-bold font-mono text-white w-10 text-center">
-                {scoreA}
+            <div className="mt-3 text-center">
+              <div className={`font-mono text-5xl font-black transition-all ${
+                scoreA !== null
+                  ? isTeamAWinner
+                    ? 'text-[#30D158] scale-105'
+                    : isTeamBWinner
+                    ? 'text-[#FF453A]'
+                    : 'text-white'
+                  : 'text-[#8E8E93]/40'
+              }`}>
+                {scoreA !== null ? scoreA : '-'}
+              </div>
+              <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider">
+                Games A
               </span>
-              <button
-                type="button"
-                onClick={() => setScoreA(scoreA + 1)}
-                className="w-11 h-11 rounded-xl bg-[#30D158] text-black font-bold text-xl flex items-center justify-center ios-touch"
-              >
-                +
-              </button>
             </div>
           </div>
 
-          {/* Team B */}
-          <div className="space-y-2 text-center border-l border-white/10 pl-3">
-            <span className="text-xs font-semibold text-[#0A84FF] uppercase tracking-wider block">PAREJA B</span>
-            <div className="text-xs font-semibold text-white truncate">
+          {/* Team B Card */}
+          <div
+            onClick={() => setActiveSide('B')}
+            className={`p-4 rounded-2xl border transition-all cursor-pointer relative overflow-hidden ios-touch ${
+              isTeamBWinner
+                ? 'bg-[#30D158]/20 border-[#30D158] ring-2 ring-[#30D158]/50 shadow-[0_0_20px_rgba(48,209,88,0.25)]'
+                : isTeamAWinner
+                ? 'bg-[#FF453A]/15 border-[#FF453A]/50 opacity-90'
+                : activeSide === 'B'
+                ? 'bg-[#2C2C2E] border-[#0A84FF] ring-1 ring-[#0A84FF]'
+                : 'bg-[#2C2C2E]/70 border-white/10'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#0A84FF]">
+                PAREJA B
+              </span>
+              {isTeamBWinner && (
+                <span className="text-xs font-bold text-[#30D158] flex items-center animate-bounce">
+                  🏆 GANAN
+                </span>
+              )}
+              {isTeamAWinner && (
+                <span className="text-xs font-bold text-[#FF453A] flex items-center animate-pulse">
+                  😢 DERROTA
+                </span>
+              )}
+            </div>
+
+            <div className="text-xs font-semibold text-white truncate mt-1">
               {match.teamB.player1Name} & {match.teamB.player2Name}
             </div>
 
-            {/* Stepper Buttons */}
-            <div className="flex items-center justify-center space-x-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setScoreB(Math.max(0, scoreB - 1))}
-                className="w-11 h-11 rounded-xl bg-[#3A3A3C] active:bg-[#48484A] font-bold text-white text-xl flex items-center justify-center ios-touch"
-              >
-                -
-              </button>
-              <span className="text-3xl font-bold font-mono text-white w-10 text-center">
-                {scoreB}
+            <div className="mt-3 text-center">
+              <div className={`font-mono text-5xl font-black transition-all ${
+                scoreB !== null
+                  ? isTeamBWinner
+                    ? 'text-[#30D158] scale-105'
+                    : isTeamAWinner
+                    ? 'text-[#FF453A]'
+                    : 'text-white'
+                  : 'text-[#8E8E93]/40'
+              }`}>
+                {scoreB !== null ? scoreB : '-'}
+              </div>
+              <span className="text-[10px] text-[#8E8E93] uppercase font-bold tracking-wider">
+                Games B
               </span>
-              <button
-                type="button"
-                onClick={() => setScoreB(scoreB + 1)}
-                className="w-11 h-11 rounded-xl bg-[#0A84FF] text-white font-bold text-xl flex items-center justify-center ios-touch"
-              >
-                +
-              </button>
             </div>
           </div>
         </div>
 
-        {/* Tie Break Section */}
+        {/* Big Number Selector Keypad (0 to 7) */}
+        <div className="bg-[#2C2C2E] p-4 rounded-2xl border border-white/10 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center">
+              Selecciona los games de{' '}
+              <strong className={`ml-1 ${activeSide === 'A' ? 'text-[#30D158]' : 'text-[#0A84FF]'}`}>
+                {activeSide === 'A' ? 'PAREJA A' : 'PAREJA B'}:
+              </strong>
+            </span>
+            <span className="text-[11px] text-[#8E8E93] font-medium">Toca un número</span>
+          </div>
+
+          <div className="grid grid-cols-4 gap-2">
+            {numbers.map((num) => {
+              const currentVal = activeSide === 'A' ? scoreA : scoreB;
+              const isSelected = currentVal === num;
+
+              return (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => {
+                    if (activeSide === 'A') {
+                      handleSelectScoreA(num);
+                    } else {
+                      handleSelectScoreB(num);
+                    }
+                  }}
+                  className={`h-14 sm:h-16 rounded-2xl font-mono text-2xl sm:text-3xl font-black transition-all transform active:scale-95 flex items-center justify-center ios-touch border ${
+                    isSelected
+                      ? activeSide === 'A'
+                        ? 'bg-[#30D158] text-black border-[#30D158] shadow-[0_0_15px_rgba(48,209,88,0.4)] scale-105'
+                        : 'bg-[#0A84FF] text-white border-[#0A84FF] shadow-[0_0_15px_rgba(10,132,255,0.4)] scale-105'
+                      : 'bg-[#1C1C1E] text-white border-white/10 hover:bg-[#3A3A3C] hover:border-white/20'
+                  }`}
+                >
+                  {num}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Tie Break Section for 3-3 */}
         {isTieBreak && (
-          <div className="p-3 bg-[#FFD60A]/10 border border-[#FFD60A]/30 rounded-xl space-y-2">
-            <div className="flex items-center text-xs font-semibold text-[#FFD60A]">
-              <Flame className="w-4 h-4 mr-1" />
-              Empate 3-3: Puntos Tie-Break
+          <div className="p-4 bg-[#FFD60A]/15 border border-[#FFD60A]/40 rounded-2xl space-y-3 animate-fade-in">
+            <div className="flex items-center text-xs font-bold text-[#FFD60A]">
+              <Flame className="w-4 h-4 mr-1.5" />
+              Empate 3-3: Define los Puntos del Tie-Break
             </div>
-            <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-3 text-center">
               <div>
-                <label className="text-[11px] text-[#8E8E93] block mb-1">Pts Pareja A</label>
+                <label className="text-xs text-white font-semibold block mb-1">Pts Pareja A</label>
                 <input
                   type="number"
                   min="0"
@@ -195,11 +322,11 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   value={tieBreakPointsA ?? ''}
                   onChange={(e) => setTieBreakPointsA(parseInt(e.target.value) || 0)}
                   placeholder="Ej: 10"
-                  className="w-full bg-[#1C1C1E] border border-white/15 rounded-xl py-2 px-3 text-center text-lg font-bold font-mono text-white"
+                  className="w-full bg-[#1C1C1E] border border-white/20 rounded-xl py-2.5 px-3 text-center text-xl font-bold font-mono text-white focus:border-[#FFD60A]"
                 />
               </div>
               <div>
-                <label className="text-[11px] text-[#8E8E93] block mb-1">Pts Pareja B</label>
+                <label className="text-xs text-white font-semibold block mb-1">Pts Pareja B</label>
                 <input
                   type="number"
                   min="0"
@@ -207,82 +334,27 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   value={tieBreakPointsB ?? ''}
                   onChange={(e) => setTieBreakPointsB(parseInt(e.target.value) || 0)}
                   placeholder="Ej: 8"
-                  className="w-full bg-[#1C1C1E] border border-white/15 rounded-xl py-2 px-3 text-center text-lg font-bold font-mono text-white"
+                  className="w-full bg-[#1C1C1E] border border-white/20 rounded-xl py-2.5 px-3 text-center text-xl font-bold font-mono text-white focus:border-[#FFD60A]"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* 1-Tap Quick Presets */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider block">
-            Marcadores Frecuentes:
-          </label>
-          <div className="grid grid-cols-4 gap-1.5">
-            {isShortGame
-              ? quickShortScores.map((qs) => (
-                  <button
-                    key={qs.label}
-                    type="button"
-                    onClick={() => handleApplyPreset(qs.a, qs.b)}
-                    className={`py-2 px-1 rounded-xl text-center transition-all ios-touch border ${
-                      scoreA === qs.a && scoreB === qs.b && !isCutoff
-                        ? 'bg-[#30D158] text-black font-bold border-[#30D158]'
-                        : 'bg-[#2C2C2E] border-white/5 text-white hover:bg-[#3A3A3C]'
-                    }`}
-                  >
-                    <div className="text-xs font-bold font-mono">{qs.label}</div>
-                  </button>
-                ))
-              : quickFinalScores.map((qs) => (
-                  <button
-                    key={qs.label}
-                    type="button"
-                    onClick={() => handleApplyPreset(qs.a, qs.b)}
-                    className={`py-2 px-1 rounded-xl text-center transition-all ios-touch border ${
-                      scoreA === qs.a && scoreB === qs.b && !isCutoff
-                        ? 'bg-[#30D158] text-black font-bold border-[#30D158]'
-                        : 'bg-[#2C2C2E] border-white/5 text-white hover:bg-[#3A3A3C]'
-                    }`}
-                  >
-                    <div className="text-xs font-bold font-mono">{qs.label}</div>
-                  </button>
-                ))}
-          </div>
-        </div>
-
-        {/* Cut-off checkbox */}
-        <div className="p-3 bg-[#2C2C2E] rounded-xl flex items-center space-x-2.5">
-          <input
-            type="checkbox"
-            id="isCutoff"
-            checked={isCutoff}
-            onChange={(e) => setIsCutoff(e.target.checked)}
-            className="w-4 h-4 rounded text-[#30D158] bg-[#1C1C1E] border-white/20"
-          />
-          <label htmlFor="isCutoff" className="text-xs text-[#8E8E93] font-medium flex items-center cursor-pointer">
-            <Clock className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" />
-            Corte por tiempo reglamentario
-          </label>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex space-x-2.5 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-1/3 py-3 rounded-xl bg-[#2C2C2E] text-[#8E8E93] hover:text-white font-semibold text-sm ios-touch"
-          >
-            Cancelar
-          </button>
+        {/* Action Button */}
+        <div className="pt-2">
           <button
             type="button"
             onClick={handleSave}
-            className="w-2/3 py-3 rounded-xl bg-[#30D158] active:bg-[#28B84B] text-black font-bold text-sm flex items-center justify-center ios-touch"
+            disabled={!isBothSelected}
+            className={`w-full py-4 rounded-2xl font-bold text-base flex items-center justify-center transition-all ios-touch ${
+              isBothSelected
+                ? 'bg-[#30D158] text-black shadow-lg shadow-[#30D158]/30 active:scale-95'
+                : 'bg-[#2C2C2E] text-[#8E8E93] cursor-not-allowed'
+            }`}
           >
-            <Check className="w-4 h-4 mr-1.5" />
-            Guardar Marcador
+            <Check className="w-5 h-5 mr-2" />
+            {isBothSelected ? 'Guardar Marcador Oficial' : 'Selecciona ambos marcadores'}
           </button>
         </div>
       </div>

@@ -1,5 +1,5 @@
-import React from 'react';
-import { X, Trophy, Zap, ArrowRight, TrendingUp, CheckCircle, Percent, Shield } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Trophy, Zap, ArrowRight, TrendingUp, CheckCircle, Percent, Shield, Globe } from 'lucide-react';
 import type { PlayerIntelligenceStats } from '../types/index.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
 
@@ -10,6 +10,8 @@ interface PlayerDetailModalProps {
 }
 
 export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, onClose, onOpenRadar }) => {
+  const [scope, setScope] = useState<'current' | 'all_time'>('current');
+
   if (!player) return null;
 
   return (
@@ -51,6 +53,22 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, on
             className="w-8 h-8 rounded-full bg-[#2C2C2E] text-[#8E8E93] hover:text-white flex items-center justify-center transition-colors ios-touch"
           >
             <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* iOS Native Segmented Control */}
+        <div className="ios-segmented-control mt-4">
+          <button
+            onClick={() => setScope('current')}
+            className={`ios-segmented-item ${scope === 'current' ? 'active' : ''}`}
+          >
+            🏆 Torneo Actual
+          </button>
+          <button
+            onClick={() => setScope('all_time')}
+            className={`ios-segmented-item ${scope === 'all_time' ? 'active' : ''}`}
+          >
+            🌐 Histórico Global
           </button>
         </div>
 

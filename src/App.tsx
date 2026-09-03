@@ -228,6 +228,8 @@ export function App() {
         {activeTab === 'standings' && (
           <StandingsTable
             stats={statsList}
+            days={days}
+            players={players}
             config={config}
             onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
             onChangeRankingSystem={handleChangeRankingSystem}

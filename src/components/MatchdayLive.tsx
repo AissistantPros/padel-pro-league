@@ -266,12 +266,27 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               <span className="text-xs font-semibold text-[#FFD60A] bg-[#FFD60A]/15 px-2.5 py-0.5 rounded-full border border-[#FFD60A]/30">
                 {currentDay ? currentDay.date : 'Calendario'}
               </span>
+
+              {/* TV-Style Animated Broadcast Badge */}
+              {currentDay && currentDay.status !== 'completed' && (
+                <div className="flex items-center space-x-1.5 px-2.5 py-0.5 rounded-full bg-red-600/20 border border-red-500/50 shadow-[0_0_10px_rgba(255,59,48,0.4)] animate-pulse">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-red-400">
+                    EN VIVO
+                  </span>
+                </div>
+              )}
+
               {currentDay && (
                 <span className="text-xs text-[#8E8E93]">
                   {currentDay.checkedInPlayerIds.length} jugadores • {Math.floor(currentDay.checkedInPlayerIds.length / 4)} canchas
                 </span>
               )}
             </div>
+
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-1">
               {currentDay ? currentDay.name : 'Jornada en Vivo'}
             </h1>
@@ -449,6 +464,19 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       {/* Main Active Day Rounds & Tabs */}
       {currentDay && (
         <div className="space-y-4">
+          {/* Non-Admin In-Progress Informative Notice */}
+          {!isAdmin && currentDay.status !== 'completed' && (
+            <div className="ios-card p-4 border border-[#FFD60A]/30 bg-[#FFD60A]/10 flex items-start space-x-3">
+              <Calendar className="w-5 h-5 text-[#FFD60A] flex-shrink-0 mt-0.5" />
+              <div className="text-xs text-[#E5E5EA] space-y-1">
+                <strong className="text-white block font-semibold text-sm">🎾 Jornada en Curso</strong>
+                <p className="text-[#8E8E93]">
+                  Consulta a continuación tus canchas y parejas asignadas para cada juego. La tabla de posiciones oficial se revelará en cuanto el Administrador concluya y guarde la jornada completa.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* iOS Segmented Control for Rounds */}
           <div className="ios-segmented-control">
             {[1, 2, 3].map((rNum) => {
@@ -466,12 +494,14 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               );
             })}
 
-            <button
-              onClick={() => setActiveRoundTab(99)}
-              className={`ios-segmented-item ${activeRoundTab === 99 ? 'active' : ''}`}
-            >
-              Tabla Día
-            </button>
+            {(isAdmin || currentDay.status === 'completed') && (
+              <button
+                onClick={() => setActiveRoundTab(99)}
+                className={`ios-segmented-item ${activeRoundTab === 99 ? 'active' : ''}`}
+              >
+                Tabla Día
+              </button>
+            )}
 
             <button
               onClick={() => setActiveRoundTab(4)}
