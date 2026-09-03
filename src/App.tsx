@@ -102,10 +102,8 @@ export function App() {
     return players.find(p => p.id === currentPlayerId) || null;
   }, [players, currentPlayerId]);
 
-  // If active player is marked as admin, they also get admin permissions
   const effectiveIsAdmin = isAdmin || currentPlayer?.role === 'admin';
 
-  // Recompute Padel Intelligence whenever players, matchdays, or formula configs change
   const statsList = useMemo(() => {
     return buildChampionshipIntelligence(players, days, config);
   }, [players, days, config]);
@@ -213,8 +211,8 @@ export function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0F19] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-black overflow-x-hidden max-w-[100vw]">
-      {/* Top Header */}
+    <div className="min-h-screen bg-[#000000] text-white flex flex-col selection:bg-[#30D158] selection:text-black overflow-x-hidden max-w-[100vw]">
+      {/* Top Header (iOS Navigation Bar) */}
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -225,8 +223,8 @@ export function App() {
         onLogoutAdmin={handleLogoutAdmin}
       />
 
-      {/* Main Content Area with Bottom Bar Safe Margin */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-8 pb-28 md:pb-12">
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-4xl w-full mx-auto px-4 sm:px-6 py-4 sm:py-6 pb-28 md:pb-12">
         {activeTab === 'standings' && (
           <StandingsTable
             stats={statsList}
@@ -303,19 +301,19 @@ export function App() {
         )}
       </main>
 
-      {/* Official App Credits Footer */}
-      <footer className="w-full border-t border-slate-800/80 bg-[#070A12] pt-10 pb-12 px-6 text-center text-xs text-slate-400 space-y-2.5 select-none mb-32 md:mb-0">
+      {/* Apple Style Minimalist Credits Footer */}
+      <footer className="w-full border-t border-white/5 bg-[#000000] pt-10 pb-12 px-6 text-center text-xs text-[#8E8E93] space-y-2 select-none mb-32 md:mb-0">
         <div className="flex items-center justify-center space-x-2 flex-wrap">
-          <span className="font-extrabold text-slate-200">🎾 {config.tournamentName}</span>
+          <span className="font-semibold text-white">🎾 {config.tournamentName}</span>
           <span>•</span>
-          <span className="text-amber-400 font-bold">{config.editionName}</span>
+          <span className="text-[#FFD60A] font-medium">{config.editionName}</span>
         </div>
-        <div className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto leading-relaxed">
-          Desarrollado por <strong className="text-emerald-400 font-black">Esteban Reyna</strong> • <span className="font-mono text-slate-300 font-bold">v2.4.0</span> • <strong className="text-cyan-400 font-bold">IA Factory Cancún</strong> en colaboración con <strong className="text-amber-400 font-bold">Marketing 101 Cancún</strong>
+        <div className="text-xs text-[#8E8E93] max-w-md mx-auto leading-relaxed">
+          Desarrollado por <strong className="text-white font-semibold">Esteban Reyna</strong> • <span className="font-mono text-[#8E8E93]">v2.4.0</span> • <strong className="text-white font-semibold">IA Factory Cancún</strong> en colaboración con <strong className="text-white font-semibold">Marketing 101 Cancún</strong>
         </div>
       </footer>
 
-      {/* Native Mobile App Bottom Navigation Bar */}
+      {/* Native iOS Bottom Tab Bar */}
       <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={effectiveIsAdmin} />
 
       {/* Admin Unlock Modal */}

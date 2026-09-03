@@ -5,10 +5,7 @@ import {
   Upload,
   Check,
   Phone,
-  Sparkles,
   Trophy,
-  Flame,
-  Award,
   ShieldCheck,
   Search,
   LogOut,
@@ -32,7 +29,6 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
   statsList,
   onSelectCurrentPlayer,
   onUpdatePlayer,
-  onRequestAdmin,
 }) => {
   const currentPlayer = players.find(p => p.id === currentPlayerId) || null;
   const currentStats = currentPlayer ? statsList.find(s => s.playerId === currentPlayer.id) : null;
@@ -44,7 +40,6 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
-  // Sync state when switching player
   React.useEffect(() => {
     if (currentPlayer) {
       setName(currentPlayer.name);
@@ -103,7 +98,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
 
     onUpdatePlayer(updated);
     setIsSavedNotice(true);
-    setTimeout(() => setIsSavedNotice(false), 3000);
+    setTimeout(() => setIsSavedNotice(false), 2500);
   };
 
   // If no player profile is chosen yet
@@ -115,233 +110,178 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
     });
 
     return (
-      <div className="max-w-2xl mx-auto space-y-6 pb-20 md:pb-6">
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 text-center space-y-4">
-          <div className="w-16 h-16 rounded-3xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto shadow-neon">
-            <User className="w-8 h-8" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black font-display text-white">¿Quién eres en el Torneo?</h2>
-            <p className="text-sm text-slate-400 max-w-md mx-auto mt-1">
-              Selecciona tu nombre de la lista para subir tu foto de perfil, cambiar tu apodo y celular.
-            </p>
-          </div>
+      <div className="max-w-xl mx-auto space-y-4 pb-20 md:pb-6 select-none">
+        <div className="pt-2 pb-1 text-center">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white">
+            Mi Perfil
+          </h1>
+          <p className="text-xs sm:text-sm text-[#8E8E93] mt-1">
+            Selecciona tu nombre para personalizar tu foto, apodo y ver tus estadísticas.
+          </p>
+        </div>
 
-          <div className="relative max-w-md mx-auto">
-            <Search className="w-5 h-5 text-slate-400 absolute left-4 top-3.5" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar mi nombre..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl pl-12 pr-4 py-3 text-base text-white focus:border-emerald-500 focus:outline-none font-bold"
-            />
-          </div>
+        {/* Search */}
+        <div className="relative">
+          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-3" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Buscar mi nombre..."
+            className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-[#30D158]"
+          />
+        </div>
 
-          <div className="space-y-2 max-h-96 overflow-y-auto pt-2 text-left">
-            {filtered.map((p) => {
-              const st = statsList.find(s => s.playerId === p.id);
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => onSelectCurrentPlayer(p.id)}
-                  className="w-full p-3.5 rounded-2xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 flex items-center justify-between transition-all group"
-                >
-                  <div className="flex items-center space-x-3 truncate">
-                    {p.avatar ? (
-                      <img src={p.avatar} alt={p.name} className="w-12 h-12 rounded-full object-cover border-2 border-emerald-400 flex-shrink-0" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 font-black text-sm flex items-center justify-center flex-shrink-0">
-                        {p.name.slice(0, 2).toUpperCase()}
-                      </div>
-                    )}
-                    <div className="truncate">
-                      <span className="block font-black text-base text-white group-hover:text-emerald-400 transition-colors truncate">
-                        {p.name}
-                      </span>
-                      {p.nickname && <span className="text-xs text-slate-400 italic">"{p.nickname}"</span>}
+        <div className="ios-grouped-list divide-y divide-white/5">
+          {filtered.map((p) => {
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelectCurrentPlayer(p.id)}
+                className="w-full ios-grouped-row py-3 px-4 flex items-center justify-between text-left ios-touch"
+              >
+                <div className="flex items-center space-x-3 truncate">
+                  {p.avatar ? (
+                    <img src={p.avatar} alt={p.name} className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#2C2C2E] text-[#30D158] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                      {p.name.slice(0, 2).toUpperCase()}
                     </div>
+                  )}
+                  <div className="truncate">
+                    <span className="block font-semibold text-sm sm:text-base text-white truncate">
+                      {p.name}
+                    </span>
+                    {p.nickname && <span className="text-xs text-[#8E8E93] italic">"{p.nickname}"</span>}
                   </div>
+                </div>
 
-                  <div className="flex items-center space-x-2 flex-shrink-0">
-                    {st && st.currentRank && (
-                      <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-                        #{st.currentRank}
-                      </span>
-                    )}
-                    <ChevronRight className="w-5 h-5 text-slate-500 group-hover:text-emerald-400 transition-colors" />
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                <ChevronRight className="w-4 h-4 text-[#8E8E93]" />
+              </button>
+            );
+          })}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-20 md:pb-6">
-      {/* Profile Header & Card */}
-      <div className="glass-panel p-5 sm:p-7 rounded-3xl border border-slate-800 space-y-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-800 pb-5">
-          <div className="flex items-center space-x-4">
-            <div className="relative group">
-              {avatar ? (
-                <img
-                  src={avatar}
-                  alt={name}
-                  className="w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-3 border-emerald-400 shadow-neon bg-slate-900 flex-shrink-0"
-                />
-              ) : (
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center text-2xl font-black text-emerald-400 flex-shrink-0">
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
-              )}
-
-              <label className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white">
-                <Camera className="w-6 h-6" />
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleCompressAndSetImage(f);
-                  }}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            <div>
-              <div className="flex items-center space-x-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black font-display text-white">{currentPlayer.name}</h2>
-                {currentPlayer.role === 'admin' && (
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center">
-                    <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Admin de Torneo
-                  </span>
-                )}
-              </div>
-              {currentPlayer.nickname && (
-                <span className="text-sm text-emerald-400 italic font-bold">"{currentPlayer.nickname}"</span>
-              )}
-              <div className="text-xs text-slate-400 mt-0.5">Mi Perfil de Jugador • G20 League</div>
-            </div>
-          </div>
-
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => onSelectCurrentPlayer(null)}
-              className="px-3.5 py-2 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold border border-slate-700 flex items-center transition-colors"
-            >
-              <LogOut className="w-4 h-4 mr-1.5" /> Cambiar Perfil
-            </button>
-          </div>
-        </div>
-
-        {/* Edit Form */}
-        <form onSubmit={handleSaveProfile} className="space-y-4">
-          <h3 className="text-base font-black text-white flex items-center">
-            <User className="w-5 h-5 mr-2 text-emerald-400" />
-            Editar Mis Datos Personales
-          </h3>
-
-          <div className="flex flex-col sm:flex-row items-center gap-3">
-            <label className="px-4 py-2.5 rounded-2xl bg-slate-800 active:bg-slate-700 text-emerald-400 font-black text-xs sm:text-sm border border-slate-700 cursor-pointer inline-flex items-center transition-colors">
-              <Upload className="w-4 h-4 mr-1.5" />
-              {avatar ? 'Cambiar Mi Foto de Perfil' : 'Subir Mi Foto de Perfil'}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleCompressAndSetImage(f);
-                }}
-                className="hidden"
-              />
-            </label>
-            <span className="text-xs text-slate-400">Foto tipo transmisión para mostrar en las canchas</span>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Nombre Completo *</label>
-              <input
-                type="text"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Apodo / Nickname</label>
-              <input
-                type="text"
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder="Ej. El Rayo"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Teléfono / WhatsApp</label>
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ej. +52 55 1234 5678"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {isSavedNotice && (
-            <div className="p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl text-emerald-400 text-sm font-bold flex items-center justify-center animate-fade-in">
-              <Check className="w-5 h-5 mr-2" /> ¡Tus datos han sido actualizados con éxito!
+    <div className="max-w-xl mx-auto space-y-5 pb-20 md:pb-6 select-none">
+      {/* Apple ID Style Hero Card */}
+      <div className="ios-card p-6 text-center space-y-4">
+        <div className="relative inline-block mx-auto">
+          {avatar ? (
+            <img
+              src={avatar}
+              alt={name}
+              className="w-20 h-20 rounded-full object-cover border-2 border-white/20 mx-auto bg-[#2C2C2E]"
+            />
+          ) : (
+            <div className="w-20 h-20 rounded-full bg-[#2C2C2E] text-[#30D158] text-2xl font-bold flex items-center justify-center mx-auto border-2 border-white/10">
+              {name.slice(0, 2).toUpperCase()}
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              className="px-6 py-3.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-base shadow-neon flex items-center transition-all"
-            >
-              <Check className="w-5 h-5 mr-1.5" /> Guardar Mis Cambios
-            </button>
+          <label className="absolute bottom-0 right-0 p-1.5 rounded-full bg-[#30D158] text-black cursor-pointer shadow-lg ios-touch">
+            <Camera className="w-3.5 h-3.5" />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleCompressAndSetImage(f);
+              }}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-center space-x-2">
+            <h2 className="text-xl font-bold text-white">{currentPlayer.name}</h2>
+            {currentPlayer.role === 'admin' && (
+              <span className="text-[10px] font-bold text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full border border-[#FFD60A]/30 flex items-center">
+                <ShieldCheck className="w-3 h-3 mr-1" /> Admin
+              </span>
+            )}
           </div>
-        </form>
+          {currentPlayer.nickname && (
+            <p className="text-xs text-[#8E8E93] mt-0.5">"{currentPlayer.nickname}"</p>
+          )}
+        </div>
+
+        <button
+          onClick={() => onSelectCurrentPlayer(null)}
+          className="text-xs text-[#0A84FF] font-semibold hover:underline"
+        >
+          Elegir otro jugador
+        </button>
       </div>
 
-      {/* Personal Snapshot KPIs */}
+      {/* Inset Grouped Settings Form */}
+      <form onSubmit={handleSaveProfile} className="space-y-4">
+        <div className="ios-grouped-list divide-y divide-white/5">
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-24 flex-shrink-0">Nombre</label>
+            <input
+              type="text"
+              required
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none"
+            />
+          </div>
+
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-24 flex-shrink-0">Apodo</label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              placeholder="Opcional"
+              className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none placeholder-[#8E8E93]/50"
+            />
+          </div>
+
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-24 flex-shrink-0">WhatsApp</label>
+            <input
+              type="text"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Teléfono"
+              className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none placeholder-[#8E8E93]/50"
+            />
+          </div>
+        </div>
+
+        {isSavedNotice && (
+          <div className="p-3 bg-[#30D158]/15 border border-[#30D158]/30 rounded-xl text-[#30D158] text-xs font-bold text-center animate-fade-in flex items-center justify-center">
+            <Check className="w-4 h-4 mr-1.5" /> Cambios guardados correctamente
+          </div>
+        )}
+
+        <button
+          type="submit"
+          className="w-full py-3.5 rounded-xl bg-[#30D158] active:bg-[#28B84B] text-black font-bold text-sm ios-touch flex items-center justify-center"
+        >
+          <Check className="w-4 h-4 mr-1.5" />
+          Guardar Cambios
+        </button>
+      </form>
+
+      {/* Personal KPIs Snapshot */}
       {currentStats && currentStats.totalMatchesPlayed > 0 && (
-        <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-4">
-          <h3 className="text-base sm:text-lg font-black text-white flex items-center">
-            <Trophy className="w-5 h-5 mr-2 text-amber-400" />
-            Mi Rendimiento en la Liga G20
-          </h3>
+        <div className="grid grid-cols-2 gap-2.5">
+          <div className="bg-[#1C1C1E] p-3.5 rounded-2xl border border-white/5 text-center">
+            <span className="text-[11px] font-semibold text-[#8E8E93] block uppercase tracking-wider">Posición</span>
+            <div className="text-xl font-bold text-white mt-0.5">#{currentStats.currentRank}</div>
+          </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center">
-              <span className="text-xs text-slate-400 font-bold block">Mi Posición</span>
-              <span className="text-2xl sm:text-3xl font-black text-white font-display">#{currentStats.currentRank}</span>
-            </div>
-
-            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center">
-              <span className="text-xs text-slate-400 font-bold block">Efectividad</span>
-              <span className="text-2xl sm:text-3xl font-black text-emerald-400 font-display">{currentStats.winRatePercentage}%</span>
-            </div>
-
-            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center">
-              <span className="text-xs text-slate-400 font-bold block">Puntos Totales</span>
-              <span className="text-2xl sm:text-3xl font-black text-blue-400 font-mono">{formatScoreDisplay(currentStats.totalChampionshipPoints)}</span>
-            </div>
-
-            <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center">
-              <span className="text-xs text-slate-400 font-bold block">Games Ganados</span>
-              <span className="text-2xl sm:text-3xl font-black text-cyan-300 font-mono">{currentStats.totalBasePoints}</span>
+          <div className="bg-[#1C1C1E] p-3.5 rounded-2xl border border-white/5 text-center">
+            <span className="text-[11px] font-semibold text-[#8E8E93] block uppercase tracking-wider">Puntos Totales</span>
+            <div className="text-xl font-bold text-[#30D158] mt-0.5 font-mono">
+              {formatScoreDisplay(currentStats.totalChampionshipPoints)}
             </div>
           </div>
         </div>

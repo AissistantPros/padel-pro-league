@@ -35,12 +35,12 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         <img
           src={pStat.avatar}
           alt={name}
-          className="w-9 h-9 sm:w-11 sm:h-11 rounded-full object-cover border-2 border-emerald-400/80 shadow-neon flex-shrink-0 bg-slate-900"
+          className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-cover border border-white/10 flex-shrink-0 bg-[#2C2C2E]"
         />
       );
     }
     return (
-      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-xs sm:text-sm text-emerald-400 flex-shrink-0">
+      <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#2C2C2E] text-[#8E8E93] font-bold text-xs flex items-center justify-center flex-shrink-0 border border-white/10">
         {name.slice(0, 2).toUpperCase()}
       </div>
     );
@@ -49,84 +49,71 @@ export const MatchCard: React.FC<MatchCardProps> = ({
   const getCategoryBadge = () => {
     switch (match.finalCategory) {
       case 'gold':
-        return <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">👑 FINAL ORO (1º-4º)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FFD60A]/15 text-[#FFD60A] border border-[#FFD60A]/30">👑 Final Oro (1º-4º)</span>;
       case 'silver':
-        return <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-slate-400/20 text-slate-300 border border-slate-400/40">🥈 FINAL PLATA (5º-8º)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#E5E5EA]/15 text-[#E5E5EA] border border-[#E5E5EA]/30">🥈 Final Plata (5º-8º)</span>;
       case 'bronze':
-        return <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-amber-700/20 text-amber-400 border border-amber-700/40">🥉 FINAL BRONCE (9º-12º)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#FF9F0A]/15 text-[#FF9F0A] border border-[#FF9F0A]/30">🥉 Final Bronce (9º-12º)</span>;
       case 'copper':
-        return <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-orange-600/20 text-orange-300 border border-orange-600/40">🍖 FINAL COBRE (13º-16º)</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#AC8E68]/15 text-[#AC8E68] border border-[#AC8E68]/30">🍖 Final Madera (13º-16º)</span>;
       default:
-        return <span className="px-3 py-1 rounded-xl text-xs sm:text-sm font-black bg-slate-800 text-slate-200 border border-slate-700">Juego Corto {match.roundNumber}</span>;
+        return <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#2C2C2E] text-[#8E8E93]">Ronda {match.roundNumber}</span>;
     }
   };
 
   return (
-    <div className={`glass-panel rounded-3xl p-4 sm:p-5 border space-y-4 transition-all ${
-      isCompleted ? 'border-slate-800 bg-[#0E1422]' : 'border-slate-700/80 bg-[#121829] shadow-lg'
-    }`}>
+    <div className="ios-card p-4 sm:p-5 space-y-3.5 select-none">
       {/* Court Header & Prediction Pill */}
-      <div className="flex items-center justify-between gap-2 pb-3 border-b border-slate-800 flex-wrap">
+      <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
         <div className="flex items-center space-x-2">
-          <span className="text-base sm:text-lg font-black text-white flex items-center">
+          <span className="text-sm sm:text-base font-bold text-white flex items-center">
             🎾 {match.courtName || `Cancha ${match.courtNumber}`}
           </span>
           {getCategoryBadge()}
         </div>
 
         {/* Prediction probability pill */}
-        {!isCompleted && (
-          <div className="flex items-center space-x-2 text-xs sm:text-sm font-mono bg-slate-950 px-3 py-1.5 rounded-full border border-slate-800">
-            <Zap className="w-4 h-4 text-cyan-400" />
-            <span className="text-emerald-400 font-black">{prediction.probTeamA}%</span>
-            <span className="text-slate-500 font-bold">vs</span>
-            <span className="text-blue-400 font-black">{prediction.probTeamB}%</span>
+        {!isCompleted ? (
+          <div className="flex items-center space-x-1.5 text-xs font-mono bg-[#2C2C2E] px-2.5 py-1 rounded-full text-[#8E8E93]">
+            <Zap className="w-3.5 h-3.5 text-[#64D2FF]" />
+            <span className="text-[#30D158] font-bold">{prediction.probTeamA}%</span>
+            <span>-</span>
+            <span className="text-[#0A84FF] font-bold">{prediction.probTeamB}%</span>
           </div>
-        )}
-
-        {isCompleted && (
-          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-            <CheckCircle2 className="w-4 h-4 mr-1.5" /> Terminado
+        ) : (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold text-[#30D158] bg-[#30D158]/15">
+            <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizado
           </span>
         )}
       </div>
 
-      {/* Teams Container - Stacked Professional Broadcast Cards */}
-      <div className="space-y-3">
+      {/* Teams Score Cards */}
+      <div className="space-y-2">
         {/* Team A Card */}
-        <div className={`p-3.5 sm:p-4 rounded-2xl transition-all border flex items-center justify-between gap-3 ${
+        <div className={`p-3 sm:p-3.5 rounded-2xl transition-all border flex items-center justify-between gap-3 ${
           isTeamAWinner
-            ? 'bg-emerald-500/15 border-2 border-emerald-500/60 shadow-neon'
-            : 'bg-slate-950/90 border-slate-800'
+            ? 'bg-[#30D158]/10 border-[#30D158]/40'
+            : 'bg-[#2C2C2E]/60 border-white/5'
         }`}>
-          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm flex-shrink-0 ${
-              isTeamAWinner ? 'bg-emerald-500 text-black shadow-neon' : 'bg-slate-800 text-emerald-400 border border-slate-700'
-            }`}>
-              A
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex items-center space-x-2.5 truncate">
+              {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
+              <span className={`text-sm sm:text-base truncate ${isTeamAWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
+                {match.teamA.player1Name}
+              </span>
             </div>
-
-            {/* Players with Avatars - Clear mobile wrapping with no overlap */}
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <div className="flex items-center space-x-2 truncate">
-                {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
-                <span className="text-base sm:text-lg font-black text-white truncate">
-                  {match.teamA.player1Name}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2 truncate">
-                {getAvatar(match.teamA.player2Id, match.teamA.player2Name)}
-                <span className="text-base sm:text-lg font-black text-white truncate">
-                  {match.teamA.player2Name}
-                </span>
-              </div>
+            <div className="flex items-center space-x-2.5 truncate">
+              {getAvatar(match.teamA.player2Id, match.teamA.player2Name)}
+              <span className={`text-sm sm:text-base truncate ${isTeamAWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
+                {match.teamA.player2Name}
+              </span>
             </div>
           </div>
 
-          {/* Huge Score Box */}
+          {/* Score Box */}
           <div className="text-right pl-2 flex-shrink-0">
-            <div className={`font-mono text-3xl sm:text-4xl font-black min-w-[48px] text-center ${
-              isTeamAWinner ? 'text-emerald-400 glow-text-neon' : 'text-slate-400'
+            <div className={`font-mono text-3xl font-bold min-w-[40px] text-center ${
+              isTeamAWinner ? 'text-[#30D158]' : 'text-white/80'
             }`}>
               {isCompleted ? match.score.scoreA : '-'}
             </div>
@@ -134,39 +121,30 @@ export const MatchCard: React.FC<MatchCardProps> = ({
         </div>
 
         {/* Team B Card */}
-        <div className={`p-3.5 sm:p-4 rounded-2xl transition-all border flex items-center justify-between gap-3 ${
+        <div className={`p-3 sm:p-3.5 rounded-2xl transition-all border flex items-center justify-between gap-3 ${
           isTeamBWinner
-            ? 'bg-blue-500/15 border-2 border-blue-500/60 shadow-blue-glow'
-            : 'bg-slate-950/90 border-slate-800'
+            ? 'bg-[#0A84FF]/10 border-[#0A84FF]/40'
+            : 'bg-[#2C2C2E]/60 border-white/5'
         }`}>
-          <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-            <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs sm:text-sm flex-shrink-0 ${
-              isTeamBWinner ? 'bg-blue-600 text-white shadow-blue-glow' : 'bg-slate-800 text-blue-400 border border-slate-700'
-            }`}>
-              B
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex items-center space-x-2.5 truncate">
+              {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
+              <span className={`text-sm sm:text-base truncate ${isTeamBWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
+                {match.teamB.player1Name}
+              </span>
             </div>
-
-            {/* Players with Avatars - Clear mobile wrapping with no overlap */}
-            <div className="space-y-1.5 min-w-0 flex-1">
-              <div className="flex items-center space-x-2 truncate">
-                {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
-                <span className="text-base sm:text-lg font-black text-white truncate">
-                  {match.teamB.player1Name}
-                </span>
-              </div>
-              <div className="flex items-center space-x-2 truncate">
-                {getAvatar(match.teamB.player2Id, match.teamB.player2Name)}
-                <span className="text-base sm:text-lg font-black text-white truncate">
-                  {match.teamB.player2Name}
-                </span>
-              </div>
+            <div className="flex items-center space-x-2.5 truncate">
+              {getAvatar(match.teamB.player2Id, match.teamB.player2Name)}
+              <span className={`text-sm sm:text-base truncate ${isTeamBWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
+                {match.teamB.player2Name}
+              </span>
             </div>
           </div>
 
-          {/* Huge Score Box */}
+          {/* Score Box */}
           <div className="text-right pl-2 flex-shrink-0">
-            <div className={`font-mono text-3xl sm:text-4xl font-black min-w-[48px] text-center ${
-              isTeamBWinner ? 'text-blue-400 glow-text-blue' : 'text-slate-400'
+            <div className={`font-mono text-3xl font-bold min-w-[40px] text-center ${
+              isTeamBWinner ? 'text-[#0A84FF]' : 'text-white/80'
             }`}>
               {isCompleted ? match.score.scoreB : '-'}
             </div>
@@ -176,39 +154,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
 
       {/* Tie Break or Cut-off Notes */}
       {isCompleted && (match.score.tieBreakPointsA !== undefined || match.score.isCutoff) && (
-        <div className="text-xs sm:text-sm text-slate-300 bg-slate-950 px-4 py-2 rounded-2xl flex items-center justify-between border border-slate-800">
+        <div className="text-xs text-[#8E8E93] bg-[#2C2C2E] px-3 py-1.5 rounded-xl flex items-center justify-between">
           {match.score.tieBreakPointsA !== undefined && (
-            <span className="text-amber-400 font-black flex items-center">
-              <Flame className="w-4 h-4 mr-1.5 text-amber-400" /> Tie-Break: {match.score.tieBreakPointsA} - {match.score.tieBreakPointsB}
+            <span className="text-[#FFD60A] font-semibold flex items-center">
+              <Flame className="w-3.5 h-3.5 mr-1" /> Tie-Break: {match.score.tieBreakPointsA} - {match.score.tieBreakPointsB}
             </span>
           )}
           {match.score.isCutoff && (
-            <span className="text-slate-300 font-bold flex items-center">
-              <Clock className="w-4 h-4 mr-1.5 text-amber-400" /> Corte por tiempo
+            <span className="text-white font-medium flex items-center">
+              <Clock className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" /> Corte por tiempo
             </span>
           )}
         </div>
       )}
 
-      {/* Score Button - Extra Large for phone screens (54px height) */}
-      {isAdmin ? (
+      {/* Score Button */}
+      {isAdmin && (
         <button
           onClick={() => onOpenScoreModal(match)}
-          className={`w-full py-3.5 sm:py-4 px-4 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center transition-all ${
+          className={`w-full py-3 px-4 rounded-xl font-bold text-sm flex items-center justify-center transition-all ios-touch ${
             isCompleted
-              ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-              : 'bg-emerald-500 active:bg-emerald-400 text-black shadow-neon cursor-pointer'
+              ? 'bg-[#2C2C2E] text-[#8E8E93] hover:text-white border border-white/5'
+              : 'bg-[#30D158] text-black active:bg-[#28B84B]'
           }`}
         >
-          <Edit3 className="w-5 h-5 mr-2" />
-          {isCompleted ? 'Modificar Marcador' : 'Cargar Marcador del Partido'}
+          <Edit3 className="w-4 h-4 mr-2" />
+          {isCompleted ? 'Editar Marcador' : 'Capturar Marcador'}
         </button>
-      ) : (
-        !isCompleted && (
-          <div className="text-center text-sm text-slate-400 italic py-1.5 font-bold">
-            ⏳ Partido en juego en cancha...
-          </div>
-        )
       )}
     </div>
   );

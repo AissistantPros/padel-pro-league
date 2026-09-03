@@ -476,6 +476,7 @@ export function buildChampionshipIntelligence(
     return {
       playerId: player.id,
       playerName: player.name,
+      nickname: player.nickname,
       avatar: player.avatar,
       daysAttended,
       totalMatchesPlayed,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Sparkles, Camera, Upload, ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
+import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Camera, Upload, ShieldCheck, Shield, ChevronRight } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 
 interface PlayersManagerProps {
@@ -151,7 +151,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const handleToggleAdminRole = (player: Player) => {
     const newRole: 'player' | 'admin' = player.role === 'admin' ? 'player' : 'admin';
     const confirmMsg = newRole === 'admin'
-      ? `¿Deseas nombrar a "${player.name}" como Administrador del Torneo? Podrá cargar marcadores, programar fechas y gestionar jugadores.`
+      ? `¿Deseas nombrar a "${player.name}" como Administrador del Torneo? Podrá cargar marcadores y gestionar fechas.`
       : `¿Deseas revocar los permisos de Administrador a "${player.name}"?`;
 
     if (confirm(confirmMsg)) {
@@ -160,20 +160,8 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     }
   };
 
-  const handleQuickAvatarUpload = (playerId: string, file: File) => {
-    handleCompressAndSetImage(file, (dataUrl) => {
-      const updated = players.map(p => (p.id === playerId ? { ...p, avatar: dataUrl } : p));
-      onSavePlayers(updated);
-    });
-  };
-
-  const handleToggleActive = (playerId: string) => {
-    const updated = players.map(p => (p.id === playerId ? { ...p, isActive: !p.isActive } : p));
-    onSavePlayers(updated);
-  };
-
   const handleDeletePlayer = (playerId: string) => {
-    if (confirm('¿Seguro que deseas eliminar este jugador de la lista?')) {
+    if (confirm('¿Eliminar este participante de la lista?')) {
       onSavePlayers(players.filter(p => p.id !== playerId));
     }
   };
@@ -185,139 +173,84 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   });
 
   return (
-    <div className="space-y-6 pb-20 md:pb-6">
+    <div className="space-y-4 pb-20 md:pb-6 select-none">
       {/* Header */}
-      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-3">
-            <span className="p-3 rounded-2xl bg-slate-800 text-slate-200">
-              <Users className="w-7 h-7" />
+      <div className="pt-1 pb-1">
+        <div className="flex items-center justify-between">
+          <div>
+            <span className="text-xs font-semibold text-[#8E8E93]">
+              {players.length} registrados
             </span>
-            <div>
-              <div className="flex items-center space-x-2 flex-wrap">
-                <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-                  Roster General & Administradores
-                </h2>
-                <span className="px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
-                  {players.length} Registrados
-                </span>
-              </div>
-              <p className="text-sm text-slate-300 mt-1">
-                Administra los jugadores del torneo y nombra a otros jugadores como administradores.
-              </p>
-            </div>
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-0.5">
+              Jugadores
+            </h1>
           </div>
+
+          {isAdmin && (
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => {
+                  setIsBulkAdding(!isBulkAdding);
+                  setIsAddingPlayer(false);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#1C1C1E] border border-white/10 text-xs font-semibold text-[#8E8E93] hover:text-white ios-touch"
+              >
+                Pegar Lista
+              </button>
+              <button
+                onClick={() => {
+                  setIsAddingPlayer(!isAddingPlayer);
+                  setIsBulkAdding(false);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-[#30D158] text-black font-bold text-xs ios-touch flex items-center"
+              >
+                <UserPlus className="w-3.5 h-3.5 mr-1" />
+                Inscribir
+              </button>
+            </div>
+          )}
         </div>
 
-        {isAdmin && (
-          <div className="flex items-center space-x-2">
-            <button
-              onClick={() => {
-                setIsBulkAdding(!isBulkAdding);
-                setIsAddingPlayer(false);
-              }}
-              className="px-4 py-2.5 rounded-2xl bg-slate-800 active:bg-slate-700 text-cyan-400 font-black text-sm border border-slate-700 flex items-center transition-all"
-            >
-              <FileText className="w-4 h-4 mr-1.5" />
-              Pegar Lista
-            </button>
-
-            <button
-              onClick={() => {
-                setIsAddingPlayer(!isAddingPlayer);
-                setIsBulkAdding(false);
-              }}
-              className="px-4 py-2.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon flex items-center transition-all"
-            >
-              <UserPlus className="w-4 h-4 mr-1.5" />
-              Inscribir con Foto
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Search Filter Bar */}
-      {players.length > 0 && (
-        <div className="relative">
-          <Search className="w-5 h-5 text-slate-400 absolute left-4 top-4" />
+        {/* iOS Native Search Bar */}
+        <div className="relative mt-3">
+          <Search className="w-4 h-4 text-[#8E8E93] absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={`Buscar entre los ${players.length} jugadores inscritos...`}
-            className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-12 pr-4 py-3.5 text-base text-white focus:border-cyan-400 focus:outline-none font-bold"
+            placeholder="Buscar jugador o apodo..."
+            className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#8E8E93] focus:outline-none focus:border-[#30D158]"
           />
         </div>
-      )}
+      </div>
 
-      {/* Bulk Import Form */}
-      {isBulkAdding && (
-        <form onSubmit={handleBulkImport} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-cyan-500/40">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-base font-black text-cyan-300 flex items-center">
-              <FileText className="w-5 h-5 mr-1.5" /> Pegar Lista de Nombres
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsBulkAdding(false)}
-              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 rounded-xl"
-            >
-              Cancelar
-            </button>
-          </div>
-
-          <p className="text-sm text-slate-300">
-            Pega los nombres copiados de WhatsApp, Excel o Notas (un nombre por renglón). Opcional con apodo: <code>Juan Pérez (El Rayo)</code>.
-          </p>
-
-          <textarea
-            rows={8}
-            value={bulkText}
-            onChange={(e) => setBulkText(e.target.value)}
-            placeholder={`Alejandro Galán (Ale)\nJuan Lebrón (El Lobo)\nAgustín Tapia (El Mozart)\nArturo Coello\n...`}
-            className="w-full bg-slate-950 border border-slate-700 rounded-2xl p-4 text-base text-white font-mono focus:border-cyan-400 focus:outline-none"
-          />
-
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="px-6 py-3.5 rounded-2xl bg-cyan-500 active:bg-cyan-400 text-black font-black text-sm shadow-blue-glow flex items-center"
-            >
-              <Sparkles className="w-4 h-4 mr-1.5" /> Importar Jugadores a la Lista
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Add Single Player Form */}
+      {/* Add Single Player Modal Sheet */}
       {isAddingPlayer && (
-        <form onSubmit={handleAddPlayer} className="glass-panel-neon p-5 sm:p-6 rounded-3xl space-y-4 animate-fade-in border-2 border-emerald-500/40">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-            <h3 className="text-base font-black text-white flex items-center">
-              <UserPlus className="w-5 h-5 mr-1.5 text-emerald-400" /> Inscribir Jugador y Subir Foto
-            </h3>
-            <button
-              type="button"
-              onClick={() => setIsAddingPlayer(false)}
-              className="text-xs font-bold text-slate-400 hover:text-white px-3 py-1.5 bg-slate-800 rounded-xl"
-            >
-              Cancelar
-            </button>
-          </div>
-
-          <div className="flex flex-col sm:flex-row items-center gap-4 pb-2">
-            <div className="w-20 h-20 rounded-full border-2 border-emerald-400 bg-slate-900 overflow-hidden flex items-center justify-center relative group flex-shrink-0">
-              {newAvatar ? (
-                <img src={newAvatar} alt="Foto jugador" className="w-full h-full object-cover" />
-              ) : (
-                <Camera className="w-8 h-8 text-slate-500" />
-              )}
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+          <form onSubmit={handleAddPlayer} className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-base font-bold text-white">Inscribir Nuevo Jugador</h3>
+              <button
+                type="button"
+                onClick={() => setIsAddingPlayer(false)}
+                className="text-xs text-[#8E8E93] hover:text-white px-2.5 py-1 bg-[#2C2C2E] rounded-lg"
+              >
+                Cancelar
+              </button>
             </div>
 
-            <div className="space-y-1.5 text-center sm:text-left">
-              <label className="px-4 py-2 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon cursor-pointer inline-flex items-center">
-                <Upload className="w-4 h-4 mr-1.5" />
-                {newAvatar ? 'Cambiar Foto' : 'Cargar Foto de Perfil'}
+            {/* Photo Picker */}
+            <div className="flex items-center space-x-4">
+              <div className="w-16 h-16 rounded-full bg-[#2C2C2E] border border-white/15 overflow-hidden flex items-center justify-center flex-shrink-0">
+                {newAvatar ? (
+                  <img src={newAvatar} alt="Foto" className="w-full h-full object-cover" />
+                ) : (
+                  <Camera className="w-6 h-6 text-[#8E8E93]" />
+                )}
+              </div>
+              <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
+                <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
+                {newAvatar ? 'Cambiar Foto' : 'Subir Foto'}
                 <input
                   type="file"
                   accept="image/*"
@@ -328,262 +261,201 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   className="hidden"
                 />
               </label>
-              <div className="text-xs text-slate-400">Foto recortada profesional para cancha</div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Nombre Completo *</label>
-              <input
-                type="text"
-                required
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                placeholder="Ej. Juan Pérez"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
-              />
+            <div className="space-y-2.5">
+              <div>
+                <label className="text-xs text-[#8E8E93] block mb-1">Nombre Completo *</label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Ej. Juan Pérez"
+                  className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#30D158]"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-xs text-[#8E8E93] block mb-1">Apodo (Opcional)</label>
+                  <input
+                    type="text"
+                    value={newNickname}
+                    onChange={(e) => setNewNickname(e.target.value)}
+                    placeholder="Ej. El Rayo"
+                    className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#30D158]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs text-[#8E8E93] block mb-1">Teléfono</label>
+                  <input
+                    type="text"
+                    value={newPhone}
+                    onChange={(e) => setNewPhone(e.target.value)}
+                    placeholder="WhatsApp"
+                    className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#30D158]"
+                  />
+                </div>
+              </div>
             </div>
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Apodo / Nickname</label>
-              <input
-                type="text"
-                value={newNickname}
-                onChange={(e) => setNewNickname(e.target.value)}
-                placeholder="Ej. El Rayo"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-black uppercase text-slate-300 block mb-1">Teléfono / WhatsApp</label>
-              <input
-                type="text"
-                value={newPhone}
-                onChange={(e) => setNewPhone(e.target.value)}
-                placeholder="Ej. +52 55 1234 5678"
-                className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:outline-none focus:border-emerald-500"
-              />
-            </div>
-          </div>
 
-          <div className="flex items-center space-x-2 pt-1">
-            <input
-              type="checkbox"
-              id="newIsAdmin"
-              checked={newIsAdmin}
-              onChange={(e) => setNewIsAdmin(e.target.checked)}
-              className="w-5 h-5 rounded accent-emerald-500 cursor-pointer"
-            />
-            <label htmlFor="newIsAdmin" className="text-sm font-bold text-amber-300 cursor-pointer flex items-center">
-              <ShieldCheck className="w-4 h-4 mr-1 text-amber-400" />
-              Nombrar también como Administrador del Torneo
-            </label>
-          </div>
+            <div className="flex items-center space-x-2 pt-1">
+              <input
+                type="checkbox"
+                id="newIsAdmin"
+                checked={newIsAdmin}
+                onChange={(e) => setNewIsAdmin(e.target.checked)}
+                className="w-4 h-4 rounded text-[#30D158] bg-[#2C2C2E]"
+              />
+              <label htmlFor="newIsAdmin" className="text-xs text-[#FFD60A] font-semibold cursor-pointer">
+                Nombrar como Administrador del Torneo
+              </label>
+            </div>
 
-          <div className="flex justify-end pt-2">
             <button
               type="submit"
-              className="px-6 py-3.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-base shadow-neon flex items-center"
+              className="w-full py-3 rounded-xl bg-[#30D158] text-black font-bold text-sm ios-touch"
             >
-              <Check className="w-5 h-5 mr-1.5" /> Guardar Jugador
+              Guardar Participante
             </button>
-          </div>
-        </form>
-      )}
-
-      {/* Empty Zero State */}
-      {players.length === 0 && (
-        <div className="glass-panel p-12 text-center rounded-3xl border border-slate-800 space-y-4">
-          <Users className="w-16 h-16 text-slate-600 mx-auto" />
-          <h3 className="text-xl font-black text-white">No hay jugadores inscritos todavía</h3>
-          <p className="text-base text-slate-400 max-w-md mx-auto">
-            Inscribe a los jugadores de tu torneo G20. Puedes agregar cuantos quieras (8, 16, 50+) y subir sus fotos para los partidos.
-          </p>
-          {isAdmin && (
-            <button
-              onClick={() => setIsBulkAdding(true)}
-              className="px-6 py-3.5 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-base shadow-neon inline-flex items-center"
-            >
-              <FileText className="w-5 h-5 mr-2" /> Pegar Lista de Jugadores
-            </button>
-          )}
+          </form>
         </div>
       )}
 
-      {/* Players List Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {/* Bulk Import Modal Sheet */}
+      {isBulkAdding && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+          <form onSubmit={handleBulkImport} className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 space-y-3 animate-slide-up">
+            <div className="flex items-center justify-between border-b border-white/5 pb-3">
+              <h3 className="text-base font-bold text-white">Pegar Lista de Jugadores</h3>
+              <button
+                type="button"
+                onClick={() => setIsBulkAdding(false)}
+                className="text-xs text-[#8E8E93] hover:text-white px-2.5 py-1 bg-[#2C2C2E] rounded-lg"
+              >
+                Cancelar
+              </button>
+            </div>
+            <p className="text-xs text-[#8E8E93]">
+              Pega un nombre por línea. Formato opcional: <code>Juan Pérez (El Rayo)</code>
+            </p>
+            <textarea
+              rows={6}
+              value={bulkText}
+              onChange={(e) => setBulkText(e.target.value)}
+              placeholder="Juan Pérez (El Rayo)&#10;Carlos Benítez&#10;..."
+              className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-3 text-sm text-white font-mono"
+            />
+            <button
+              type="submit"
+              className="w-full py-3 rounded-xl bg-[#30D158] text-black font-bold text-sm ios-touch"
+            >
+              Importar Participantes
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* iOS Grouped Contacts List */}
+      <div className="ios-grouped-list divide-y divide-white/5">
         {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
-          const isEditing = editingPlayerId === player.id;
           const isPlayerAdmin = player.role === 'admin';
+          const isEditing = editingPlayerId === player.id;
 
           return (
-            <div
-              key={player.id}
-              className={`glass-panel p-4 sm:p-5 rounded-3xl border transition-all flex flex-col justify-between space-y-3 bg-[#121829] ${
-                isPlayerAdmin ? 'border-amber-500/50 shadow-gold-glow' : 'border-slate-800/80 hover:border-slate-700'
-              }`}
-            >
-              <div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 min-w-0 flex-1">
-                    {/* Player Cropped Photo or Initials */}
-                    <div className="relative group flex-shrink-0">
-                      {player.avatar ? (
-                        <img
-                          src={player.avatar}
-                          alt={player.name}
-                          className="w-13 h-13 rounded-full object-cover border-2 border-emerald-400 shadow-neon bg-slate-900"
-                        />
-                      ) : (
-                        <div className="w-13 h-13 rounded-full bg-slate-800 border-2 border-slate-700 flex items-center justify-center font-black text-base text-emerald-400">
-                          {player.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-
-                      {/* Quick upload overlay for admin */}
-                      {isAdmin && (
-                        <label className="absolute inset-0 bg-black/60 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center cursor-pointer transition-opacity text-white">
-                          <Camera className="w-5 h-5" />
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleQuickAvatarUpload(player.id, f);
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-                      )}
-                    </div>
-
-                    <div className="min-w-0 flex-1">
-                      {isEditing ? (
-                        <div className="space-y-1.5">
-                          <input
-                            type="text"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-sm text-white font-bold"
-                          />
-                          <input
-                            type="text"
-                            value={editNickname}
-                            onChange={(e) => setEditNickname(e.target.value)}
-                            placeholder="Apodo"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1 text-xs text-slate-400"
-                          />
-                        </div>
-                      ) : (
-                        <>
-                          <div className="flex items-center space-x-1.5">
-                            <h4
-                              onClick={() => onSelectPlayerForIntelligence(player.id)}
-                              className="text-base sm:text-lg font-black text-white hover:text-emerald-400 transition-colors cursor-pointer truncate"
-                            >
-                              {player.name}
-                            </h4>
-                          </div>
-                          {player.nickname && (
-                            <span className="text-xs sm:text-sm text-slate-400 italic font-semibold block truncate">"{player.nickname}"</span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="flex flex-col items-end space-y-1 flex-shrink-0">
-                    {isPlayerAdmin && (
-                      <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center">
-                        <ShieldCheck className="w-3 h-3 mr-1" /> Admin
-                      </span>
-                    )}
-                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-black ${
-                      player.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-500'
-                    }`}>
-                      {player.isActive ? 'Activo' : 'Inactivo'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Mini Stats snapshot if played */}
-                {stats && stats.totalMatchesPlayed > 0 && (
-                  <div className="mt-3 pt-3 border-t border-slate-800/80 grid grid-cols-3 gap-1 text-center text-xs">
-                    <div>
-                      <span className="text-xs text-slate-400 block font-bold">Ranking</span>
-                      <span className="font-black text-white font-mono text-sm">#{stats.currentRank}</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-400 block font-bold">Efectividad</span>
-                      <span className="font-black text-emerald-400 font-mono text-sm">{stats.winRatePercentage}%</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-slate-400 block font-bold">Puntos</span>
-                      <span className="font-black text-blue-400 font-mono text-sm">{stats.totalChampionshipPoints.toFixed(3)}</span>
-                    </div>
+            <div key={player.id} className="ios-grouped-row py-3 px-4 flex items-center justify-between">
+              <div className="flex items-center space-x-3 min-w-0 flex-1">
+                {/* Photo */}
+                {player.avatar ? (
+                  <img
+                    src={player.avatar}
+                    alt={player.name}
+                    className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0 bg-[#2C2C2E]"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-[#2C2C2E] text-[#8E8E93] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                    {player.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
-              </div>
 
-              {/* Admin Actions */}
-              {isAdmin && (
-                <div className="space-y-2 pt-2 border-t border-slate-800/60 text-xs sm:text-sm">
+                {/* Name & Metadata */}
+                <div className="min-w-0 flex-1 pr-2">
                   {isEditing ? (
-                    <div className="flex space-x-2 w-full">
+                    <div className="flex space-x-2 py-1">
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="bg-[#2C2C2E] border border-white/10 rounded-lg px-2 py-1 text-xs text-white"
+                      />
                       <button
                         onClick={() => handleSaveEdit(player.id)}
-                        className="flex-1 py-1.5 bg-emerald-500 text-black font-black rounded-xl text-xs"
+                        className="px-2 py-1 bg-[#30D158] text-black text-xs font-bold rounded-lg"
                       >
                         Guardar
                       </button>
-                      <button
-                        onClick={() => setEditingPlayerId(null)}
-                        className="px-3 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold"
-                      >
-                        Cancelar
-                      </button>
                     </div>
                   ) : (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <button
-                          onClick={() => handleStartEdit(player)}
-                          className="text-slate-400 hover:text-white flex items-center font-bold"
-                        >
-                          <Edit2 className="w-4 h-4 mr-1" /> Editar
-                        </button>
-                        <button
-                          onClick={() => handleToggleActive(player.id)}
-                          className="text-slate-400 hover:text-amber-400 font-bold"
-                        >
-                          {player.isActive ? 'Pausar' : 'Activar'}
-                        </button>
-                        <button
-                          onClick={() => handleDeletePlayer(player.id)}
-                          className="text-slate-500 hover:text-rose-400"
-                          title="Eliminar jugador"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                    <div
+                      onClick={() => onSelectPlayerForIntelligence(player.id)}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex items-center space-x-1.5 truncate">
+                        <span className="text-sm sm:text-base font-semibold text-white truncate">
+                          {player.name}
+                        </span>
+                        {isPlayerAdmin && (
+                          <span className="text-[10px] font-bold text-[#FFD60A] bg-[#FFD60A]/15 px-1.5 py-0.5 rounded-full">
+                            Admin
+                          </span>
+                        )}
                       </div>
-
-                      {/* Promote/Demote Admin Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleToggleAdminRole(player)}
-                        className={`w-full py-1.5 rounded-xl font-black text-xs flex items-center justify-center transition-all ${
-                          isPlayerAdmin
-                            ? 'bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25'
-                            : 'bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25'
-                        }`}
-                      >
-                        <Shield className="w-3.5 h-3.5 mr-1" />
-                        {isPlayerAdmin ? 'Quitar Rol de Admin' : '👑 Nombrar Administrador'}
-                      </button>
-                    </>
+                      <div className="text-xs text-[#8E8E93] truncate">
+                        {player.nickname ? `"${player.nickname}"` : 'Participante Oficial'}
+                        {stats && stats.totalMatchesPlayed > 0 ? ` • ${stats.totalChampionshipPoints.toFixed(1)} pts` : ''}
+                      </div>
+                    </div>
                   )}
                 </div>
+              </div>
+
+              {/* Action Buttons for Admin */}
+              {isAdmin && !isEditing && (
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  <button
+                    onClick={() => handleToggleAdminRole(player)}
+                    className={`p-1.5 rounded-lg text-xs font-semibold ${
+                      isPlayerAdmin ? 'text-[#FFD60A] hover:text-[#FF9F0A]' : 'text-[#8E8E93] hover:text-white'
+                    }`}
+                    title={isPlayerAdmin ? 'Quitar rol admin' : 'Nombrar admin'}
+                  >
+                    <Shield className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleStartEdit(player)}
+                    className="p-1.5 text-[#8E8E93] hover:text-white"
+                    title="Editar"
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDeletePlayer(player.id)}
+                    className="p-1.5 text-[#8E8E93] hover:text-[#FF453A]"
+                    title="Eliminar"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {!isAdmin && (
+                <button
+                  onClick={() => onSelectPlayerForIntelligence(player.id)}
+                  className="text-[#8E8E93]"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
               )}
             </div>
           );

@@ -22,36 +22,33 @@ export const Header: React.FC<HeaderProps> = ({
   onLogoutAdmin,
 }) => {
   return (
-    <header className="sticky top-0 z-40 glass-panel border-b border-slate-800 bg-[#0B0F19]/95 backdrop-blur-lg">
+    <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10 select-none">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main App Top Bar */}
-        <div className="flex items-center justify-between h-18 sm:h-20">
+        <div className="flex items-center justify-between h-16 sm:h-18">
           {/* Logo & Tournament Name */}
           <div
-            className="flex items-center space-x-3 cursor-pointer select-none"
+            className="flex items-center space-x-3 cursor-pointer ios-touch"
             onClick={() => setActiveTab('standings')}
           >
             {config.tournamentLogoUrl ? (
               <img
                 src={config.tournamentLogoUrl}
                 alt="Logo Oficial"
-                className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl object-cover border-2 border-emerald-400 shadow-neon bg-slate-900 flex-shrink-0"
+                className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl object-cover border border-white/15 bg-[#1C1C1E] flex-shrink-0"
               />
             ) : (
-              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 flex items-center justify-center shadow-neon font-display text-2xl font-black text-black flex-shrink-0">
+              <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-[#1C1C1E] border border-white/10 flex items-center justify-center text-xl flex-shrink-0">
                 🎾
               </div>
             )}
 
             <div className="min-w-0">
-              <div className="flex items-center space-x-2">
-                <h1 className="text-base sm:text-xl font-black font-display text-white tracking-tight truncate">
-                  {config.tournamentName || 'G20 by Peter Inc. 🎾'}
-                </h1>
-              </div>
+              <h1 className="text-base sm:text-lg font-bold text-white tracking-tight truncate leading-tight">
+                {config.tournamentName || 'G20 by Peter Inc. 🎾'}
+              </h1>
               <div className="flex items-center space-x-1.5 mt-0.5">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <Sparkles className="w-3 h-3 mr-1 text-amber-400" />
+                <span className="text-[11px] font-semibold text-[#8E8E93]">
                   {config.editionName || `${config.editionNumber || 3}er Torneo`}
                 </span>
               </div>
@@ -60,144 +57,105 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right Area: Player Identity & Admin Toggle */}
           <div className="flex items-center space-x-2">
-            {/* Current Player quick indicator */}
+            {/* Current Player Indicator */}
             {currentPlayer ? (
               <button
                 onClick={() => setActiveTab('my_profile')}
-                className="flex items-center space-x-2 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-slate-900 border border-slate-700 hover:border-emerald-500/60 transition-colors"
-                title="Ver y editar mi perfil"
+                className="flex items-center space-x-2 p-1 sm:px-3 sm:py-1.5 rounded-full bg-[#1C1C1E] border border-white/10 hover:border-white/20 transition-all ios-touch"
+                title="Mi perfil"
               >
                 {currentPlayer.avatar ? (
-                  <img src={currentPlayer.avatar} alt={currentPlayer.name} className="w-8 h-8 rounded-full object-cover border border-emerald-400" />
+                  <img src={currentPlayer.avatar} alt={currentPlayer.name} className="w-7 h-7 rounded-full object-cover" />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-slate-800 text-emerald-400 font-black text-xs flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-full bg-[#2C2C2E] text-[#30D158] font-bold text-xs flex items-center justify-center">
                     {currentPlayer.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
-                <span className="text-xs font-black text-white hidden sm:inline max-w-[100px] truncate">
+                <span className="text-xs font-semibold text-white hidden sm:inline max-w-[90px] truncate">
                   {currentPlayer.name.split(' ')[0]}
                 </span>
               </button>
             ) : (
               <button
                 onClick={() => setActiveTab('my_profile')}
-                className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-bold border border-slate-800"
+                className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-full bg-[#1C1C1E] text-[#8E8E93] hover:text-white text-xs font-semibold border border-white/10 ios-touch"
               >
-                <User className="w-3.5 h-3.5 mr-1 text-emerald-400" /> Mi Perfil
+                <User className="w-3.5 h-3.5 mr-1 text-[#30D158]" /> Mi Perfil
               </button>
             )}
 
-            {/* Admin Control */}
+            {/* Admin Control Button */}
             {isAdmin ? (
               <div className="flex items-center space-x-2">
-                <span className="hidden sm:inline-flex items-center px-3 py-1 rounded-full text-xs font-black bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <ShieldCheck className="w-4 h-4 mr-1 text-amber-400" /> Admin
+                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFD60A]/15 text-[#FFD60A] border border-[#FFD60A]/30">
+                  <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Admin
                 </span>
                 <button
                   onClick={onLogoutAdmin}
-                  className="px-3.5 py-2 rounded-2xl bg-slate-800 active:bg-slate-700 text-slate-200 text-xs sm:text-sm font-black border border-slate-700 transition-all flex items-center"
+                  className="px-3 py-1.5 rounded-full bg-[#2C2C2E] text-white text-xs font-semibold border border-white/10 ios-touch"
                 >
-                  <Unlock className="w-4 h-4 mr-1 text-emerald-400" /> Salir Admin
+                  Salir
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setIsAdminModalOpen(true)}
-                className="px-3.5 py-2 rounded-2xl bg-slate-800 active:bg-slate-700 text-slate-200 text-xs sm:text-sm font-black border border-slate-700 transition-all flex items-center hover:border-emerald-500"
+                className="px-3 py-1.5 rounded-full bg-[#1C1C1E] hover:bg-[#2C2C2E] text-[#0A84FF] text-xs font-semibold border border-white/10 ios-touch flex items-center"
               >
-                <Lock className="w-4 h-4 mr-1.5 text-slate-400" /> Soy Admin
+                <Lock className="w-3.5 h-3.5 mr-1 text-[#0A84FF]" /> Admin
               </button>
             )}
           </div>
         </div>
 
-        {/* Desktop Tab Navigation (Visible to all, with public Roster!) */}
-        <div className="hidden md:flex space-x-2 overflow-x-auto py-2.5 border-t border-slate-800/60">
-          <button
-            onClick={() => setActiveTab('standings')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'standings'
-                ? 'bg-emerald-500 text-black shadow-neon'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Trophy className="w-4 h-4 mr-2" />
-            Tabla General
-          </button>
-
-          <button
-            onClick={() => setActiveTab('matchday')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'matchday'
-                ? 'bg-emerald-500 text-black shadow-neon'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Activity className="w-4 h-4 mr-2" />
-            Jornada en Vivo
-          </button>
-
-          <button
-            onClick={() => setActiveTab('players')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'players'
-                ? 'bg-emerald-500 text-black shadow-neon'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Users className="w-4 h-4 mr-2" />
-            Jugadores (Roster)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('intelligence')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'intelligence'
-                ? 'bg-blue-600 text-white shadow-blue-glow'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Zap className="w-4 h-4 mr-2 text-cyan-300" />
-            Padel Intelligence
-          </button>
-
-          <button
-            onClick={() => setActiveTab('grand_finale')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'grand_finale'
-                ? 'bg-amber-500 text-black shadow-gold-glow'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Award className="w-4 h-4 mr-2" />
-            Gran Final (Playoffs)
-          </button>
-
-          <button
-            onClick={() => setActiveTab('my_profile')}
-            className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-              activeTab === 'my_profile'
-                ? 'bg-emerald-500 text-black shadow-neon'
-                : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <User className="w-4 h-4 mr-2" />
-            Mi Perfil
-          </button>
-
-          {isAdmin && (
+        {/* Desktop Navigation Segmented Control */}
+        <div className="hidden md:flex py-2 border-t border-white/5">
+          <div className="ios-segmented-control w-full">
             <button
-              onClick={() => setActiveTab('settings')}
-              className={`flex items-center px-4 py-2.5 rounded-xl text-sm font-black transition-all ${
-                activeTab === 'settings'
-                  ? 'bg-amber-500 text-black shadow-gold-glow'
-                  : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-              }`}
+              onClick={() => setActiveTab('standings')}
+              className={`ios-segmented-item ${activeTab === 'standings' ? 'active' : ''}`}
             >
-              <Settings className="w-4 h-4 mr-2" />
-              Ajustes Torneo
+              🏆 Clasificación
             </button>
-          )}
+            <button
+              onClick={() => setActiveTab('matchday')}
+              className={`ios-segmented-item ${activeTab === 'matchday' ? 'active' : ''}`}
+            >
+              🎾 Jornada en Vivo
+            </button>
+            <button
+              onClick={() => setActiveTab('players')}
+              className={`ios-segmented-item ${activeTab === 'players' ? 'active' : ''}`}
+            >
+              👥 Jugadores
+            </button>
+            <button
+              onClick={() => setActiveTab('intelligence')}
+              className={`ios-segmented-item ${activeTab === 'intelligence' ? 'active' : ''}`}
+            >
+              ⚡ Radar PI
+            </button>
+            <button
+              onClick={() => setActiveTab('grand_finale')}
+              className={`ios-segmented-item ${activeTab === 'grand_finale' ? 'active' : ''}`}
+            >
+              👑 Finales
+            </button>
+            <button
+              onClick={() => setActiveTab('my_profile')}
+              className={`ios-segmented-item ${activeTab === 'my_profile' ? 'active' : ''}`}
+            >
+              👤 Mi Perfil
+            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setActiveTab('settings')}
+                className={`ios-segmented-item ${activeTab === 'settings' ? 'active' : ''}`}
+              >
+                ⚙️ Ajustes
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </header>

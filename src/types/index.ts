@@ -139,6 +139,7 @@ export interface DuoMatchup {
 export interface PlayerIntelligenceStats {
   playerId: string;
   playerName: string;
+  nickname?: string;
   avatar?: string;
   
   // Participation

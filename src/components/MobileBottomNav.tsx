@@ -28,8 +28,8 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
   const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-panel border-t border-slate-800/90 bg-[#0B0F19]/98 backdrop-blur-2xl pb-safe shadow-2xl">
-      <div className={`grid ${gridColsClass} h-20 items-center px-1`}>
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/85 backdrop-blur-2xl border-t border-white/10 pb-safe shadow-2xl select-none">
+      <div className={`grid ${gridColsClass} h-16 items-center px-1`}>
         {tabs.map((t) => {
           const Icon = t.icon;
           const isActive = activeTab === t.id;
@@ -38,22 +38,18 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
-              className={`flex flex-col items-center justify-center h-full w-full py-1.5 transition-all ${
-                isActive
-                  ? 'text-emerald-400 font-black'
-                  : 'text-slate-400 font-extrabold hover:text-slate-200'
-              }`}
+              className="flex flex-col items-center justify-center h-full w-full py-1 ios-touch transition-colors"
             >
-              <div
-                className={`p-1.5 rounded-2xl transition-all ${
-                  isActive ? 'bg-emerald-500/20 text-emerald-400 scale-110 shadow-neon' : ''
+              <Icon
+                className={`w-5 h-5 transition-transform ${
+                  isActive ? 'text-[#30D158] scale-110 stroke-[2.2]' : 'text-[#8E8E93] stroke-[1.8]'
+                }`}
+              />
+              <span
+                className={`text-[11px] leading-tight mt-1 tracking-tight ${
+                  isActive ? 'font-bold text-[#30D158]' : 'font-medium text-[#8E8E93]'
                 }`}
               >
-                <Icon className="w-6 h-6" />
-              </div>
-              <span className={`text-xs leading-tight mt-1 tracking-tight ${
-                isActive ? 'font-black text-emerald-400' : 'font-bold text-slate-400'
-              }`}>
                 {t.label}
               </span>
             </button>

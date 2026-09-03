@@ -4,17 +4,12 @@ import {
   Save,
   Download,
   Upload,
-  Shield,
-  Layers,
   Sparkles,
   Check,
-  AlertTriangle,
-  Radio,
   Trash2,
   Image as ImageIcon,
   KeyRound,
   Lock,
-  Unlock,
   Terminal,
   Cpu
 } from 'lucide-react';
@@ -56,9 +51,6 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [court5, setCourt5] = useState(config.courtNames[4] || 'Cancha 5 (Madera / El Asador)');
   const [adminPin, setAdminPin] = useState(config.adminPin);
   const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || '9999');
-  const [rankingSystem, setRankingSystem] = useState(config.rankingSystem);
-  const [bayesianFactorK, setBayesianFactorK] = useState(config.bayesianFactorK);
-  const [attendanceBonus, setAttendanceBonus] = useState(config.attendanceBonusPoints);
   const [importStatus, setImportStatus] = useState<string | null>(null);
 
   // Super Admin PIN Unlock Form State
@@ -66,7 +58,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [superPinError, setSuperPinError] = useState(false);
   const [showSuperAdminSection, setShowSuperAdminSection] = useState(isSuperAdmin);
 
-  // Supabase state (strictly for Super Admin)
+  // Supabase state
   const creds = getSupabaseCredentials();
   const [supabaseUrl, setSupabaseUrl] = useState(creds.url);
   const [supabaseAnonKey, setSupabaseAnonKey] = useState(creds.anonKey);
@@ -116,6 +108,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
     const updated: TournamentConfig = {
+      ...config,
       tournamentName,
       editionNumber,
       editionName,
@@ -123,13 +116,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       courtNames: [court1, court2, court3, court4, court5],
       adminPin,
       superAdminPin,
-      rankingSystem,
-      bayesianFactorK,
-      attendanceBonusPoints: attendanceBonus,
-      tieBreakMaxPoints: 10,
     };
     onSaveConfig(updated);
-    alert('Configuración de Torneo guardada exitosamente.');
+    alert('Ajustes guardados correctamente.');
   };
 
   const handleUnlockSuperAdmin = (e: React.FormEvent) => {
@@ -146,53 +135,29 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handleTestSupabase = async () => {
     if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
-      setSupabaseMessage('⚠️ Ingresa la URL y Anon Key de Supabase.');
+      setSupabaseMessage('⚠️ Ingresa la URL y Anon Key.');
       return;
     }
 
     setSupabaseStatus('testing');
-    setSupabaseMessage('Verificando conexión con Supabase...');
+    setSupabaseMessage('Verificando conexión...');
 
     try {
       saveSupabaseCredentials(supabaseUrl, supabaseAnonKey);
       const client = getSupabase();
-      if (!client) throw new Error('URL o Clave inválida.');
+      if (!client) throw new Error('Credenciales inválidas.');
 
       const { error } = await client.from('tournament_settings').select('*').limit(1);
       if (error && error.code !== 'PGRST116') {
         setSupabaseStatus('connected');
-        setSupabaseMessage('⚠️ Conectado a Supabase.');
+        setSupabaseMessage('Conectado.');
       } else {
         setSupabaseStatus('connected');
-        setSupabaseMessage('✅ ¡Conexión con Supabase verificada y activa!');
+        setSupabaseMessage('✅ ¡Conexión con Supabase verificada!');
       }
     } catch (err: any) {
       setSupabaseStatus('disconnected');
-      setSupabaseMessage(`❌ Error al conectar: ${err.message || 'Verifica las credenciales'}`);
-    }
-  };
-
-  const handlePushToSupabase = async () => {
-    setSupabaseMessage('Subiendo base de datos a Supabase...');
-    const currentPlayers = StorageService.getPlayers();
-    const currentDays = StorageService.getTournamentDays();
-    const currentBracket = StorageService.getGrandFinaleBracket();
-    const ok = await StorageService.pushToCloud(config, currentPlayers, currentDays, currentBracket);
-    if (ok) {
-      setSupabaseMessage('✅ Todos los datos se sincronizaron con Supabase exitosamente.');
-    } else {
-      setSupabaseMessage('❌ Error al subir datos.');
-    }
-  };
-
-  const handlePullFromSupabase = async () => {
-    setSupabaseMessage('Descargando datos desde Supabase...');
-    const result = await StorageService.pullFromCloud();
-    if (result) {
-      setSupabaseMessage('✅ Datos descargados de Supabase.');
-      setTimeout(() => window.location.reload(), 800);
-    } else {
-      setSupabaseMessage('❌ No se pudieron descargar los datos de Supabase.');
+      setSupabaseMessage(`❌ Error: ${err.message || 'Error de conexión'}`);
     }
   };
 
@@ -205,389 +170,215 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       const content = event.target?.result as string;
       const success = onImportData(content);
       if (success) {
-        setImportStatus('✅ Base de datos restaurada correctamente.');
+        setImportStatus('✅ Respaldo restaurado.');
         setTimeout(() => window.location.reload(), 1000);
       } else {
-        setImportStatus('❌ Error al procesar el archivo de respaldo.');
+        setImportStatus('❌ Error al procesar archivo.');
       }
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-20 md:pb-6">
-      {/* Top Header */}
-      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-slate-800 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <span className="p-3 rounded-2xl bg-slate-800 text-slate-300">
-            <Settings className="w-7 h-7" />
+    <div className="space-y-4 max-w-2xl mx-auto pb-20 md:pb-6 select-none">
+      {/* Header */}
+      <div className="pt-1 pb-1">
+        <span className="text-xs font-semibold text-[#8E8E93]">Panel de Control</span>
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-0.5">
+          Ajustes
+        </h1>
+      </div>
+
+      {/* Main Settings Form (Apple Grouped Style) */}
+      <form onSubmit={handleSave} className="space-y-4">
+        {/* Logo Card */}
+        <div className="ios-card p-5 space-y-3">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[#8E8E93] block">
+            Logo Oficial del Torneo
           </span>
-          <div>
-            <h2 className="text-xl sm:text-2xl font-black font-display text-white">
-              Ajustes del Torneo
-            </h2>
-            <p className="text-sm text-slate-400 mt-0.5">
-              Configura el logo oficial, nombre de la edición ({editionName}) y nombres de las canchas.
-            </p>
+          <div className="flex items-center space-x-4">
+            <div className="w-16 h-16 rounded-2xl bg-[#2C2C2E] border border-white/10 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {tournamentLogoUrl ? (
+                <img src={tournamentLogoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <ImageIcon className="w-6 h-6 text-[#8E8E93]" />
+              )}
+            </div>
+            <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
+              <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
+              {tournamentLogoUrl ? 'Cambiar Logo' : 'Subir Logo'}
+              <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+            </label>
           </div>
         </div>
-      </div>
 
-      {/* Official Tournament Logo & Edition Card */}
-      <div className="glass-panel-neon p-5 sm:p-6 rounded-3xl border-2 border-amber-500/40 space-y-4 shadow-gold-glow">
-        <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-          <ImageIcon className="w-6 h-6 text-amber-400" />
-          <h3 className="text-base sm:text-lg font-black text-white">Imagen / Logo Oficial del Torneo</h3>
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center gap-5">
-          {/* Image Preview Box */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-3xl bg-slate-900 border-2 border-slate-700 flex items-center justify-center overflow-hidden flex-shrink-0 relative group shadow-neon">
-            {tournamentLogoUrl ? (
-              <>
-                <img
-                  src={tournamentLogoUrl}
-                  alt="Logo del torneo"
-                  className="w-full h-full object-cover"
-                />
-                {isAdmin && (
-                  <button
-                    type="button"
-                    onClick={() => setTournamentLogoUrl('')}
-                    className="absolute inset-0 bg-black/70 text-rose-400 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"
-                    title="Eliminar imagen"
-                  >
-                    <Trash2 className="w-6 h-6" />
-                  </button>
-                )}
-              </>
-            ) : (
-              <span className="text-4xl">🎾</span>
-            )}
-          </div>
-
-          <div className="space-y-2 flex-1 text-center sm:text-left">
-            <h4 className="text-base font-black text-white">Subir Imagen Oficial (Banner / Logo / Emblema)</h4>
-            <p className="text-sm text-slate-300">
-              Esta imagen aparecerá en la cabecera y en los partidos de todos los jugadores durante esta edición.
-            </p>
-
-            {isAdmin && (
-              <div className="flex flex-wrap items-center gap-2 pt-1 justify-center sm:justify-start">
-                <label className="px-5 py-2.5 rounded-2xl bg-amber-500 active:bg-amber-400 text-black font-black text-sm cursor-pointer shadow-gold-glow inline-flex items-center transition-all">
-                  <Upload className="w-4 h-4 mr-1.5" />
-                  Subir Foto desde Celular
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleLogoUpload}
-                    className="hidden"
-                  />
-                </label>
-                {tournamentLogoUrl && (
-                  <button
-                    type="button"
-                    onClick={() => setTournamentLogoUrl('')}
-                    className="px-4 py-2.5 rounded-2xl bg-slate-800 text-slate-300 text-sm font-bold hover:text-rose-400 border border-slate-700"
-                  >
-                    Quitar Imagen
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Main Tournament Form */}
-      <form onSubmit={handleSave} className="glass-panel p-5 sm:p-6 rounded-3xl border border-slate-800 space-y-6">
-        {/* Tournament Edition & Name */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div>
-            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Nombre General del Torneo</label>
+        {/* General Info Grouped List */}
+        <div className="ios-grouped-list divide-y divide-white/5">
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">Nombre del Torneo</label>
             <input
               type="text"
-              disabled={!isAdmin}
               value={tournamentName}
               onChange={(e) => setTournamentName(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+              className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none"
             />
           </div>
 
-          <div>
-            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Número de Edición</label>
-            <input
-              type="number"
-              min="1"
-              max="100"
-              disabled={!isAdmin}
-              value={editionNumber}
-              onChange={(e) => setEditionNumber(parseInt(e.target.value) || 1)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-amber-300 font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60 font-mono"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs font-black uppercase text-slate-300 block mb-1">Título de la Edición Actual</label>
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">Edición Actual</label>
             <input
               type="text"
-              disabled={!isAdmin}
               value={editionName}
               onChange={(e) => setEditionName(e.target.value)}
-              placeholder="Ej. 3er Torneo G20 by Peter Inc."
-              className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-white font-bold focus:border-emerald-500 focus:outline-none disabled:opacity-60"
+              className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none"
+            />
+          </div>
+
+          <div className="p-3.5 flex items-center justify-between">
+            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">PIN Administrador</label>
+            <input
+              type="password"
+              maxLength={6}
+              value={adminPin}
+              onChange={(e) => setAdminPin(e.target.value)}
+              className="w-full bg-transparent text-right text-sm text-[#30D158] font-mono font-bold focus:outline-none"
             />
           </div>
         </div>
 
-        {/* PIN de Administrador */}
-        <div className="max-w-xs">
-          <label className="text-xs font-black uppercase text-slate-300 block mb-1">PIN de Administrador de Torneo</label>
-          <input
-            type="password"
-            maxLength={6}
-            disabled={!isAdmin}
-            value={adminPin}
-            onChange={(e) => setAdminPin(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-700 rounded-2xl px-4 py-3 text-base text-emerald-400 font-mono font-black focus:border-emerald-500 focus:outline-none disabled:opacity-60"
-          />
+        {/* Court Names Grouped List */}
+        <div className="ios-grouped-list divide-y divide-white/5">
+          <div className="p-3 bg-[#2C2C2E]/40 text-xs font-semibold text-[#8E8E93] uppercase tracking-wider">
+            Nombres de Canchas
+          </div>
+          {[
+            { val: court1, set: setCourt1, label: 'Cancha 1' },
+            { val: court2, set: setCourt2, label: 'Cancha 2' },
+            { val: court3, set: setCourt3, label: 'Cancha 3' },
+            { val: court4, set: setCourt4, label: 'Cancha 4' },
+            { val: court5, set: setCourt5, label: 'Cancha 5' },
+          ].map((c, i) => (
+            <div key={i} className="p-3 flex items-center justify-between">
+              <label className="text-xs text-[#8E8E93] w-24 flex-shrink-0">{c.label}</label>
+              <input
+                type="text"
+                value={c.val}
+                onChange={(e) => c.set(e.target.value)}
+                className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none"
+              />
+            </div>
+          ))}
         </div>
 
-        {/* Court Names (1 to 5) */}
-        <div className="space-y-2">
-          <label className="text-xs font-black uppercase text-slate-300 block">Nombres de las Canchas (Hasta 5 canchas)</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2.5">
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court1}
-              onChange={(e) => setCourt1(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court2}
-              onChange={(e) => setCourt2(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court3}
-              onChange={(e) => setCourt3(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court4}
-              onChange={(e) => setCourt4(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
-            />
-            <input
-              type="text"
-              disabled={!isAdmin}
-              value={court5}
-              onChange={(e) => setCourt5(e.target.value)}
-              className="bg-slate-900 border border-slate-700 rounded-2xl px-3.5 py-2.5 text-sm text-white font-bold disabled:opacity-60"
-            />
-          </div>
+        {/* Actions */}
+        <div className="flex space-x-2 pt-1">
+          <button
+            type="button"
+            onClick={onExportData}
+            className="w-1/3 py-3 rounded-xl bg-[#2C2C2E] text-xs font-semibold text-white ios-touch flex items-center justify-center"
+          >
+            <Download className="w-3.5 h-3.5 mr-1" />
+            Descargar JSON
+          </button>
+          <button
+            type="submit"
+            className="w-2/3 py-3 rounded-xl bg-[#30D158] active:bg-[#28B84B] text-black font-bold text-sm ios-touch flex items-center justify-center"
+          >
+            <Save className="w-4 h-4 mr-1.5" />
+            Guardar Ajustes
+          </button>
         </div>
-
-        {isAdmin && (
-          <div className="flex justify-between items-center pt-3 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onExportData}
-              className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-slate-700 flex items-center transition-all"
-            >
-              <Download className="w-4 h-4 mr-1.5" />
-              Descargar Respaldo JSON
-            </button>
-
-            <button
-              type="submit"
-              className="px-6 py-3 rounded-2xl bg-emerald-500 active:bg-emerald-400 text-black font-black text-sm shadow-neon flex items-center transition-all"
-            >
-              <Save className="w-4 h-4 mr-1.5" />
-              Guardar Configuración
-            </button>
-          </div>
-        )}
       </form>
 
-      {/* SUPER ADMIN / DESARROLLADOR SECTION (Protected by SuperAdmin PIN) */}
-      <div className="border border-slate-800 rounded-3xl p-5 bg-slate-950/60 space-y-4">
+      {/* Super Admin Section */}
+      <div className="ios-card p-4 space-y-3 border border-white/5">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Cpu className="w-5 h-5 text-slate-500" />
-            <h4 className="text-sm font-black text-slate-400 uppercase tracking-wider">
-              Opciones de Desarrollador & Infraestructura (Super Admin)
-            </h4>
-          </div>
-
-          {isSuperAdmin ? (
-            <button
-              onClick={onLogoutSuperAdmin}
-              className="text-xs text-rose-400 font-bold px-3 py-1 bg-rose-500/10 rounded-xl border border-rose-500/20"
-            >
-              Cerrar Modo Desarrollador
-            </button>
-          ) : (
+          <span className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider">
+            Opciones Avanzadas (Super Admin)
+          </span>
+          {!isSuperAdmin && (
             <button
               onClick={() => setShowSuperAdminSection(!showSuperAdminSection)}
-              className="text-xs text-slate-400 hover:text-cyan-400 font-bold px-3 py-1 bg-slate-900 rounded-xl border border-slate-800"
+              className="text-xs text-[#0A84FF] font-semibold"
             >
-              {showSuperAdminSection ? 'Ocultar' : 'Acceso Super Admin'}
+              {showSuperAdminSection ? 'Ocultar' : 'Acceder'}
             </button>
           )}
         </div>
 
-        {/* If Not Super Admin yet, show PIN prompt */}
         {!isSuperAdmin && showSuperAdminSection && (
-          <form onSubmit={handleUnlockSuperAdmin} className="p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-3">
-            <p className="text-xs text-slate-400">
-              Ingresa el PIN de Super Admin para acceder a las llaves de Supabase, sincronización en la nube y utilidades de base de datos.
-            </p>
+          <form onSubmit={handleUnlockSuperAdmin} className="space-y-2 pt-1">
             <div className="flex items-center space-x-2">
               <input
                 type="password"
                 maxLength={6}
                 value={superPinInput}
-                onChange={(e) => {
-                  setSuperPinInput(e.target.value);
-                  setSuperPinError(false);
-                }}
-                placeholder="PIN Super Admin"
-                className="bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-sm text-cyan-400 font-mono font-bold focus:outline-none focus:border-cyan-400"
+                onChange={(e) => setSuperPinInput(e.target.value)}
+                placeholder="PIN Super Admin (9999)"
+                className="bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-xs text-white flex-1"
               />
               <button
                 type="submit"
-                className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs rounded-xl shadow-blue-glow"
+                className="px-3.5 py-2 bg-[#0A84FF] text-white font-bold text-xs rounded-xl ios-touch"
               >
-                Desbloquear
+                Entrar
               </button>
             </div>
             {superPinError && (
-              <p className="text-xs text-rose-400 font-bold">PIN incorrecto. (PIN Maestro: 9999)</p>
+              <p className="text-xs text-[#FF453A]">PIN incorrecto (9999)</p>
             )}
           </form>
         )}
 
-        {/* Super Admin Unlocked Area */}
         {isSuperAdmin && (
-          <div className="space-y-5 pt-2 animate-fade-in">
-            {/* Supabase Cloud Connection Box */}
-            <div className="glass-panel-neon p-5 rounded-3xl border-2 border-cyan-500/40 space-y-4">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <div className="flex items-center space-x-2">
-                  <Terminal className="w-5 h-5 text-cyan-400" />
-                  <h4 className="text-base font-black text-white">Conexión Supabase Cloud (Live Sync)</h4>
-                </div>
-                <span className={`px-2.5 py-1 rounded-full text-xs font-black ${
-                  supabaseStatus === 'connected'
-                    ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                }`}>
-                  {supabaseStatus === 'connected' ? '🟢 Conectado' : 'Modo Local'}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Project URL de Supabase</label>
-                  <input
-                    type="text"
-                    value={supabaseUrl}
-                    onChange={(e) => setSupabaseUrl(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-300 block mb-1">Anon / Public API Key</label>
-                  <input
-                    type="password"
-                    value={supabaseAnonKey}
-                    onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:border-cyan-400 focus:outline-none"
-                  />
-                </div>
-              </div>
-
-              {supabaseMessage && (
-                <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs text-slate-200 font-semibold">
-                  {supabaseMessage}
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleTestSupabase}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs shadow-blue-glow transition-all"
-                >
-                  Probar y Guardar Conexión
-                </button>
-
-                {supabaseStatus === 'connected' && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={handlePushToSupabase}
-                      className="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs shadow-blue-glow transition-all"
-                    >
-                      Subir Datos (Push)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handlePullFromSupabase}
-                      className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs border border-slate-700 transition-all"
-                    >
-                      Sincronizar (Pull)
-                    </button>
-                  </>
-                )}
-              </div>
+          <div className="space-y-3 pt-2 text-xs">
+            <div className="space-y-1.5">
+              <label className="text-[#8E8E93] block">Supabase URL</label>
+              <input
+                type="text"
+                value={supabaseUrl}
+                onChange={(e) => setSupabaseUrl(e.target.value)}
+                className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-[#8E8E93] block">Supabase Anon Key</label>
+              <input
+                type="password"
+                value={supabaseAnonKey}
+                onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
+              />
             </div>
 
-            {/* Cloud Restore & Factory Reset */}
-            <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
-              <h4 className="text-sm font-black text-white flex items-center">
-                <Layers className="w-4 h-4 mr-1.5 text-cyan-400" /> Restauración & Borrado de Fábrica
-              </h4>
+            {supabaseMessage && (
+              <p className="text-xs text-white p-2 bg-[#2C2C2E] rounded-lg">{supabaseMessage}</p>
+            )}
 
-              {importStatus && (
-                <div className="p-3 bg-slate-900 rounded-xl border border-slate-700 text-xs font-semibold text-white">
-                  {importStatus}
-                </div>
-              )}
+            <button
+              onClick={handleTestSupabase}
+              className="w-full py-2 bg-[#0A84FF] text-white font-bold rounded-xl ios-touch"
+            >
+              Guardar y Probar Conexión
+            </button>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <label className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-700 flex items-center cursor-pointer transition-colors">
-                  <Upload className="w-4 h-4 mr-1.5" />
-                  Restaurar Respaldo JSON
-                  <input
-                    type="file"
-                    accept=".json"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
+            <div className="pt-2 border-t border-white/5 flex items-center justify-between">
+              <label className="px-3 py-1.5 bg-[#2C2C2E] text-white rounded-lg cursor-pointer inline-flex items-center">
+                <Upload className="w-3 h-3 mr-1" /> Restaurar JSON
+                <input type="file" accept=".json" onChange={handleFileUpload} className="hidden" />
+              </label>
 
-                <button
-                  onClick={() => {
-                    if (confirm('⚠️ ¿Seguro que deseas BORRAR TODOS LOS DATOS (jugadores, partidos, finales) y dejar el torneo totalmente en blanco desde cero?')) {
-                      onResetData();
-                      setTimeout(() => window.location.reload(), 500);
-                    }
-                  }}
-                  className="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/30 text-rose-400 font-bold text-xs border border-rose-500/40 flex items-center transition-colors ml-auto"
-                >
-                  <Trash2 className="w-4 h-4 mr-1.5" />
-                  Borrar Todo y Dejar en Cero
-                </button>
-              </div>
+              <button
+                onClick={() => {
+                  if (confirm('⚠️ ¿Borrar todos los datos y reiniciar el torneo?')) {
+                    onResetData();
+                    setTimeout(() => window.location.reload(), 500);
+                  }
+                }}
+                className="text-[#FF453A] font-semibold"
+              >
+                Borrado de Fábrica
+              </button>
             </div>
           </div>
         )}
