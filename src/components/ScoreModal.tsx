@@ -138,7 +138,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   const numbers = [0, 1, 2, 3, 4, 5, 6, 7];
 
   return (
-    <div className={`fixed inset-0 z-50 bg-[#000000] text-white flex flex-col justify-between overflow-y-auto select-none transition-opacity duration-200 ${
+    <div className={`fixed inset-0 z-[100] bg-[#000000] text-white flex flex-col justify-between overflow-y-auto select-none transition-opacity duration-200 ${
       isClosing ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-fade-in'
     }`}>
       {/* 1. Fullscreen Top Navigation Bar */}

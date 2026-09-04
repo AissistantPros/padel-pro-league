@@ -464,7 +464,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
 
       {/* Historical All-Time Career Modal */}
       {showHistoricalModal && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/80 backdrop-blur-md animate-fade-in">
           <div className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 max-h-[85vh] overflow-y-auto space-y-4 animate-slide-up">
             <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-2 sm:hidden" />
 
@@ -515,7 +515,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
 
       {/* Clean iOS Criteria Modal */}
       {showCriteriaModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
           <div className="ios-card w-full max-w-md p-6 space-y-4 border border-white/10">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-white">Sistema de Puntuación</h3>

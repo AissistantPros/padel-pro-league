@@ -15,7 +15,7 @@ export const PlayerDetailModal: React.FC<PlayerDetailModalProps> = ({ player, on
   if (!player) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/70 backdrop-blur-md animate-fade-in">
       {/* Backdrop click dismiss */}
       <div className="absolute inset-0" onClick={onClose} />
 

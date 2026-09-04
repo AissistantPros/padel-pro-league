@@ -28,7 +28,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({ activeTab, set
   const gridColsClass = isAdmin ? 'grid-cols-6' : 'grid-cols-5';
 
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-black/85 backdrop-blur-2xl border-t border-white/10 pb-safe shadow-2xl select-none">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-black/85 backdrop-blur-2xl border-t border-white/10 pb-safe shadow-2xl select-none">
       <div className={`grid ${gridColsClass} h-16 items-center px-1`}>
         {tabs.map((t) => {
           const Icon = t.icon;
