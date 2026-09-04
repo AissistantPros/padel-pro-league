@@ -61,6 +61,17 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     }
   };
 
+  const getPlayerInfo = (id: string, name: string) => {
+    const pStat = statsList.find(s => s.playerId === id || s.playerName === name);
+    const nickname = pStat?.nickname?.trim() ? pStat.nickname : name.split(' ')[0];
+    return { nickname, fullName: name, avatar: pStat?.avatar };
+  };
+
+  const pA1 = getPlayerInfo(match.teamA.player1Id, match.teamA.player1Name);
+  const pA2 = getPlayerInfo(match.teamA.player2Id, match.teamA.player2Name);
+  const pB1 = getPlayerInfo(match.teamB.player1Id, match.teamB.player1Name);
+  const pB2 = getPlayerInfo(match.teamB.player2Id, match.teamB.player2Name);
+
   return (
     <div className="ios-card p-4 sm:p-5 space-y-3.5 select-none">
       {/* Court Header & Prediction Pill */}
@@ -96,23 +107,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             : 'bg-[#2C2C2E]/60 border-white/5'
         }`}>
           <div className="space-y-1.5 min-w-0 flex-1">
-            <div className="flex items-center space-x-2.5 truncate">
+            <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
-              <span className={`text-sm sm:text-base truncate ${isTeamAWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
-                {match.teamA.player1Name}
-              </span>
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-sm sm:text-base font-black text-white">
+                  {pA1.nickname}
+                </span>
+                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
+                  {pA1.fullName}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2.5 truncate">
+            <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamA.player2Id, match.teamA.player2Name)}
-              <span className={`text-sm sm:text-base truncate ${isTeamAWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
-                {match.teamA.player2Name}
-              </span>
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-sm sm:text-base font-black text-white">
+                  {pA2.nickname}
+                </span>
+                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
+                  {pA2.fullName}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Score Box */}
           <div className="text-right pl-2 flex-shrink-0">
-            <div className={`font-mono text-3xl font-bold min-w-[40px] text-center ${
+            <div className={`font-mono text-3xl sm:text-4xl font-black min-w-[40px] text-center ${
               isTeamAWinner ? 'text-[#30D158]' : 'text-white/80'
             }`}>
               {isCompleted ? match.score.scoreA : '-'}
@@ -127,23 +148,33 @@ export const MatchCard: React.FC<MatchCardProps> = ({
             : 'bg-[#2C2C2E]/60 border-white/5'
         }`}>
           <div className="space-y-1.5 min-w-0 flex-1">
-            <div className="flex items-center space-x-2.5 truncate">
+            <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
-              <span className={`text-sm sm:text-base truncate ${isTeamBWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
-                {match.teamB.player1Name}
-              </span>
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-sm sm:text-base font-black text-white">
+                  {pB1.nickname}
+                </span>
+                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
+                  {pB1.fullName}
+                </span>
+              </div>
             </div>
-            <div className="flex items-center space-x-2.5 truncate">
+            <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamB.player2Id, match.teamB.player2Name)}
-              <span className={`text-sm sm:text-base truncate ${isTeamBWinner ? 'font-bold text-white' : 'font-medium text-white'}`}>
-                {match.teamB.player2Name}
-              </span>
+              <div className="min-w-0 flex-1 truncate">
+                <span className="text-sm sm:text-base font-black text-white">
+                  {pB2.nickname}
+                </span>
+                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
+                  {pB2.fullName}
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Score Box */}
           <div className="text-right pl-2 flex-shrink-0">
-            <div className={`font-mono text-3xl font-bold min-w-[40px] text-center ${
+            <div className={`font-mono text-3xl sm:text-4xl font-black min-w-[40px] text-center ${
               isTeamBWinner ? 'text-[#0A84FF]' : 'text-white/80'
             }`}>
               {isCompleted ? match.score.scoreB : '-'}

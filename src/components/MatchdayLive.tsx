@@ -642,6 +642,8 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
         isOpen={Boolean(activeScoreMatch)}
         onClose={() => setActiveScoreMatch(null)}
         onSaveScore={handleSaveMatchScore}
+        players={players}
+        statsList={statsList}
       />
     </div>
   );

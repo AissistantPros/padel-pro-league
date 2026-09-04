@@ -259,6 +259,7 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
         isOpen={Boolean(activeScoreMatch)}
         onClose={() => setActiveScoreMatch(null)}
         onSaveScore={handleSaveScore}
+        statsList={statsList}
       />
     </div>
   );
