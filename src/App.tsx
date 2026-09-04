@@ -245,6 +245,7 @@ export function App() {
             isAdmin={effectiveIsAdmin}
             onSaveDays={handleSaveDays}
             onRequestAdmin={() => setIsAdminModalOpen(true)}
+            onSavePlayers={handleSavePlayers}
           />
         )}
 

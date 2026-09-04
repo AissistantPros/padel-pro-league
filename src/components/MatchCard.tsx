@@ -79,20 +79,10 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     const court = match.courtNumber ? `Pista ${match.courtNumber}` : (match.courtName?.replace(/Cancha/g, 'Pista') || 'Pista');
 
     if (match.matchType === 'daily_final') {
-      switch (match.finalCategory) {
-        case 'gold':
-          return `${court} • 1º y 2º lugar`;
-        case 'silver':
-          return `${court} • 5º y 6º lugar`;
-        case 'bronze':
-          return `${court} • 9º y 10º lugar`;
-        case 'copper':
-          return `${court} • 13º y 14º lugar`;
-        case 'wood':
-          return `${court} • 17º y 18º lugar`;
-        default:
-          return court;
-      }
+      const c = (match.courtNumber || 1) - 1;
+      const place1 = c * 2 + 1;
+      const place2 = c * 2 + 2;
+      return `${court} • ${place1}º y ${place2}º lugar`;
     }
 
     if (match.matchType === 'grand_final') {
