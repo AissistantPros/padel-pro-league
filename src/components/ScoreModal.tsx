@@ -162,15 +162,11 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
         </div>
 
         <button
-          onClick={handleSave}
-          disabled={!isBothSelected}
-          className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ios-touch ${
-            isBothSelected
-              ? 'bg-[#30D158] text-black shadow-md shadow-[#30D158]/30'
-              : 'bg-[#2C2C2E] text-[#8E8E93] opacity-40 cursor-not-allowed'
-          }`}
+          onClick={onClose}
+          className="w-8 h-8 rounded-full bg-[#1C1C1E] text-[#8E8E93] hover:text-white flex items-center justify-center border border-white/10 ios-touch"
+          aria-label="Cerrar"
         >
-          Guardar
+          <X className="w-4 h-4" />
         </button>
       </div>
 
@@ -467,21 +463,29 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
         )}
       </div>
 
-      {/* 3. Bottom Action Bar */}
-      <div className="sticky bottom-0 z-20 bg-black/95 backdrop-blur-xl border-t border-white/10 px-4 sm:px-6 py-4">
+      {/* 3. Bottom Action Bar - Direct Downward Ergonomic Flow */}
+      <div className="sticky bottom-0 z-20 bg-black/95 backdrop-blur-xl border-t border-white/10 px-4 sm:px-6 py-4 pb-8 sm:pb-6">
         <div className="max-w-lg mx-auto">
           <button
             type="button"
             onClick={handleSave}
             disabled={!isBothSelected}
-            className={`w-full py-4 rounded-2xl font-black text-base flex items-center justify-center transition-all ios-touch ${
+            className={`w-full h-14 sm:h-16 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center transition-all duration-200 ios-touch ${
               isBothSelected
-                ? 'bg-[#30D158] text-black shadow-lg shadow-[#30D158]/30 active:scale-95'
-                : 'bg-[#2C2C2E] text-[#8E8E93] cursor-not-allowed'
+                ? 'bg-[#30D158] text-black shadow-[0_0_25px_rgba(48,209,88,0.45)] hover:bg-[#28B84B] active:scale-98 cursor-pointer'
+                : 'bg-[#1C1C1E] text-[#8E8E93] border border-white/10 cursor-not-allowed opacity-80'
             }`}
           >
-            <Check className="w-5 h-5 mr-2" />
-            {isBothSelected ? 'Guardar Marcador Oficial' : 'Selecciona ambos marcadores (0 al 7)'}
+            {isBothSelected ? (
+              <>
+                <Check className="w-6 h-6 mr-2 stroke-[3]" />
+                Guardar Marcador Oficial
+              </>
+            ) : (
+              <span className="text-xs sm:text-sm font-semibold text-[#8E8E93]">
+                👆 Ingresa los games de ambas parejas para guardar
+              </span>
+            )}
           </button>
         </div>
       </div>
