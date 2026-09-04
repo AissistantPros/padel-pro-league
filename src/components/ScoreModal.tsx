@@ -153,7 +153,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
         <div className="text-center">
           <div className="flex items-center justify-center space-x-1.5">
             <span className="text-xs font-bold text-[#FFD60A]">
-              🎾 {match.courtName || `Cancha ${match.courtNumber}`}
+              🎾 {match.courtNumber ? `Pista ${match.courtNumber}` : (match.courtName?.replace(/Cancha/g, 'Pista') || 'Pista')}
             </span>
           </div>
           <h2 className="text-sm font-bold text-white">

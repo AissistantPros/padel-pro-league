@@ -13,7 +13,7 @@ import type {
  */
 export function generateGrandFinaleBracket(
   statsList: PlayerIntelligenceStats[],
-  courtNames: string[] = ['Cancha 1 (Central)', 'Cancha 2', 'Cancha 3', 'Cancha 4']
+  courtNames: string[] = ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4']
 ): GrandFinaleBracket {
   const sorted = [...statsList].sort((a, b) => b.totalChampionshipPoints - a.totalChampionshipPoints);
 
@@ -37,18 +37,18 @@ export function generateGrandFinaleBracket(
 
   const dayId = 'grand_finale';
 
-  // Round 1: Cuartos / Fase Clasificatoria (4 Canchas simultáneas)
-  // Cancha 1: #1 & #12 vs #6 & #7 (Llave Oro A)
-  // Cancha 2: #2 & #11 vs #5 & #8 (Llave Oro B)
-  // Cancha 3: #3 & #10 vs #4 & #9 (Llave Oro C)
-  // Cancha 4: #13 & #16 vs #14 & #15 (Llave Ascenso Bronce / Repechaje)
+  // Round 1: Cuartos / Fase Clasificatoria (4 Pistas simultáneas)
+  // Pista 1: #1 & #12 vs #6 & #7 (Llave Oro A)
+  // Pista 2: #2 & #11 vs #5 & #8 (Llave Oro B)
+  // Pista 3: #3 & #10 vs #4 & #9 (Llave Oro C)
+  // Pista 4: #13 & #16 vs #14 & #15 (Llave Ascenso Bronce / Repechaje)
   const round1Matches: Match[] = [
     {
       id: `${dayId}_r1_m1`,
       dayId,
       roundNumber: 101,
       courtNumber: 1,
-      courtName: courtNames[0],
+      courtName: courtNames[0] || 'Pista 1',
       matchType: 'grand_final',
       finalCategory: 'qf',
       teamA: {
@@ -144,18 +144,18 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 102,
       courtNumber: 1,
-      courtName: `${courtNames[0]} (Semifinal Oro 1)`,
+      courtName: courtNames[0] || 'Pista 1',
       matchType: 'grand_final',
       finalCategory: 'sf',
       teamA: {
         player1Id: '',
-        player1Name: 'Ganador Cancha 1 (P1/P12 o P6/P7)',
+        player1Name: 'Ganador Pista 1',
         player2Id: '',
         player2Name: '',
       },
       teamB: {
         player1Id: '',
-        player1Name: 'Ganador Cancha 2 (P2/P11 o P5/P8)',
+        player1Name: 'Ganador Pista 2',
         player2Id: '',
         player2Name: '',
       },
@@ -167,12 +167,12 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 102,
       courtNumber: 2,
-      courtName: `${courtNames[1]} (Semifinal Oro 2)`,
+      courtName: courtNames[1] || 'Pista 2',
       matchType: 'grand_final',
       finalCategory: 'sf',
       teamA: {
         player1Id: '',
-        player1Name: 'Ganador Cancha 3 (P3/P10 o P4/P9)',
+        player1Name: 'Ganador Pista 3',
         player2Id: '',
         player2Name: '',
       },
@@ -190,12 +190,12 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 102,
       courtNumber: 3,
-      courtName: `${courtNames[2]} (Semi Ruta Bronce / Ascenso)`,
+      courtName: courtNames[2] || 'Pista 3',
       matchType: 'grand_final',
       finalCategory: 'bronze',
       teamA: {
         player1Id: '',
-        player1Name: 'Ganador Cancha 4 (Ruta Semis Bronce #13-16)',
+        player1Name: 'Ganador Pista 4 (Ascenso)',
         player2Id: '',
         player2Name: '',
       },
@@ -213,12 +213,12 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 102,
       courtNumber: 4,
-      courtName: `${courtNames[3]} (Plata / Posiciones 9-16)`,
+      courtName: courtNames[3] || 'Pista 4',
       matchType: 'grand_final',
       finalCategory: 'copper',
       teamA: {
         player1Id: '',
-        player1Name: 'Perdedor Cancha 4',
+        player1Name: 'Perdedor Pista 4',
         player2Id: '',
         player2Name: '',
       },
@@ -240,7 +240,7 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 103,
       courtNumber: 1,
-      courtName: `${courtNames[0]} - 🏆 GRAN FINAL (1º vs 2º)`,
+      courtName: courtNames[0] || 'Pista 1',
       matchType: 'grand_final',
       finalCategory: 'final_1st',
       teamA: {
@@ -263,7 +263,7 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 103,
       courtNumber: 2,
-      courtName: `${courtNames[1]} - 🥉 FINAL BRONCE (3º vs 4º)`,
+      courtName: courtNames[1] || 'Pista 2',
       matchType: 'grand_final',
       finalCategory: 'final_3rd',
       teamA: {
@@ -274,7 +274,7 @@ export function generateGrandFinaleBracket(
       },
       teamB: {
         player1Id: '',
-        player1Name: 'Ganador Semi Ruta Bronce (posible #16)',
+        player1Name: 'Ganador Semi Bronce',
         player2Id: '',
         player2Name: '',
       },
@@ -286,7 +286,7 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 103,
       courtNumber: 3,
-      courtName: `${courtNames[2]} - 5º al 8º Puesto`,
+      courtName: courtNames[2] || 'Pista 3',
       matchType: 'grand_final',
       finalCategory: 'final_5th',
       teamA: { player1Id: '', player1Name: 'Clasificado 5/6', player2Id: '', player2Name: '' },
@@ -299,7 +299,7 @@ export function generateGrandFinaleBracket(
       dayId,
       roundNumber: 103,
       courtNumber: 4,
-      courtName: `${courtNames[3]} - 9º al 16º Puesto`,
+      courtName: courtNames[3] || 'Pista 4',
       matchType: 'grand_final',
       finalCategory: 'final_9th',
       teamA: { player1Id: '', player1Name: 'Clasificado 9/10', player2Id: '', player2Name: '' },

@@ -16,12 +16,12 @@ export function shuffleArray<T>(array: T[]): T[] {
 }
 
 const DEFAULT_COURT_NAMES = [
-  'Cancha 1 (Central Oro)',
-  'Cancha 2 (Plata)',
-  'Cancha 3 (Bronce)',
-  'Cancha 4 (Cobre)',
-  'Cancha 5 (Madera / El Asador)',
-  'Cancha 6',
+  'Pista 1',
+  'Pista 2',
+  'Pista 3',
+  'Pista 4',
+  'Pista 5',
+  'Pista 6',
 ];
 
 /**
@@ -192,7 +192,7 @@ export function generatePreliminaryRounds(
       dayId,
       roundNumber: r,
       courtNumber: cIdx + 1,
-      courtName: courtNames[cIdx % courtNames.length] || `Cancha ${cIdx + 1}`,
+      courtName: courtNames[cIdx % courtNames.length] || `Pista ${cIdx + 1}`,
       matchType: 'preliminary',
       teamA: {
         player1Id: m.teamA[0].player.id,
@@ -227,11 +227,11 @@ export function generatePreliminaryRounds(
 
 /**
  * Generates Round 4 (Daily Finals) dynamically based on daily preliminary standings (for any N = 4, 8, 12, 16, 20):
- * Court 1 (Final Oro): 1 y 4 vs 2 y 3
- * Court 2 (Final Plata): 5 y 8 vs 6 y 7
- * Court 3 (Final Bronce): 9 y 12 vs 10 y 11
- * Court 4 (Final Cobre): 13 y 16 vs 14 y 15
- * Court 5 (Final Madera / Asador): 17 y 20 vs 18 y 19
+ * Pista 1 (Final Oro): 1 y 4 vs 2 y 3
+ * Pista 2 (Final Plata): 5 y 8 vs 6 y 7
+ * Pista 3 (Final Bronce): 9 y 12 vs 10 y 11
+ * Pista 4 (Final Cobre): 13 y 16 vs 14 y 15
+ * Pista 5 (Final Madera / Asador): 17 y 20 vs 18 y 19
  */
 export function generateDailyFinalRound(
   dayId: string,
@@ -261,7 +261,7 @@ export function generateDailyFinalRound(
     const p3 = sorted[baseIdx + 2]; // 3, 7, 11, 15, 19
     const p4 = sorted[baseIdx + 3]; // 4, 8, 12, 16, 20
 
-    const courtName = courtNames[c] || `Cancha ${c + 1}`;
+    const courtName = courtNames[c] || `Pista ${c + 1}`;
     const finalCategory = categories[c % categories.length];
 
     matches.push({

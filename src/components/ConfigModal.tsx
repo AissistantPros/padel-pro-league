@@ -44,11 +44,11 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [editionNumber, setEditionNumber] = useState(config.editionNumber || 3);
   const [editionName, setEditionName] = useState(config.editionName || '3er Torneo G20 by Peter Inc.');
   const [tournamentLogoUrl, setTournamentLogoUrl] = useState(config.tournamentLogoUrl || '');
-  const [court1, setCourt1] = useState(config.courtNames[0] || 'Cancha 1 (Central Oro)');
-  const [court2, setCourt2] = useState(config.courtNames[1] || 'Cancha 2 (Plata)');
-  const [court3, setCourt3] = useState(config.courtNames[2] || 'Cancha 3 (Bronce)');
-  const [court4, setCourt4] = useState(config.courtNames[3] || 'Cancha 4 (Cobre)');
-  const [court5, setCourt5] = useState(config.courtNames[4] || 'Cancha 5 (Madera / El Asador)');
+  const [court1, setCourt1] = useState(config.courtNames[0] || 'Pista 1');
+  const [court2, setCourt2] = useState(config.courtNames[1] || 'Pista 2');
+  const [court3, setCourt3] = useState(config.courtNames[2] || 'Pista 3');
+  const [court4, setCourt4] = useState(config.courtNames[3] || 'Pista 4');
+  const [court5, setCourt5] = useState(config.courtNames[4] || 'Pista 5');
   const [adminPin, setAdminPin] = useState(config.adminPin);
   const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || '9999');
   const [importStatus, setImportStatus] = useState<string | null>(null);
@@ -249,14 +249,14 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         {/* Court Names Grouped List */}
         <div className="ios-grouped-list divide-y divide-white/5">
           <div className="p-3 bg-[#2C2C2E]/40 text-xs font-semibold text-[#8E8E93] uppercase tracking-wider">
-            Nombres de Canchas
+            Pistas de Juego
           </div>
           {[
-            { val: court1, set: setCourt1, label: 'Cancha 1' },
-            { val: court2, set: setCourt2, label: 'Cancha 2' },
-            { val: court3, set: setCourt3, label: 'Cancha 3' },
-            { val: court4, set: setCourt4, label: 'Cancha 4' },
-            { val: court5, set: setCourt5, label: 'Cancha 5' },
+            { val: court1, set: setCourt1, label: 'Pista 1' },
+            { val: court2, set: setCourt2, label: 'Pista 2' },
+            { val: court3, set: setCourt3, label: 'Pista 3' },
+            { val: court4, set: setCourt4, label: 'Pista 4' },
+            { val: court5, set: setCourt5, label: 'Pista 5' },
           ].map((c, i) => (
             <div key={i} className="p-3 flex items-center justify-between">
               <label className="text-xs text-[#8E8E93] w-24 flex-shrink-0">{c.label}</label>

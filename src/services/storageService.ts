@@ -22,7 +22,7 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   editionNumber: 3,
   editionName: '3er Torneo G20 by Peter Inc.',
   tournamentLogoUrl: '',
-  courtNames: ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre)', 'Cancha 5 (Madera / El Asador)'],
+  courtNames: ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4', 'Pista 5', 'Pista 6'],
   adminPin: '1234', // Tournament Admin PIN for tournament operations
   superAdminPin: '9999', // Super Admin PIN for developer keys and cloud infra
   rankingSystem: 'total_points',
@@ -60,7 +60,12 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.CONFIG);
       if (stored) {
-        return { ...DEFAULT_CONFIG, ...JSON.parse(stored) };
+        const parsed = JSON.parse(stored);
+        const config = { ...DEFAULT_CONFIG, ...parsed };
+        if (config.courtNames && config.courtNames.some((c: string) => c.includes('Cancha') || c.includes('('))) {
+          config.courtNames = DEFAULT_CONFIG.courtNames;
+        }
+        return config;
       }
     } catch (e) {
       console.error('Error reading config from localStorage', e);

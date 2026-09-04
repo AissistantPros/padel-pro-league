@@ -19,7 +19,7 @@ export function optimizePreliminaryRounds(
   dayId: string,
   players: Player[],
   playerScores: Map<string, number>, // Map of playerId -> championshipPoints
-  courtNames: string[] = ['Cancha 1 (Central Oro)', 'Cancha 2 (Plata)', 'Cancha 3 (Bronce)', 'Cancha 4 (Cobre / El Asador)']
+  courtNames: string[] = ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4']
 ): DailyRound[] {
   const numPlayers = players.length;
   if (numPlayers % 4 !== 0 || numPlayers < 4) {
@@ -193,7 +193,7 @@ export function optimizePreliminaryRounds(
       dayId,
       roundNumber: r,
       courtNumber: cIdx + 1,
-      courtName: courtNames[cIdx % courtNames.length] || `Cancha ${cIdx + 1}`,
+      courtName: courtNames[cIdx % courtNames.length] || `Pista ${cIdx + 1}`,
       matchType: 'preliminary',
       teamA: {
         player1Id: m.teamA[0].player.id,

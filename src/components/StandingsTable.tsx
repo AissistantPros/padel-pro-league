@@ -420,7 +420,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                             return (
                               <div key={m.id} className="ios-card p-3 space-y-2 border border-white/5">
                                 <div className="flex items-center justify-between text-[11px] text-[#8E8E93]">
-                                  <span>🎾 {m.courtName || `Cancha ${m.courtNumber}`}</span>
+                                  <span>🎾 {m.courtNumber ? `Pista ${m.courtNumber}` : (m.courtName?.replace(/Cancha/g, 'Pista') || 'Pista')}</span>
                                   <span>{isDone ? 'Finalizado' : 'Pendiente'}</span>
                                 </div>
 

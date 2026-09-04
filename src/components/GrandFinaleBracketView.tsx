@@ -196,7 +196,7 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
                       className="ios-card p-4 space-y-2.5 border border-white/10"
                     >
                       <div className="flex items-center justify-between text-xs text-[#8E8E93] pb-1 border-b border-white/5">
-                        <span>🎾 {match.courtName || `Cancha ${match.courtNumber}`}</span>
+                        <span>🎾 {match.courtNumber ? `Pista ${match.courtNumber}` : (match.courtName?.replace(/Cancha/g, 'Pista') || 'Pista')}</span>
                         {isDone ? (
                           <span className="text-[#30D158] font-semibold flex items-center">
                             <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Terminado

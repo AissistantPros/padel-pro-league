@@ -78,7 +78,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
       <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
         <div className="flex items-center space-x-2">
           <span className="text-sm sm:text-base font-bold text-white flex items-center">
-            🎾 {match.courtName || `Cancha ${match.courtNumber}`}
+            🎾 {match.courtNumber ? `Pista ${match.courtNumber}` : (match.courtName?.replace(/Cancha/g, 'Pista') || 'Pista')}
           </span>
           {getCategoryBadge()}
         </div>
