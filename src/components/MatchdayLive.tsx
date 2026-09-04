@@ -529,6 +529,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                       isAdmin={isAdmin}
                       onOpenScoreModal={(m) => setActiveScoreMatch(m)}
                       statsList={statsList}
+                      currentDay={currentDay}
                     />
                   ))}
               </div>
@@ -619,6 +620,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                         isAdmin={isAdmin}
                         onOpenScoreModal={(m) => setActiveScoreMatch(m)}
                         statsList={statsList}
+                        currentDay={currentDay}
                       />
                     ))}
                 </div>

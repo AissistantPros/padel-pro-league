@@ -1,5 +1,5 @@
 export type MatchType = 'preliminary' | 'daily_final' | 'grand_final';
-export type FinalCategory = 'gold' | 'silver' | 'bronze' | 'copper' | 'qf' | 'sf' | 'final_1st' | 'final_3rd' | 'final_5th' | 'final_7th' | 'final_9th' | 'final_11th' | 'final_13th' | 'final_15th';
+export type FinalCategory = 'gold' | 'silver' | 'bronze' | 'copper' | 'wood' | 'qf' | 'sf' | 'final_1st' | 'final_3rd' | 'final_5th' | 'final_7th' | 'final_9th' | 'final_11th' | 'final_13th' | 'final_15th';
 
 export type UserRole = 'player' | 'admin' | 'superadmin';
 
