@@ -231,6 +231,7 @@ export function App() {
             days={days}
             players={players}
             config={config}
+            isAdmin={effectiveIsAdmin}
             onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
             onChangeRankingSystem={handleChangeRankingSystem}
           />

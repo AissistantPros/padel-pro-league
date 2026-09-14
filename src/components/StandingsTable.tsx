@@ -10,6 +10,7 @@ interface StandingsTableProps {
   days: TournamentDay[];
   players: Player[];
   config: TournamentConfig;
+  isAdmin?: boolean;
   onSelectPlayerForIntelligence: (playerId: string) => void;
   onChangeRankingSystem: (system: 'bayesian' | 'total_points' | 'avg_points') => void;
 }
@@ -19,6 +20,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
   days,
   players,
   config,
+  isAdmin = false,
   onSelectPlayerForIntelligence,
 }) => {
   const [selectedPlayerForDetail, setSelectedPlayerForDetail] = useState<PlayerIntelligenceStats | null>(null);
@@ -559,6 +561,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
           players={players}
           statsList={stats}
           config={config}
+          isAdmin={isAdmin}
           onClose={() => setSelectedReportDay(null)}
         />
       )}

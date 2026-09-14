@@ -20,6 +20,7 @@ import {
   Heart,
   Crown,
   Smile,
+  Lock,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type {
@@ -37,6 +38,7 @@ interface MatchdayReportModalProps {
   players: Player[];
   statsList?: PlayerIntelligenceStats[];
   config?: TournamentConfig;
+  isAdmin?: boolean;
   onClose: () => void;
 }
 
@@ -45,6 +47,7 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
   players,
   statsList = [],
   config,
+  isAdmin = false,
   onClose,
 }) => {
   const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
@@ -249,32 +252,41 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
         </div>
 
         <div className="flex items-center space-x-2">
-          <button
-            onClick={handleCopyWhatsApp}
-            className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center ios-touch shadow-md ${
-              copiedWhatsApp
-                ? 'bg-[#30D158] text-black'
-                : 'bg-[#25D366] text-white hover:bg-[#20bd5a]'
-            }`}
-          >
-            {copiedWhatsApp ? (
-              <>
-                <Check className="w-3.5 h-3.5 mr-1" /> ¡Copiado!
-              </>
-            ) : (
-              <>
-                <Share2 className="w-3.5 h-3.5 mr-1" /> WhatsApp
-              </>
-            )}
-          </button>
+          {isAdmin ? (
+            <>
+              <button
+                onClick={handleCopyWhatsApp}
+                className={`px-3 sm:px-4 py-1.5 rounded-full text-xs font-bold transition-all flex items-center ios-touch shadow-md ${
+                  copiedWhatsApp
+                    ? 'bg-[#30D158] text-black'
+                    : 'bg-[#25D366] text-white hover:bg-[#20bd5a]'
+                }`}
+                title="Copiar texto para WhatsApp"
+              >
+                {copiedWhatsApp ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 mr-1" /> ¡Copiado!
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-3.5 h-3.5 mr-1" /> WhatsApp
+                  </>
+                )}
+              </button>
 
-          <button
-            onClick={handlePrint}
-            className="p-1.5 rounded-full bg-[#1C1C1E] text-[#8E8E93] hover:text-white border border-white/10 ios-touch hidden sm:flex items-center justify-center"
-            title="Imprimir / PDF"
-          >
-            <Printer className="w-4 h-4" />
-          </button>
+              <button
+                onClick={handlePrint}
+                className="p-1.5 rounded-full bg-[#1C1C1E] text-[#8E8E93] hover:text-white border border-white/10 ios-touch hidden sm:flex items-center justify-center"
+                title="Imprimir / PDF"
+              >
+                <Printer className="w-4 h-4" />
+              </button>
+            </>
+          ) : (
+            <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full bg-[#1C1C1E] border border-white/10 text-[10px] text-[#8E8E93]">
+              <Lock className="w-3 h-3 mr-1 text-[#FFD60A]" /> Solo Lectura
+            </span>
+          )}
 
           <button
             onClick={onClose}
@@ -316,16 +328,18 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
             </span>
           </div>
 
-          {/* Quick Stats Pill Ribbon */}
-          <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
-            <button
-              onClick={handleCopyWhatsApp}
-              className="px-4 py-2 rounded-xl bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] text-xs font-bold flex items-center hover:bg-[#25D366]/30 transition-all ios-touch print:hidden"
-            >
-              <Copy className="w-3.5 h-3.5 mr-1.5" />
-              {copiedWhatsApp ? '¡Texto Copiado para WhatsApp!' : 'Copiar Resumen para WhatsApp'}
-            </button>
-          </div>
+          {/* Quick Stats Pill Ribbon / Admin Action */}
+          {isAdmin && (
+            <div className="pt-2 flex items-center justify-center gap-2 flex-wrap">
+              <button
+                onClick={handleCopyWhatsApp}
+                className="px-4 py-2 rounded-xl bg-[#25D366]/20 border border-[#25D366]/40 text-[#25D366] text-xs font-bold flex items-center hover:bg-[#25D366]/30 transition-all ios-touch print:hidden"
+              >
+                <Copy className="w-3.5 h-3.5 mr-1.5" />
+                {copiedWhatsApp ? '¡Texto Copiado para WhatsApp!' : 'Copiar Resumen para WhatsApp'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* ======================================================== */}
@@ -885,24 +899,41 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
           </div>
         </div>
 
-        {/* Bottom Actions for WhatsApp Sharing */}
+        {/* Bottom Actions for WhatsApp Sharing / Admin Only */}
         <div className="pt-4 pb-8 flex flex-col sm:flex-row items-center justify-center gap-3 print:hidden">
-          <button
-            onClick={handleCopyWhatsApp}
-            className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm flex items-center justify-center ios-touch shadow-xl"
-          >
-            {copiedWhatsApp ? (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                ¡Resumen Copiado! Pégalo en WhatsApp
-              </>
-            ) : (
-              <>
-                <Share2 className="w-4 h-4 mr-2" />
-                Copiar Reporte Completo para WhatsApp
-              </>
-            )}
-          </button>
+          {isAdmin ? (
+            <>
+              <button
+                onClick={handleCopyWhatsApp}
+                className="w-full sm:w-auto px-6 py-3 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-sm flex items-center justify-center ios-touch shadow-xl"
+              >
+                {copiedWhatsApp ? (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    ¡Resumen Copiado! Pégalo en WhatsApp
+                  </>
+                ) : (
+                  <>
+                    <Share2 className="w-4 h-4 mr-2" />
+                    Copiar Reporte Completo para WhatsApp
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handlePrint}
+                className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-[#1C1C1E] hover:bg-[#2C2C2E] text-white font-bold text-sm flex items-center justify-center border border-white/10 ios-touch"
+              >
+                <Printer className="w-4 h-4 mr-2" />
+                Imprimir / PDF
+              </button>
+            </>
+          ) : (
+            <div className="w-full max-w-md p-3 rounded-xl bg-[#1C1C1E] border border-white/10 text-center text-xs text-[#8E8E93] flex items-center justify-center space-x-2">
+              <Lock className="w-4 h-4 text-[#FFD60A] flex-shrink-0" />
+              <span>La descarga y copia del reporte para WhatsApp está reservada para Administradores.</span>
+            </div>
+          )}
 
           <button
             onClick={onClose}

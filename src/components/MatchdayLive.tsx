@@ -1104,6 +1104,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
           players={players}
           statsList={statsList}
           config={config}
+          isAdmin={isAdmin}
           onClose={() => setReportModalDay(null)}
         />
       )}
