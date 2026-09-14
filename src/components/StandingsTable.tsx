@@ -166,10 +166,10 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                           )}
 
                           <div className="min-w-0 flex-1 pr-2">
-                            <div className="text-base font-semibold text-white truncate leading-snug">
+                            <div className="text-base font-semibold text-white break-words leading-tight">
                               {player.playerName}
                             </div>
-                            <div className="text-xs text-[#8E8E93] truncate mt-0.5">
+                            <div className="text-xs text-[#8E8E93] mt-0.5 break-words">
                               {player.nickname ? `"${player.nickname}"` : `${player.daysAttended} fechas`} • {player.winRatePercentage}% Vic
                             </div>
                           </div>
@@ -373,10 +373,10 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                                 )}
 
                                 <div className="min-w-0 flex-1">
-                                  <div className="text-sm font-semibold text-white truncate">
+                                  <div className="text-sm font-semibold text-white break-words leading-tight">
                                     {ps.playerName}
                                   </div>
-                                  <div className="text-xs text-[#8E8E93] truncate">
+                                  <div className="text-xs text-[#8E8E93] break-words">
                                     {nickname ? `"${nickname}" • ` : ''}{ps.matchesWon}V - {ps.matchesLost}D ({ps.gamesWon} games)
                                   </div>
                                 </div>
@@ -428,15 +428,15 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                                   <div className={`p-2 rounded-xl flex items-center justify-between text-xs ${
                                     winA ? 'bg-[#30D158]/15 font-bold text-white' : 'bg-[#2C2C2E] text-white'
                                   }`}>
-                                    <span className="truncate">{m.teamA.player1Name} & {m.teamA.player2Name}</span>
-                                    <span className="font-mono font-bold text-sm pl-2">{isDone ? m.score.scoreA : '-'}</span>
+                                    <span className="break-words font-semibold pr-2 leading-tight">{m.teamA.player1Name} & {m.teamA.player2Name}</span>
+                                    <span className="font-mono font-bold text-sm pl-2 flex-shrink-0">{isDone ? m.score.scoreA : '-'}</span>
                                   </div>
 
                                   <div className={`p-2 rounded-xl flex items-center justify-between text-xs ${
                                     winB ? 'bg-[#30D158]/15 font-bold text-white' : 'bg-[#2C2C2E] text-white'
                                   }`}>
-                                    <span className="truncate">{m.teamB.player1Name} & {m.teamB.player2Name}</span>
-                                    <span className="font-mono font-bold text-sm pl-2">{isDone ? m.score.scoreB : '-'}</span>
+                                    <span className="break-words font-semibold pr-2 leading-tight">{m.teamB.player1Name} & {m.teamB.player2Name}</span>
+                                    <span className="font-mono font-bold text-sm pl-2 flex-shrink-0">{isDone ? m.score.scoreB : '-'}</span>
                                   </div>
                                 </div>
                               </div>
@@ -491,8 +491,8 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                   <div className="flex items-center space-x-3 min-w-0 flex-1">
                     <span className="text-xs font-mono font-bold text-[#8E8E93] w-5">#{idx + 1}</span>
                     <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-white truncate">{player.playerName}</div>
-                      <div className="text-xs text-[#8E8E93]">
+                      <div className="text-sm font-semibold text-white break-words leading-tight">{player.playerName}</div>
+                      <div className="text-xs text-[#8E8E93] break-words">
                         {player.daysAttended} fechas • {player.totalMatchesWon}V-{player.totalMatchesLost}D ({player.winRatePercentage}%)
                       </div>
                     </div>

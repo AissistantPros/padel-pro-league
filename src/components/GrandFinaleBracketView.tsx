@@ -210,22 +210,22 @@ export const GrandFinaleBracketView: React.FC<GrandFinaleBracketViewProps> = ({
                       <div className={`p-2.5 rounded-xl flex items-center justify-between text-xs ${
                         winA ? 'bg-[#30D158]/15 font-bold text-white' : 'bg-[#2C2C2E] text-white'
                       }`}>
-                        <div className="flex items-center space-x-2 truncate">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
                           {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
-                          <span className="truncate">{match.teamA.player1Name} & {match.teamA.player2Name}</span>
+                          <span className="break-words font-semibold leading-tight">{match.teamA.player1Name} & {match.teamA.player2Name}</span>
                         </div>
-                        <span className="font-mono text-base font-bold pl-2">{isDone ? match.score.scoreA : '-'}</span>
+                        <span className="font-mono text-base font-bold pl-2 flex-shrink-0">{isDone ? match.score.scoreA : '-'}</span>
                       </div>
 
                       {/* Team B */}
                       <div className={`p-2.5 rounded-xl flex items-center justify-between text-xs ${
                         winB ? 'bg-[#30D158]/15 font-bold text-white' : 'bg-[#2C2C2E] text-white'
                       }`}>
-                        <div className="flex items-center space-x-2 truncate">
+                        <div className="flex items-center space-x-2 min-w-0 flex-1 pr-2">
                           {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
-                          <span className="truncate">{match.teamB.player1Name} & {match.teamB.player2Name}</span>
+                          <span className="break-words font-semibold leading-tight">{match.teamB.player1Name} & {match.teamB.player2Name}</span>
                         </div>
-                        <span className="font-mono text-base font-bold pl-2">{isDone ? match.score.scoreB : '-'}</span>
+                        <span className="font-mono text-base font-bold pl-2 flex-shrink-0">{isDone ? match.score.scoreB : '-'}</span>
                       </div>
 
                       {isAdmin && (

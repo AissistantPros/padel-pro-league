@@ -141,7 +141,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 onClick={() => onSelectCurrentPlayer(p.id)}
                 className="w-full ios-grouped-row py-3 px-4 flex items-center justify-between text-left ios-touch"
               >
-                <div className="flex items-center space-x-3 truncate">
+                <div className="flex items-center space-x-3 min-w-0 flex-1 pr-2">
                   {p.avatar ? (
                     <img src={p.avatar} alt={p.name} className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0" />
                   ) : (
@@ -149,15 +149,15 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                       {p.name.slice(0, 2).toUpperCase()}
                     </div>
                   )}
-                  <div className="truncate">
-                    <span className="block font-semibold text-sm sm:text-base text-white truncate">
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-semibold text-sm sm:text-base text-white break-words leading-tight">
                       {p.name}
                     </span>
-                    {p.nickname && <span className="text-xs text-[#8E8E93] italic">"{p.nickname}"</span>}
+                    {p.nickname && <span className="text-xs text-[#8E8E93] italic block mt-0.5">"{p.nickname}"</span>}
                   </div>
                 </div>
 
-                <ChevronRight className="w-4 h-4 text-[#8E8E93]" />
+                <ChevronRight className="w-4 h-4 text-[#8E8E93] flex-shrink-0" />
               </button>
             );
           })}
@@ -199,7 +199,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
 
         <div>
           <div className="flex items-center justify-center space-x-2">
-            <h2 className="text-xl font-bold text-white">{currentPlayer.name}</h2>
+            <h2 className="text-xl font-bold text-white break-words">{currentPlayer.name}</h2>
             {currentPlayer.role === 'admin' && (
               <span className="text-[10px] font-bold text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full border border-[#FFD60A]/30 flex items-center">
                 <ShieldCheck className="w-3 h-3 mr-1" /> Admin
@@ -207,7 +207,7 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
             )}
           </div>
           {currentPlayer.nickname && (
-            <p className="text-xs text-[#8E8E93] mt-0.5">"{currentPlayer.nickname}"</p>
+            <p className="text-xs text-[#8E8E93] mt-0.5 italic">"{currentPlayer.nickname}"</p>
           )}
         </div>
 
@@ -298,6 +298,16 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
                 {formatScoreDisplay(currentStats.totalChampionshipPoints)}
               </div>
             </div>
+
+            <div className="bg-[#1C1C1E] p-3.5 rounded-2xl border border-white/5 text-center">
+              <span className="text-[11px] font-semibold text-[#8E8E93] block uppercase tracking-wider">Efectividad</span>
+              <div className="text-xl font-bold text-white mt-0.5">{currentStats.winRatePercentage}%</div>
+            </div>
+
+            <div className="bg-[#1C1C1E] p-3.5 rounded-2xl border border-white/5 text-center">
+              <span className="text-[11px] font-semibold text-[#8E8E93] block uppercase tracking-wider">Rating PI</span>
+              <div className="text-xl font-bold text-[#FFD60A] mt-0.5 font-mono">{currentStats.bayesianRating.toFixed(2)}</div>
+            </div>
           </div>
 
           {/* The 6 Funny Stats Grid for Player */}
@@ -306,100 +316,158 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
               🎭 Tu Radiografía de Pista
             </span>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* 1. Tinder Match */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-[#30D158]/20 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#30D158]">🔥 Tinder Match</span>
-                  <span className="text-[9px] text-[#8E8E93] bg-white/5 px-1.5 py-0.5 rounded">Mejor Pareja</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-[#30D158]/20 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#30D158]">🔥 Tinder Match</span>
+                    <span className="text-[9px] text-[#8E8E93] bg-white/5 px-2 py-0.5 rounded flex-shrink-0">Mejor Pareja</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Con quien más has ganado en pareja:
+                  </p>
                 </div>
                 {currentStats.bestPartner ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.bestPartner.partnerName}</div>
-                    <div className="text-[11px] text-[#30D158]">{currentStats.bestPartner.winsTogether} victorias juntos ({currentStats.bestPartner.winRate}%)</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      {currentStats.bestPartner.partnerName}
+                    </div>
+                    <div className="text-xs text-[#30D158] font-semibold">
+                      {currentStats.bestPartner.winsTogether} victorias juntos ({currentStats.bestPartner.winRate}%)
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#8E8E93]">Sin victorias en pareja aún</p>
+                  <p className="text-xs text-[#8E8E93]/70 pt-1 italic">Sin victorias en pareja aún</p>
                 )}
               </div>
 
               {/* 2. Tu Bolsa de Piedras */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-white/10 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#E5E5EA]">🪨 Tu Bolsa de Piedras</span>
-                  <span className="text-[9px] text-[#8E8E93] bg-white/5 px-1.5 py-0.5 rounded">El Ancla</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-white/10 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#E5E5EA]">🪨 Tu Bolsa de Piedras</span>
+                    <span className="text-[9px] text-[#8E8E93] bg-white/5 px-2 py-0.5 rounded flex-shrink-0">El Ancla</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Con quien más has perdido en pareja:
+                  </p>
                 </div>
                 {currentStats.worstPartner ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.worstPartner.partnerName}</div>
-                    <div className="text-[11px] text-[#FF453A]">{currentStats.worstPartner.lossesTogether} derrotas juntos</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      {currentStats.worstPartner.partnerName}
+                    </div>
+                    <div className="text-xs text-[#FF453A] font-semibold">
+                      {currentStats.worstPartner.lossesTogether} derrotas juntos
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#30D158]">¡Sin derrotas en pareja!</p>
+                  <p className="text-xs text-[#30D158]/80 pt-1 font-medium">¡Sin derrotas en pareja!</p>
                 )}
               </div>
 
               {/* 3. Tu Padre */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-[#FF453A]/20 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#FF453A]">👑 Tu Padre</span>
-                  <span className="text-[9px] text-[#FF453A] bg-[#FF453A]/10 px-1.5 py-0.5 rounded">Verdugo</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-[#FF453A]/20 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#FF453A]">👑 Tu Padre</span>
+                    <span className="text-[9px] text-[#FF453A] bg-[#FF453A]/10 px-2 py-0.5 rounded flex-shrink-0">Verdugo</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Jugador rival contra el que más has perdido:
+                  </p>
                 </div>
                 {currentStats.nemesisOpponent ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.nemesisOpponent.opponentName}</div>
-                    <div className="text-[11px] text-[#FF453A]">{currentStats.nemesisOpponent.lossesAgainst} derrotas sufridas contra él</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      {currentStats.nemesisOpponent.opponentName}
+                    </div>
+                    <div className="text-xs text-[#FF453A] font-semibold">
+                      {currentStats.nemesisOpponent.lossesAgainst} derrotas sufridas contra él
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#30D158]">Nadie te tiene de hijo 😎</p>
+                  <p className="text-xs text-[#30D158]/80 pt-1 font-medium">Nadie te tiene de hijo 😎</p>
                 )}
               </div>
 
               {/* 4. Papi y Mami */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-[#BF5AF2]/20 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#BF5AF2]">👨‍👩‍👧 Papi y Mami</span>
-                  <span className="text-[9px] text-[#BF5AF2] bg-[#BF5AF2]/10 px-1.5 py-0.5 rounded">Dupla Pesada</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-[#BF5AF2]/20 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#BF5AF2]">👨‍👩‍👧 Papi y Mami</span>
+                    <span className="text-[9px] text-[#BF5AF2] bg-[#BF5AF2]/10 px-2 py-0.5 rounded flex-shrink-0">Dupla Pesada</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Pareja rival contra la que más has perdido:
+                  </p>
                 </div>
                 {currentStats.worstRivalPair ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.worstRivalPair.player1Name} & {currentStats.worstRivalPair.player2Name}</div>
-                    <div className="text-[11px] text-[#BF5AF2]">{currentStats.worstRivalPair.lossesAgainst} derrotas ante ellos</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      <div>{currentStats.worstRivalPair.player1Name}</div>
+                      <div className="text-xs font-semibold text-[#8E8E93] -my-0.5">&</div>
+                      <div>{currentStats.worstRivalPair.player2Name}</div>
+                    </div>
+                    <div className="text-xs text-[#BF5AF2] font-semibold mt-1">
+                      {currentStats.worstRivalPair.lossesAgainst} derrotas ante ellos
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#8E8E93]">Sin dupla verdugo</p>
+                  <p className="text-xs text-[#8E8E93]/70 pt-1 italic">Sin dupla verdugo</p>
                 )}
               </div>
 
               {/* 5. Tu Hijo */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-[#0A84FF]/20 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#0A84FF]">👶 Tu Hijo</span>
-                  <span className="text-[9px] text-[#0A84FF] bg-[#0A84FF]/10 px-1.5 py-0.5 rounded">Cliente</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-[#0A84FF]/20 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#0A84FF]">👶 Tu Hijo</span>
+                    <span className="text-[9px] text-[#0A84FF] bg-[#0A84FF]/10 px-2 py-0.5 rounded flex-shrink-0">Cliente</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Jugador rival al que más has vencido:
+                  </p>
                 </div>
                 {currentStats.favoriteOpponent ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.favoriteOpponent.opponentName}</div>
-                    <div className="text-[11px] text-[#0A84FF]">{currentStats.favoriteOpponent.winsAgainst} victorias sobre él</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      {currentStats.favoriteOpponent.opponentName}
+                    </div>
+                    <div className="text-xs text-[#0A84FF] font-semibold">
+                      {currentStats.favoriteOpponent.winsAgainst} victorias sobre él
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#8E8E93]">Sin victorias directas aún</p>
+                  <p className="text-xs text-[#8E8E93]/70 pt-1 italic">Sin victorias directas aún</p>
                 )}
               </div>
 
               {/* 6. Tus Clientes */}
-              <div className="ios-card p-3.5 space-y-1.5 border border-[#FFD60A]/20 bg-[#1C1C1E]">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-[#FFD60A]">💼 Tus Clientes</span>
-                  <span className="text-[9px] text-[#FFD60A] bg-[#FFD60A]/10 px-1.5 py-0.5 rounded">Dupla Vencida</span>
+              <div className="ios-card p-4 flex flex-col justify-between h-full border border-[#FFD60A]/20 bg-[#1C1C1E] space-y-3">
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-[#FFD60A]">💼 Tus Clientes</span>
+                    <span className="text-[9px] text-[#FFD60A] bg-[#FFD60A]/10 px-2 py-0.5 rounded flex-shrink-0">Dupla Vencida</span>
+                  </div>
+                  <p className="text-[11px] text-[#8E8E93] leading-tight">
+                    Pareja rival a la que más has ganado:
+                  </p>
                 </div>
                 {currentStats.bestRivalPair ? (
-                  <div>
-                    <div className="text-sm font-bold text-white truncate">{currentStats.bestRivalPair.player1Name} & {currentStats.bestRivalPair.player2Name}</div>
-                    <div className="text-[11px] text-[#FFD60A]">{currentStats.bestRivalPair.winsAgainst} victorias sobre ellos</div>
+                  <div className="pt-1 space-y-1">
+                    <div className="text-base font-bold text-white leading-snug break-words">
+                      <div>{currentStats.bestRivalPair.player1Name}</div>
+                      <div className="text-xs font-semibold text-[#8E8E93] -my-0.5">&</div>
+                      <div>{currentStats.bestRivalPair.player2Name}</div>
+                    </div>
+                    <div className="text-xs text-[#FFD60A] font-semibold mt-1">
+                      {currentStats.bestRivalPair.winsAgainst} victorias sobre ellos
+                    </div>
                   </div>
                 ) : (
-                  <p className="text-[11px] text-[#8E8E93]">Sin dupla cliente aún</p>
+                  <p className="text-xs text-[#8E8E93]/70 pt-1 italic">Sin dupla cliente aún</p>
                 )}
               </div>
             </div>
@@ -409,3 +477,4 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
     </div>
   );
 };
+

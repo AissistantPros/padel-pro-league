@@ -233,12 +233,14 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-lg sm:text-xl font-black text-white tracking-tight leading-tight truncate">
-                    {pA1.nickname}
-                  </div>
-                  <div className="text-xs text-[#8E8E93] truncate font-medium mt-0.5">
+                  <div className="text-base sm:text-lg font-black text-white tracking-tight leading-tight break-words">
                     {pA1.fullName}
                   </div>
+                  {pA1.nickname && pA1.nickname !== pA1.fullName && (
+                    <div className="text-xs text-[#8E8E93] font-medium mt-0.5 break-words italic">
+                      "{pA1.nickname}"
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -252,12 +254,14 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-lg sm:text-xl font-black text-white tracking-tight leading-tight truncate">
-                    {pA2.nickname}
-                  </div>
-                  <div className="text-xs text-[#8E8E93] truncate font-medium mt-0.5">
+                  <div className="text-base sm:text-lg font-black text-white tracking-tight leading-tight break-words">
                     {pA2.fullName}
                   </div>
+                  {pA2.nickname && pA2.nickname !== pA2.fullName && (
+                    <div className="text-xs text-[#8E8E93] font-medium mt-0.5 break-words italic">
+                      "{pA2.nickname}"
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -377,12 +381,14 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-lg sm:text-xl font-black text-white tracking-tight leading-tight truncate">
-                    {pB1.nickname}
-                  </div>
-                  <div className="text-xs text-[#8E8E93] truncate font-medium mt-0.5">
+                  <div className="text-base sm:text-lg font-black text-white tracking-tight leading-tight break-words">
                     {pB1.fullName}
                   </div>
+                  {pB1.nickname && pB1.nickname !== pB1.fullName && (
+                    <div className="text-xs text-[#8E8E93] font-medium mt-0.5 break-words italic">
+                      "{pB1.nickname}"
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -396,12 +402,14 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
                   </div>
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-lg sm:text-xl font-black text-white tracking-tight leading-tight truncate">
-                    {pB2.nickname}
-                  </div>
-                  <div className="text-xs text-[#8E8E93] truncate font-medium mt-0.5">
+                  <div className="text-base sm:text-lg font-black text-white tracking-tight leading-tight break-words">
                     {pB2.fullName}
                   </div>
+                  {pB2.nickname && pB2.nickname !== pB2.fullName && (
+                    <div className="text-xs text-[#8E8E93] font-medium mt-0.5 break-words italic">
+                      "{pB2.nickname}"
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

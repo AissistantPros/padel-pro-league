@@ -584,8 +584,8 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                     onClick={() => onSelectPlayerForIntelligence(player.id)}
                     className="cursor-pointer"
                   >
-                    <div className="flex items-center space-x-1.5 truncate">
-                      <span className="text-sm sm:text-base font-semibold text-white truncate">
+                    <div className="flex items-center space-x-1.5 flex-wrap">
+                      <span className="text-sm sm:text-base font-semibold text-white break-words leading-tight">
                         {player.name}
                       </span>
                       {isPlayerAdmin && (
@@ -594,7 +594,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                         </span>
                       )}
                     </div>
-                    <div className="text-xs text-[#8E8E93] truncate flex items-center space-x-1.5 flex-wrap">
+                    <div className="text-xs text-[#8E8E93] flex items-center space-x-1.5 flex-wrap mt-0.5">
                       <span>{player.nickname ? `"${player.nickname}"` : 'Participante Oficial'}</span>
                       {isPlayerAdmin && isAdmin && (
                         <span className="text-[#30D158] font-mono font-semibold bg-[#30D158]/10 px-1.5 py-0.2 rounded">

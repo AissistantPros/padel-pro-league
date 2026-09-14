@@ -137,7 +137,7 @@ export const MatchCard: React.FC<MatchCardProps> = ({
     <div className="ios-card p-4 sm:p-5 space-y-3 select-none">
       {/* Court Header & Clean Daily Percentage Pill */}
       <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-white/5">
-        <span className="text-sm sm:text-base font-bold text-white flex items-center truncate">
+        <span className="text-sm sm:text-base font-bold text-white flex items-center">
           🎾 {getMatchTitle()}
         </span>
 
@@ -173,24 +173,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           <div className="space-y-1.5 min-w-0 flex-1">
             <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamA.player1Id, match.teamA.player1Name)}
-              <div className="min-w-0 flex-1 truncate">
-                <span className="text-sm sm:text-base font-black text-white">
-                  {pA1.nickname}
+              <div className="min-w-0 flex-1">
+                <span className="text-sm sm:text-base font-bold text-white leading-tight break-words">
+                  {match.teamA.player1Name}
                 </span>
-                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
-                  {pA1.fullName}
-                </span>
+                {pA1.nickname && pA1.nickname !== match.teamA.player1Name && (
+                  <span className="text-xs text-[#8E8E93] ml-1.5 font-normal italic inline-block">
+                    "{pA1.nickname}"
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamA.player2Id, match.teamA.player2Name)}
-              <div className="min-w-0 flex-1 truncate">
-                <span className="text-sm sm:text-base font-black text-white">
-                  {pA2.nickname}
+              <div className="min-w-0 flex-1">
+                <span className="text-sm sm:text-base font-bold text-white leading-tight break-words">
+                  {match.teamA.player2Name}
                 </span>
-                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
-                  {pA2.fullName}
-                </span>
+                {pA2.nickname && pA2.nickname !== match.teamA.player2Name && (
+                  <span className="text-xs text-[#8E8E93] ml-1.5 font-normal italic inline-block">
+                    "{pA2.nickname}"
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -220,24 +224,28 @@ export const MatchCard: React.FC<MatchCardProps> = ({
           <div className="space-y-1.5 min-w-0 flex-1">
             <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamB.player1Id, match.teamB.player1Name)}
-              <div className="min-w-0 flex-1 truncate">
-                <span className="text-sm sm:text-base font-black text-white">
-                  {pB1.nickname}
+              <div className="min-w-0 flex-1">
+                <span className="text-sm sm:text-base font-bold text-white leading-tight break-words">
+                  {match.teamB.player1Name}
                 </span>
-                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
-                  {pB1.fullName}
-                </span>
+                {pB1.nickname && pB1.nickname !== match.teamB.player1Name && (
+                  <span className="text-xs text-[#8E8E93] ml-1.5 font-normal italic inline-block">
+                    "{pB1.nickname}"
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex items-center space-x-2.5 min-w-0">
               {getAvatar(match.teamB.player2Id, match.teamB.player2Name)}
-              <div className="min-w-0 flex-1 truncate">
-                <span className="text-sm sm:text-base font-black text-white">
-                  {pB2.nickname}
+              <div className="min-w-0 flex-1">
+                <span className="text-sm sm:text-base font-bold text-white leading-tight break-words">
+                  {match.teamB.player2Name}
                 </span>
-                <span className="text-xs text-[#8E8E93] ml-1.5 font-normal truncate hidden sm:inline">
-                  {pB2.fullName}
-                </span>
+                {pB2.nickname && pB2.nickname !== match.teamB.player2Name && (
+                  <span className="text-xs text-[#8E8E93] ml-1.5 font-normal italic inline-block">
+                    "{pB2.nickname}"
+                  </span>
+                )}
               </div>
             </div>
           </div>

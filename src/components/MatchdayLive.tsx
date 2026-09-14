@@ -448,12 +448,12 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                     </div>
 
                     {winnerPlayer && (
-                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs">
-                        <span className="text-[#8E8E93] flex items-center">
+                      <div className="pt-2 border-t border-white/5 flex items-center justify-between text-xs gap-2">
+                        <span className="text-[#8E8E93] flex items-center flex-shrink-0">
                           <Trophy className="w-3.5 h-3.5 text-[#FFD60A] mr-1" />
                           Campeón de Fecha:
                         </span>
-                        <span className="font-bold text-white truncate max-w-[150px]">
+                        <span className="font-bold text-white text-right break-words">
                           {winnerPlayer.playerName}
                         </span>
                       </div>
@@ -785,11 +785,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                           #{idx + 1}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold text-white truncate flex items-center">
-                            {ps.playerName}
-                            {isGold && <Trophy className="w-3.5 h-3.5 text-[#FFD60A] ml-1.5 inline" />}
+                          <div className="text-sm font-semibold text-white break-words leading-tight flex items-center">
+                            <span>{ps.playerName}</span>
+                            {isGold && <Trophy className="w-3.5 h-3.5 text-[#FFD60A] ml-1.5 flex-shrink-0" />}
                           </div>
-                          <div className="text-xs text-[#8E8E93]">
+                          <div className="text-xs text-[#8E8E93] break-words">
                             {ps.matchesWon}V - {ps.matchesLost}D • {ps.gamesWon} games ({ps.gameDiff > 0 ? `+${ps.gameDiff}` : ps.gameDiff})
                           </div>
                         </div>
@@ -995,13 +995,15 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                           : 'bg-[#1C1C1E] text-[#8E8E93] hover:text-white border-white/5'
                       }`}
                     >
-                      <div className="min-w-0 flex-1 truncate pr-2">
-                        <div className="text-white font-bold truncate">
-                          {p.nickname ? `${p.nickname}` : p.name}
+                      <div className="min-w-0 flex-1 pr-2">
+                        <div className="text-white font-bold break-words leading-tight">
+                          {p.name}
                         </div>
-                        <div className="text-[10px] text-[#8E8E93] truncate">
-                          {p.name} {pStat ? `• #${pStat.currentRank || '-'}` : ''}
-                        </div>
+                        {p.nickname && p.nickname !== p.name && (
+                          <div className="text-[10px] text-[#8E8E93] break-words mt-0.5">
+                            "{p.nickname}" {pStat ? `• #${pStat.currentRank || '-'}` : ''}
+                          </div>
+                        )}
                       </div>
 
                       {isChecked ? (
