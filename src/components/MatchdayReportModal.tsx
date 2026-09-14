@@ -15,6 +15,11 @@ import {
   Users,
   ChevronRight,
   TrendingUp,
+  Brain,
+  ExternalLink,
+  Heart,
+  Crown,
+  Smile,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type {
@@ -44,6 +49,11 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
 }) => {
   const [copiedWhatsApp, setCopiedWhatsApp] = useState(false);
 
+  // App URL for WhatsApp and UI sharing
+  const appUrl = typeof window !== 'undefined' && window.location.origin && !window.location.origin.includes('localhost')
+    ? window.location.origin
+    : 'https://padel-tournament-app-gamma.vercel.app';
+
   // Helper to get player info (avatar, nickname, full name)
   const getPlayerInfo = (id: string, fallbackName: string) => {
     const p = players.find(x => x.id === id || x.name.toLowerCase() === fallbackName.toLowerCase());
@@ -59,11 +69,19 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
   // Final round (round 4)
   const finalsRound = day.rounds.find(r => r.roundNumber === 4 || r.name.toLowerCase().includes('final'));
 
-  // Standings data
+  // Standings data for the day
   const prelimStandings = day.prelimStandings || [];
   const finalStandings = day.finalStandings && day.finalStandings.length > 0
     ? day.finalStandings
     : prelimStandings;
+
+  // General accumulated championship standings
+  const accumulatedStandings = [...statsList].sort((a, b) => {
+    if (b.totalChampionshipPoints !== a.totalChampionshipPoints) {
+      return b.totalChampionshipPoints - a.totalChampionshipPoints;
+    }
+    return b.winRatePercentage - a.winRatePercentage;
+  });
 
   // King of the Day (Player with the highest total points of the day)
   const topScorer = finalStandings.length > 0
@@ -71,7 +89,7 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
     : null;
   const topScorerInfo = topScorer ? getPlayerInfo(topScorer.playerId, topScorer.playerName) : null;
 
-  // Format finals match title by court
+  // Format finals match title dynamically by court
   const getFinalsCourtLabel = (courtNum: number) => {
     const place1 = (courtNum - 1) * 2 + 1;
     const place2 = (courtNum - 1) * 2 + 2;
@@ -154,6 +172,40 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
       text += `📊 Puntos del Día: *${formatScoreDisplay(topScorer.totalDailyScore)} pts*\n`;
       text += `━━━━━━━━━━━━━━━━━━━━━\n`;
     }
+
+    // 4. Daily Final Standings
+    if (finalStandings.length > 0) {
+      text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
+      text += `4️⃣ *TABLA FINAL DEL DÍA (PUNTOS DE LA FECHA)*\n`;
+      text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+      finalStandings.forEach((ps, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+        const pInfo = getPlayerInfo(ps.playerId, ps.playerName);
+        const nickStr = pInfo.nickname && pInfo.nickname !== pInfo.fullName ? ` ("${pInfo.nickname}")` : '';
+        text += `${medal} *${ps.playerName}*${nickStr}: ${formatScoreDisplay(ps.totalDailyScore || ps.prelimTotalScore)} pts\n`;
+      });
+    }
+
+    // 5. Accumulated Championship Standings
+    if (accumulatedStandings.length > 0) {
+      text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
+      text += `5️⃣ *TABLA GENERAL ACUMULADA DEL TORNEO*\n`;
+      text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+      accumulatedStandings.forEach((st, idx) => {
+        const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+        const nickStr = st.nickname ? ` ("${st.nickname}")` : '';
+        text += `${medal} *${st.playerName}*${nickStr}: ${formatScoreDisplay(st.totalChampionshipPoints)} pts (${st.totalMatchesWon}V-${st.totalMatchesLost}D, ${st.winRatePercentage}%)\n`;
+      });
+    }
+
+    // 6. Pádel Intelligence Call to Action
+    text += `\n━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `🧠 *PÁDEL INTELLIGENCE & ESTADÍSTICAS* 🧠\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    text += `¿Quieres saber quién es tu padre 👨🏻, tu hijo 👶🏻, tus clientes 💼, tu bolsa de piedras 🪨 o tu Tinder Match ❤️‍🔥?\n\n`;
+    text += `👉 Entra a la webapp y analiza todos tus datos y estadísticas:\n`;
+    text += `🔗 ${appUrl}\n`;
+    text += `━━━━━━━━━━━━━━━━━━━━━\n`;
 
     return text;
   };
@@ -418,18 +470,16 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
               {prelimStandings.map((ps, idx) => {
                 const rank = idx + 1;
                 const pInfo = getPlayerInfo(ps.playerId, ps.playerName);
-                const isGoldTier = rank <= 4;
-                const isSilverTier = rank >= 5 && rank <= 8;
-                const isBronzeTier = rank >= 9 && rank <= 12;
+                
+                // Dynamic Court and Places based on rank
+                const targetCourt = Math.ceil(rank / 4);
+                const p1 = (targetCourt - 1) * 2 + 1;
+                const p2 = (targetCourt - 1) * 2 + 2;
+                const isGoldTier = targetCourt === 1;
+                const isSilverTier = targetCourt === 2;
+                const isBronzeTier = targetCourt === 3;
 
-                const tierLabel = isGoldTier
-                  ? 'Pista 1 • Final 1º y 2º'
-                  : isSilverTier
-                  ? 'Pista 2 • Final 3º y 4º'
-                  : isBronzeTier
-                  ? 'Pista 3 • Final 5º y 6º'
-                  : 'Pista 4 • Final 7º y 8º';
-
+                const tierLabel = `Pista ${targetCourt} • Final ${p1}º y ${p2}º`;
                 const tierBg = isGoldTier
                   ? 'bg-[#FFD60A]/10 text-[#FFD60A] border-[#FFD60A]/30'
                   : isSilverTier
@@ -496,7 +546,7 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
             <span className="text-lg font-black text-white flex items-center">
               3️⃣ Finales del Día & Lugares (Con Fotos y Apodos)
             </span>
-            <span className="text-xs text-[#30D158] font-bold">Juego de Definición</span>
+            <span className="text-xs text-[#30D158] font-bold">Juegos de Definición</span>
           </div>
 
           {finalsRound && finalsRound.matches.length > 0 ? (
@@ -642,9 +692,9 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <span className="text-lg font-black text-white flex items-center">
-              4️⃣ Tabla Final Oficial de la Fecha (Puntos Sumados)
+              4️⃣ Tabla Final Oficial de la Fecha (Puntos Sumados Hoy)
             </span>
-            <span className="text-xs text-[#30D158] font-bold">Acumulado al Torneo</span>
+            <span className="text-xs text-[#30D158] font-bold">Puntaje Diario</span>
           </div>
 
           <div className="ios-card overflow-hidden border border-white/10">
@@ -700,6 +750,138 @@ export const MatchdayReportModal: React.FC<MatchdayReportModalProps> = ({
                 );
               })}
             </div>
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* SECCIÓN 5: TABLA GENERAL ACUMULADA DEL TORNEO            */}
+        {/* ======================================================== */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between border-b border-white/10 pb-2">
+            <span className="text-lg font-black text-white flex items-center">
+              5️⃣ Tabla General Acumulada del Torneo
+            </span>
+            <span className="text-xs text-[#FFD60A] font-bold">Acumulado Global</span>
+          </div>
+
+          <div className="ios-card overflow-hidden border border-white/10">
+            {accumulatedStandings.length > 0 ? (
+              <div className="ios-grouped-list divide-y divide-white/5">
+                {accumulatedStandings.map((st, idx) => {
+                  const rank = idx + 1;
+                  const isGold = rank === 1;
+                  const isSilver = rank === 2;
+                  const isBronze = rank === 3;
+
+                  return (
+                    <div key={st.playerId} className="ios-grouped-row flex items-center justify-between py-3 px-4 gap-3">
+                      <div className="flex items-center space-x-3 min-w-0 flex-1">
+                        <span className={`w-6 text-center font-black text-xs ${
+                          isGold ? 'text-[#FFD60A]' : isSilver ? 'text-[#E5E5EA]' : isBronze ? 'text-[#FF9F0A]' : 'text-[#8E8E93]'
+                        }`}>
+                          {isGold ? '🥇' : isSilver ? '🥈' : isBronze ? '🥉' : `#${rank}`}
+                        </span>
+
+                        {st.avatar ? (
+                          <img
+                            src={st.avatar}
+                            alt={st.playerName}
+                            className="w-9 h-9 rounded-full object-cover border border-white/10 flex-shrink-0 bg-[#2C2C2E]"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-full bg-[#2C2C2E] text-[#8E8E93] font-bold text-xs flex items-center justify-center flex-shrink-0 border border-white/10">
+                            {st.playerName.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold text-white break-words leading-tight flex items-center">
+                            <span>{st.playerName}</span>
+                            {isGold && <Crown className="w-3.5 h-3.5 text-[#FFD60A] ml-1.5 flex-shrink-0" />}
+                          </div>
+                          <div className="text-xs text-[#8E8E93] flex items-center space-x-1.5 flex-wrap">
+                            {st.nickname && <span>"{st.nickname}" • </span>}
+                            <span>{st.daysAttended} {st.daysAttended === 1 ? 'fecha' : 'fechas'}</span>
+                            <span>•</span>
+                            <span>{st.totalMatchesWon}V - {st.totalMatchesLost}D ({st.winRatePercentage}%)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        <div className="font-mono text-base font-bold text-[#30D158]">
+                          {formatScoreDisplay(st.totalChampionshipPoints)}
+                        </div>
+                        <div className="text-[10px] text-[#8E8E93] uppercase font-bold">PTS TOTALES</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-xs text-[#8E8E93]">
+                Aún no hay puntos acumulados registrados.
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ======================================================== */}
+        {/* SECCIÓN 6: PÁDEL INTELLIGENCE (H2H & ESTADÍSTICAS)       */}
+        {/* ======================================================== */}
+        <div className="ios-card p-6 border-2 border-[#64D2FF]/40 bg-gradient-to-br from-[#0A84FF]/15 via-[#1C1C1E] to-[#64D2FF]/10 relative overflow-hidden shadow-2xl space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start space-x-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#0A84FF] to-[#64D2FF] flex items-center justify-center text-black shadow-lg flex-shrink-0">
+                <Brain className="w-6 h-6 text-white stroke-[2.5]" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-[#64D2FF] bg-[#64D2FF]/20 px-2 py-0.5 rounded-full">
+                    🧠 PÁDEL INTELLIGENCE
+                  </span>
+                  <span className="text-xs text-[#FFD60A] font-bold">Head to Head & Parejas</span>
+                </div>
+                <h3 className="text-lg sm:text-xl font-black text-white">
+                  ¿Quieres saber quién es tu padre, tu hijo o tus clientes?
+                </h3>
+                <p className="text-xs text-[#8E8E93] leading-relaxed max-w-xl">
+                  Entra a la webapp oficial para analizar tus estadísticas avanzadas: 
+                  <strong className="text-white"> Tinder Match ❤️‍🔥</strong> (con quién ganas más), 
+                  <strong className="text-white"> Bolsa de Piedras 🪨</strong> (con quién pierdes), 
+                  <strong className="text-white"> Tu Padre 👨🏻</strong> (tu mayor rival) y 
+                  <strong className="text-white"> Tus Clientes 💼</strong> (la pareja a la que más le ganas).
+                </p>
+              </div>
+            </div>
+
+            <div className="flex-shrink-0 flex items-center sm:flex-col justify-between sm:justify-center gap-2 pt-2 sm:pt-0">
+              <a
+                href={appUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#0A84FF] to-[#64D2FF] text-white font-black text-xs flex items-center justify-center shadow-lg hover:opacity-90 transition-all ios-touch"
+              >
+                <span>Abrir WebApp</span>
+                <ExternalLink className="w-3.5 h-3.5 ml-1.5" />
+              </a>
+            </div>
+          </div>
+
+          {/* WebApp Link Display */}
+          <div className="bg-black/50 p-3 rounded-xl border border-white/10 flex items-center justify-between text-xs">
+            <span className="text-[#8E8E93] font-mono truncate text-[11px]">
+              🔗 {appUrl}
+            </span>
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(appUrl);
+                confetti({ particleCount: 30, spread: 50, origin: { y: 0.8 } });
+              }}
+              className="text-[#64D2FF] hover:text-white font-bold ml-2 text-xs flex items-center flex-shrink-0"
+            >
+              <Copy className="w-3.5 h-3.5 mr-1" /> Copiar Link
+            </button>
           </div>
         </div>
 
