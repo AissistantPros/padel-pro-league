@@ -136,6 +136,18 @@ export interface DuoMatchup {
   losses: number;
 }
 
+export interface RivalPairStat {
+  pairKey: string;
+  player1Id: string;
+  player1Name: string;
+  player2Id: string;
+  player2Name: string;
+  matchesAgainst: number;
+  winsAgainst: number; // Player won against this pair
+  lossesAgainst: number; // Player lost against this pair
+  winRateAgainst: number; // percentage
+}
+
 export interface PlayerIntelligenceStats {
   playerId: string;
   playerName: string;
@@ -169,14 +181,16 @@ export interface PlayerIntelligenceStats {
   previousRank?: number;
   rankChange?: number;
   
-  // Synergies & Analytics
+  // Synergies & Analytics (The 6 Fun Categories)
   partners: PartnerSynergy[];
-  bestPartner?: PartnerSynergy;
-  worstPartner?: PartnerSynergy;
+  bestPartner?: PartnerSynergy;       // 1. Tinder Match (más partidos ganados en pareja)
+  worstPartner?: PartnerSynergy;      // 2. Tu Bolsa de Piedras (más partidos perdidos en pareja)
   
   opponents: OpponentRivalry[];
-  favoriteOpponent?: OpponentRivalry; // highest win rate
-  nemesisOpponent?: OpponentRivalry;  // most losses / lowest win rate
+  nemesisOpponent?: OpponentRivalry;  // 3. Tu Padre (jugador contra el que más has perdido como rival)
+  worstRivalPair?: RivalPairStat;     // 4. Papi y Mami (pareja contra la que más has perdido como rivales)
+  favoriteOpponent?: OpponentRivalry; // 5. Tu Hijo (jugador contra el que más has ganado como rival)
+  bestRivalPair?: RivalPairStat;      // 6. Tus Clientes (pareja contra la que más has ganado como rivales)
   
   duoMatchups: DuoMatchup[];
   

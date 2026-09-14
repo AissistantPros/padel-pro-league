@@ -6,6 +6,7 @@ import type {
   PartnerSynergy,
   OpponentRivalry,
   DuoMatchup,
+  RivalPairStat,
   Match,
   TournamentConfig
 } from '../types/index.ts';
@@ -279,6 +280,17 @@ export function buildChampionshipIntelligence(
       losses: number;
     }>();
 
+    const rivalPairMap = new Map<string, {
+      pairKey: string;
+      p1Id: string;
+      p1Name: string;
+      p2Id: string;
+      p2Name: string;
+      matches: number;
+      wins: number;
+      losses: number;
+    }>();
+
     const matchHistory: PlayerIntelligenceStats['matchHistory'] = [];
 
     completedDays.forEach(day => {
@@ -332,7 +344,7 @@ export function buildChampionshipIntelligence(
             partnerMap.set(partnerId, pStat);
           }
 
-          // Opponent tracking (both opponents)
+          // Opponent tracking (both individual opponents)
           [
             { id: oppTeam.player1Id, name: oppTeam.player1Name },
             { id: oppTeam.player2Id, name: oppTeam.player2Name }
@@ -353,6 +365,30 @@ export function buildChampionshipIntelligence(
             else if (!draw) oStat.lost += 1;
             opponentMap.set(opp.id, oStat);
           });
+
+          // Rival Pair tracking (regardless of my partner)
+          const [rp1, rp2] = [
+            { id: oppTeam.player1Id, name: oppTeam.player1Name },
+            { id: oppTeam.player2Id, name: oppTeam.player2Name }
+          ].sort((a, b) => a.id.localeCompare(b.id));
+
+          if (rp1.id && rp2.id) {
+            const pairKey = `${rp1.id}&${rp2.id}`;
+            const rStat = rivalPairMap.get(pairKey) || {
+              pairKey,
+              p1Id: rp1.id,
+              p1Name: rp1.name,
+              p2Id: rp2.id,
+              p2Name: rp2.name,
+              matches: 0,
+              wins: 0,
+              losses: 0,
+            };
+            rStat.matches += 1;
+            if (won) rStat.wins += 1;
+            else if (!draw) rStat.losses += 1;
+            rivalPairMap.set(pairKey, rStat);
+          }
 
           // Duo vs Duo key
           const oppKey = [oppTeam.player1Id, oppTeam.player2Id].sort().join('&');
@@ -431,12 +467,18 @@ export function buildChampionshipIntelligence(
       gamesWonTogether: st.gamesWon,
       gamesLostTogether: st.gamesLost,
     })).sort((a, b) => {
-      if (b.winRate !== a.winRate) return b.winRate - a.winRate;
-      return b.matchesTogether - a.matchesTogether;
+      if (b.winsTogether !== a.winsTogether) return b.winsTogether - a.winsTogether;
+      return b.winRate - a.winRate;
     });
 
-    const bestPartner = partners.length > 0 ? partners[0] : undefined;
-    const worstPartner = partners.length > 0 ? [...partners].reverse().find(p => p.matchesTogether >= 1) : undefined;
+    // 1. Tinder Match: Pareja con la que más partidos ha ganado
+    const bestPartner = partners.filter(p => p.winsTogether > 0)[0];
+
+    // 2. Tu Bolsa de Piedras: Pareja con la que más partidos ha perdido
+    const worstPartner = [...partners].filter(p => p.lossesTogether > 0).sort((a, b) => {
+      if (b.lossesTogether !== a.lossesTogether) return b.lossesTogether - a.lossesTogether;
+      return a.winRate - b.winRate;
+    })[0];
 
     // Format Opponents list
     const opponents: OpponentRivalry[] = Array.from(opponentMap.entries()).map(([oId, st]) => ({
@@ -449,17 +491,43 @@ export function buildChampionshipIntelligence(
       gamesWonAgainst: st.gamesWon,
       gamesLostAgainst: st.gamesLost,
     })).sort((a, b) => {
-      if (b.matchesAgainst !== a.matchesAgainst) return b.matchesAgainst - a.matchesAgainst;
+      if (b.lossesAgainst !== a.lossesAgainst) return b.lossesAgainst - a.lossesAgainst;
       return a.winRateAgainst - b.winRateAgainst;
     });
 
-    const nemesisOpponent = opponents.length > 0
-      ? [...opponents].sort((a, b) => b.lossesAgainst - a.lossesAgainst || a.winRateAgainst - b.winRateAgainst)[0]
-      : undefined;
+    // 3. Tu Padre: Jugador contra el que más has perdido como rival
+    const nemesisOpponent = opponents.filter(o => o.lossesAgainst > 0)[0];
 
-    const favoriteOpponent = opponents.length > 0
-      ? [...opponents].sort((a, b) => b.winsAgainst - a.winsAgainst || b.winRateAgainst - a.winRateAgainst)[0]
-      : undefined;
+    // 5. Tu Hijo: Jugador contra el que más has ganado como rival
+    const favoriteOpponent = [...opponents].filter(o => o.winsAgainst > 0).sort((a, b) => {
+      if (b.winsAgainst !== a.winsAgainst) return b.winsAgainst - a.winsAgainst;
+      return b.winRateAgainst - a.winRateAgainst;
+    })[0];
+
+    // Format Rival Pairs list
+    const rivalPairs: RivalPairStat[] = Array.from(rivalPairMap.values()).map(r => ({
+      pairKey: r.pairKey,
+      player1Id: r.p1Id,
+      player1Name: r.p1Name,
+      player2Id: r.p2Id,
+      player2Name: r.p2Name,
+      matchesAgainst: r.matches,
+      winsAgainst: r.wins,
+      lossesAgainst: r.losses,
+      winRateAgainst: r.matches > 0 ? Math.round((r.wins / r.matches) * 100) : 0,
+    }));
+
+    // 4. Papi y Mami: Pareja contra la que más has perdido como rivales
+    const worstRivalPair = rivalPairs.filter(r => r.lossesAgainst > 0).sort((a, b) => {
+      if (b.lossesAgainst !== a.lossesAgainst) return b.lossesAgainst - a.lossesAgainst;
+      return a.winRateAgainst - b.winRateAgainst;
+    })[0];
+
+    // 6. Tus Clientes: Pareja contra la que más has ganado como rivales
+    const bestRivalPair = rivalPairs.filter(r => r.winsAgainst > 0).sort((a, b) => {
+      if (b.winsAgainst !== a.winsAgainst) return b.winsAgainst - a.winsAgainst;
+      return b.winRateAgainst - a.winRateAgainst;
+    })[0];
 
     const duoMatchups: DuoMatchup[] = Array.from(duoMap.values()).map(d => ({
       partnerId: d.partnerId,
@@ -499,6 +567,8 @@ export function buildChampionshipIntelligence(
       opponents,
       favoriteOpponent,
       nemesisOpponent,
+      worstRivalPair,
+      bestRivalPair,
       duoMatchups,
       matchHistory,
     };
