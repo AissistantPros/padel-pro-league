@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Trophy, ChevronRight, HelpCircle, Sparkles, Globe, Zap, Info, Calendar, Award, CheckCircle2, Flame, Clock } from 'lucide-react';
+import { Trophy, ChevronRight, HelpCircle, Sparkles, Globe, Zap, Info, Calendar, Award, CheckCircle2, Flame, Clock, FileText } from 'lucide-react';
 import type { PlayerIntelligenceStats, TournamentConfig, TournamentDay, Player } from '../types/index.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
 import { PlayerDetailModal } from './PlayerDetailModal.tsx';
+import { MatchdayReportModal } from './MatchdayReportModal.tsx';
 
 interface StandingsTableProps {
   stats: PlayerIntelligenceStats[];
@@ -23,6 +24,7 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
   const [selectedPlayerForDetail, setSelectedPlayerForDetail] = useState<PlayerIntelligenceStats | null>(null);
   const [showCriteriaModal, setShowCriteriaModal] = useState(false);
   const [showHistoricalModal, setShowHistoricalModal] = useState(false);
+  const [selectedReportDay, setSelectedReportDay] = useState<TournamentDay | null>(null);
   const [viewScope, setViewScope] = useState<'current' | 'matchdays'>('current');
   const [selectedMatchdayId, setSelectedMatchdayId] = useState<string>(
     days.length > 0 ? days[days.length - 1].id : ''
@@ -328,7 +330,17 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                       </div>
                     </div>
 
-                    <div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedReportDay(selectedDay)}
+                        className="px-3 py-1.5 rounded-xl bg-[#64D2FF]/15 text-[#64D2FF] hover:bg-[#64D2FF]/25 border border-[#64D2FF]/30 text-xs font-bold flex items-center ios-touch shadow-sm"
+                        title="Ver Reporte Oficial Completo"
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1" />
+                        Reporte Oficial
+                      </button>
+
                       {selectedDay.status === 'completed' ? (
                         <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30 flex items-center">
                           <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Finalizada
@@ -538,6 +550,17 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Official Matchday Report Modal */}
+      {selectedReportDay && (
+        <MatchdayReportModal
+          day={selectedReportDay}
+          players={players}
+          statsList={stats}
+          config={config}
+          onClose={() => setSelectedReportDay(null)}
+        />
       )}
     </div>
   );

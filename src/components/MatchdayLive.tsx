@@ -18,6 +18,7 @@ import {
   UserPlus,
   X,
   Award,
+  FileText,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type {
@@ -30,6 +31,7 @@ import type {
 } from '../types/index.ts';
 import { MatchCard } from './MatchCard.tsx';
 import { ScoreModal } from './ScoreModal.tsx';
+import { MatchdayReportModal } from './MatchdayReportModal.tsx';
 import { generatePreliminaryRounds, generateDailyFinalRound } from '../utils/pairingEngine.ts';
 import { calculateDailyPrelimStandings, calculateDailyFinalStandings } from '../utils/intelligenceEngine.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
@@ -98,6 +100,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
   const [selectedDayId, setSelectedDayId] = useState<string>(activeDay ? activeDay.id : '');
   const [activeRoundTab, setActiveRoundTab] = useState<number>(1);
   const [activeScoreMatch, setActiveScoreMatch] = useState<Match | null>(null);
+  const [reportModalDay, setReportModalDay] = useState<TournamentDay | null>(null);
 
   // New Date Wizard State
   const [isCreatingNewDay, setIsCreatingNewDay] = useState(false);
@@ -459,8 +462,21 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                       </div>
                     )}
 
-                    <div className="pt-1 flex items-center justify-end text-xs font-semibold text-[#0A84FF] group-hover:translate-x-0.5 transition-transform">
-                      Ver Partidos y Marcadores <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                    <div className="pt-2 flex items-center justify-between text-xs">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setReportModalDay(d);
+                        }}
+                        className="font-bold text-[#64D2FF] hover:text-white flex items-center bg-[#64D2FF]/10 hover:bg-[#64D2FF]/20 px-2.5 py-1 rounded-lg border border-[#64D2FF]/30 ios-touch transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1" /> Reporte Oficial
+                      </button>
+
+                      <div className="flex items-center font-semibold text-[#0A84FF] group-hover:translate-x-0.5 transition-transform">
+                        Ver Partidos <ChevronRight className="w-3.5 h-3.5 ml-0.5" />
+                      </div>
                     </div>
                   </div>
                 );
@@ -536,6 +552,16 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
             {/* Day Selector & Action Buttons */}
             <div className="flex items-center space-x-2">
+              <button
+                type="button"
+                onClick={() => setReportModalDay(currentDay)}
+                className="px-3 py-2 rounded-xl bg-[#64D2FF]/15 text-[#64D2FF] hover:bg-[#64D2FF]/25 border border-[#64D2FF]/30 font-bold text-xs flex items-center ios-touch shadow-sm"
+                title="Ver Reporte Oficial Completo"
+              >
+                <FileText className="w-3.5 h-3.5 mr-1" />
+                <span className="hidden sm:inline">Reporte</span> Oficial
+              </button>
+
               {days.length > 1 && (
                 <select
                   value={selectedDayId}
@@ -735,15 +761,25 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                   </p>
                 </div>
 
-                {isAdmin && currentDay.status === 'preliminaries' && (
+                <div className="flex items-center space-x-2">
                   <button
-                    onClick={handleGenerateDailyFinals}
-                    className="px-3 py-1.5 rounded-xl bg-[#FFD60A] text-black font-bold text-xs ios-touch flex items-center"
+                    onClick={() => setReportModalDay(currentDay)}
+                    className="px-3 py-1.5 rounded-xl bg-[#64D2FF]/15 text-[#64D2FF] hover:bg-[#64D2FF]/25 border border-[#64D2FF]/30 font-bold text-xs ios-touch flex items-center"
                   >
-                    <Flame className="w-3.5 h-3.5 mr-1" />
-                    Generar Finales
+                    <FileText className="w-3.5 h-3.5 mr-1" />
+                    Reporte Completo
                   </button>
-                )}
+
+                  {isAdmin && currentDay.status === 'preliminaries' && (
+                    <button
+                      onClick={handleGenerateDailyFinals}
+                      className="px-3 py-1.5 rounded-xl bg-[#FFD60A] text-black font-bold text-xs ios-touch flex items-center"
+                    >
+                      <Flame className="w-3.5 h-3.5 mr-1" />
+                      Generar Finales
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Roster / Standings Rows */}
@@ -1058,6 +1094,19 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
         players={players}
         statsList={statsList}
       />
+
+      {/* ========================================================================= */}
+      {/* MATCHDAY OFFICIAL REPORT MODAL                                            */}
+      {/* ========================================================================= */}
+      {reportModalDay && (
+        <MatchdayReportModal
+          day={reportModalDay}
+          players={players}
+          statsList={statsList}
+          config={config}
+          onClose={() => setReportModalDay(null)}
+        />
+      )}
     </div>
   );
 };
