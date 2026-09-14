@@ -9,7 +9,8 @@ import {
   ShieldCheck,
   Search,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Key
 } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
@@ -253,6 +254,18 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
               className="w-full bg-transparent text-right text-sm text-white font-medium focus:outline-none placeholder-[#8E8E93]/50"
             />
           </div>
+
+          {currentPlayer.role === 'admin' && (
+            <div className="p-3.5 flex items-center justify-between bg-[#FFD60A]/5">
+              <div className="flex items-center space-x-1.5 text-xs text-[#FFD60A] font-semibold">
+                <Key className="w-3.5 h-3.5" />
+                <span>Tu PIN de Administrador</span>
+              </div>
+              <span className="text-sm font-mono font-bold text-[#30D158] bg-[#30D158]/10 px-2 py-0.5 rounded-lg">
+                {currentPlayer.pin || '1234'}
+              </span>
+            </div>
+          )}
         </div>
 
         {isSavedNotice && (

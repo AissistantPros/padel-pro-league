@@ -1,53 +1,99 @@
 import React, { useState } from 'react';
-import { Lock, X } from 'lucide-react';
-import type { TournamentConfig } from '../types/index.ts';
+import { Lock, X, CheckCircle2, ShieldCheck, Crown } from 'lucide-react';
+import type { TournamentConfig, Player } from '../types/index.ts';
 
 interface AdminModalProps {
   isOpen: boolean;
   onClose: () => void;
   config: TournamentConfig;
+  players: Player[];
   onAuthenticate: () => void;
+  onAuthenticateSuperAdmin?: () => void;
+  onSelectCurrentPlayer?: (playerId: string) => void;
 }
 
 export const AdminModal: React.FC<AdminModalProps> = ({
   isOpen,
   onClose,
   config,
+  players,
   onAuthenticate,
+  onAuthenticateSuperAdmin,
+  onSelectCurrentPlayer,
 }) => {
   const [pinInput, setPinInput] = useState('');
   const [error, setError] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<{ title: string; type: 'super' | 'admin' | 'player' } | null>(null);
 
   if (!isOpen) return null;
 
+  const verifyAndLogin = (candidatePin: string) => {
+    // 1. Check Super Admin Master PIN (e.g. 9999)
+    if (candidatePin === (config.superAdminPin || '9999')) {
+      setSuccessInfo({ title: '👑 Acceso concedido: Super Administrador', type: 'super' });
+      setError(false);
+      setTimeout(() => {
+        if (onAuthenticateSuperAdmin) onAuthenticateSuperAdmin();
+        onAuthenticate();
+        setPinInput('');
+        setSuccessInfo(null);
+        onClose();
+      }, 500);
+      return true;
+    }
+
+    // 2. Check Master Tournament Admin PIN (e.g. 1234)
+    if (candidatePin === (config.adminPin || '1234')) {
+      setSuccessInfo({ title: '🛡️ Acceso concedido: Administrador Maestro', type: 'admin' });
+      setError(false);
+      setTimeout(() => {
+        onAuthenticate();
+        setPinInput('');
+        setSuccessInfo(null);
+        onClose();
+      }, 500);
+      return true;
+    }
+
+    // 3. Check Individual Admin Player PIN (e.g. personal PIN assigned in database)
+    const matchingAdmin = players.find(p => p.role === 'admin' && p.pin && p.pin === candidatePin);
+    if (matchingAdmin) {
+      setSuccessInfo({ title: `🎾 ¡Bienvenido ${matchingAdmin.name}!`, type: 'player' });
+      setError(false);
+      setTimeout(() => {
+        onAuthenticate();
+        if (onSelectCurrentPlayer) onSelectCurrentPlayer(matchingAdmin.id);
+        setPinInput('');
+        setSuccessInfo(null);
+        onClose();
+      }, 500);
+      return true;
+    }
+
+    return false;
+  };
+
   const handleSubmit = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (pinInput === config.adminPin || pinInput === '1234') {
-      onAuthenticate();
-      setError(false);
-      setPinInput('');
-      onClose();
-    } else {
+    if (!verifyAndLogin(pinInput)) {
       setError(true);
     }
   };
 
   const handleKeypadPress = (num: string) => {
+    if (successInfo) return;
     if (pinInput.length < 6) {
       const next = pinInput + num;
       setPinInput(next);
       setError(false);
-      if (next === config.adminPin || next === '1234') {
-        onAuthenticate();
-        setError(false);
-        setPinInput('');
-        onClose();
-      }
+      verifyAndLogin(next);
     }
   };
 
   const handleBackspace = () => {
+    if (successInfo) return;
     setPinInput(prev => prev.slice(0, -1));
+    setError(false);
   };
 
   return (
@@ -69,7 +115,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
         <div className="space-y-4 text-center">
           <p className="text-xs text-[#8E8E93]">
-            Introduce el código PIN para gestionar el torneo.
+            Introduce tu PIN personal de administrador o la clave del torneo.
           </p>
 
           {/* Passcode Dots / Digits */}
@@ -87,14 +133,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             })}
           </div>
 
-          {error && (
-            <p className="text-xs text-[#FF453A] font-medium">
-              Código incorrecto
+          {successInfo ? (
+            <div className="p-2.5 bg-[#30D158]/15 border border-[#30D158]/30 rounded-xl text-[#30D158] text-xs font-bold animate-fade-in flex items-center justify-center space-x-1.5">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{successInfo.title}</span>
+            </div>
+          ) : error ? (
+            <p className="text-xs text-[#FF453A] font-medium animate-shake">
+              PIN incorrecto
             </p>
+          ) : (
+            <div className="h-4" />
           )}
 
           {/* iOS Passcode Keypad */}
-          <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto pt-2">
+          <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto pt-1">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(n => (
               <button
                 key={n}
@@ -122,11 +175,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </button>
           </div>
 
-          <div className="pt-1">
-            <span className="text-[11px] text-[#8E8E93]">PIN inicial: 1234</span>
+          <div className="pt-2 border-t border-white/5 space-y-1">
+            <span className="text-[11px] text-[#8E8E93] block">
+              PIN Maestro Torneo: <code className="text-[#30D158] font-bold">{config.adminPin || '1234'}</code>
+            </span>
+            <span className="text-[10px] text-[#8E8E93]/70 block">
+              El Super Admin puede ver y configurar los PINs en Ajustes y Jugadores.
+            </span>
           </div>
         </div>
       </div>
     </div>
   );
 };
+

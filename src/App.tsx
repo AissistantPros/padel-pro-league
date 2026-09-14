@@ -292,9 +292,11 @@ export function App() {
         {activeTab === 'settings' && effectiveIsAdmin && (
           <ConfigModal
             config={config}
+            players={players}
             isAdmin={effectiveIsAdmin}
             isSuperAdmin={isSuperAdmin}
             onSaveConfig={handleSaveConfig}
+            onSavePlayers={handleSavePlayers}
             onAuthenticateSuperAdmin={handleAuthenticateSuperAdmin}
             onLogoutSuperAdmin={handleLogoutSuperAdmin}
             onExportData={handleExportData}
@@ -324,7 +326,10 @@ export function App() {
         isOpen={isAdminModalOpen}
         onClose={() => setIsAdminModalOpen(false)}
         config={config}
+        players={players}
         onAuthenticate={handleAuthenticateAdmin}
+        onAuthenticateSuperAdmin={handleAuthenticateSuperAdmin}
+        onSelectCurrentPlayer={handleSelectCurrentPlayer}
       />
     </div>
   );

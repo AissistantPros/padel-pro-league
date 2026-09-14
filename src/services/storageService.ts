@@ -32,8 +32,8 @@ export const DEFAULT_CONFIG: TournamentConfig = {
 };
 
 export const INITIAL_PLAYERS: Player[] = [
-  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', role: 'admin', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', role: 'admin', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', role: 'admin', pin: '9999', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', role: 'admin', pin: '1234', registeredAt: '2026-08-01', isActive: true },
   { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', role: 'player', registeredAt: '2026-08-01', isActive: true },
   { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', role: 'player', registeredAt: '2026-08-01', isActive: true },
   { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', role: 'player', registeredAt: '2026-08-01', isActive: true },

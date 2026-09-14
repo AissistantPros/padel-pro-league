@@ -11,17 +11,28 @@ import {
   KeyRound,
   Lock,
   Terminal,
-  Cpu
+  Cpu,
+  Eye,
+  EyeOff,
+  Key,
+  Shield,
+  ShieldCheck,
+  UserCheck,
+  UserPlus,
+  RefreshCw,
+  Crown
 } from 'lucide-react';
-import type { TournamentConfig } from '../types/index.ts';
+import type { TournamentConfig, Player } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
 import { StorageService } from '../services/storageService.ts';
 
 interface ConfigModalProps {
   config: TournamentConfig;
+  players: Player[];
   isAdmin: boolean;
   isSuperAdmin: boolean;
   onSaveConfig: (config: TournamentConfig) => void;
+  onSavePlayers?: (players: Player[]) => void;
   onAuthenticateSuperAdmin: () => void;
   onLogoutSuperAdmin: () => void;
   onExportData: () => void;
@@ -31,9 +42,11 @@ interface ConfigModalProps {
 
 export const ConfigModal: React.FC<ConfigModalProps> = ({
   config,
+  players,
   isAdmin,
   isSuperAdmin,
   onSaveConfig,
+  onSavePlayers,
   onAuthenticateSuperAdmin,
   onLogoutSuperAdmin,
   onExportData,
@@ -49,9 +62,17 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [court3, setCourt3] = useState(config.courtNames[2] || 'Pista 3');
   const [court4, setCourt4] = useState(config.courtNames[3] || 'Pista 4');
   const [court5, setCourt5] = useState(config.courtNames[4] || 'Pista 5');
-  const [adminPin, setAdminPin] = useState(config.adminPin);
+  const [adminPin, setAdminPin] = useState(config.adminPin || '1234');
   const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || '9999');
+  const [showAdminPin, setShowAdminPin] = useState(false);
+  const [showSuperAdminPin, setShowSuperAdminPin] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // Editing admin player pins state
+  const [editingAdminPins, setEditingAdminPins] = useState<{ [playerId: string]: string }>({});
+  const [newAdminPlayerId, setNewAdminPlayerId] = useState<string>('');
+  const [newAdminAssignedPin, setNewAdminAssignedPin] = useState<string>('1234');
+  const [adminSavedNotice, setAdminSavedNotice] = useState<string | null>(null);
 
   // Super Admin PIN Unlock Form State
   const [superPinInput, setSuperPinInput] = useState('');
@@ -121,6 +142,46 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     alert('Ajustes guardados correctamente.');
   };
 
+    const handleUpdateAdminPin = (playerId: string, pin: string) => {
+    if (!onSavePlayers) return;
+    const updated = players.map(p => (p.id === playerId ? { ...p, pin: pin.trim() } : p));
+    onSavePlayers(updated);
+    setAdminSavedNotice(`✅ PIN actualizado para ${players.find(p => p.id === playerId)?.name}`);
+    setTimeout(() => setAdminSavedNotice(null), 2500);
+  };
+
+  const handleRevokeAdmin = (player: Player) => {
+    if (!onSavePlayers) return;
+    if (confirm(`¿Revocar permisos de Administrador a "${player.name}"?`)) {
+      const updated = players.map(p => (p.id === player.id ? { ...p, role: 'player' as const } : p));
+      onSavePlayers(updated);
+      setAdminSavedNotice(`Permisos revocados a ${player.name}`);
+      setTimeout(() => setAdminSavedNotice(null), 2500);
+    }
+  };
+
+  const handleAppointNewAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminPlayerId || !onSavePlayers) return;
+    const targetPlayer = players.find(p => p.id === newAdminPlayerId);
+    if (!targetPlayer) return;
+
+    const updated = players.map(p =>
+      p.id === newAdminPlayerId
+        ? {
+            ...p,
+            role: 'admin' as const,
+            pin: newAdminAssignedPin.trim() || '1234',
+          }
+        : p
+    );
+    onSavePlayers(updated);
+    setAdminSavedNotice(`👑 ${targetPlayer.name} nombrado como Administrador con PIN ${newAdminAssignedPin}`);
+    setNewAdminPlayerId('');
+    setNewAdminAssignedPin('1234');
+    setTimeout(() => setAdminSavedNotice(null), 3000);
+  };
+
   const handleUnlockSuperAdmin = (e: React.FormEvent) => {
     e.preventDefault();
     if (superPinInput === config.superAdminPin || superPinInput === '9999') {
@@ -179,6 +240,9 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
     reader.readAsText(file);
   };
 
+  const adminPlayers = players.filter(p => p.role === 'admin');
+  const nonAdminPlayers = players.filter(p => p.role !== 'admin');
+
   return (
     <div className="space-y-4 max-w-2xl mx-auto pb-20 md:pb-6 select-none">
       {/* Header */}
@@ -215,7 +279,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         {/* General Info Grouped List */}
         <div className="ios-grouped-list divide-y divide-white/5">
           <div className="p-3.5 flex items-center justify-between">
-            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">Nombre del Torneo</label>
+            <label className="text-xs text-[#8E8E93] w-36 flex-shrink-0">Nombre del Torneo</label>
             <input
               type="text"
               value={tournamentName}
@@ -225,7 +289,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
 
           <div className="p-3.5 flex items-center justify-between">
-            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">Edición Actual</label>
+            <label className="text-xs text-[#8E8E93] w-36 flex-shrink-0">Edición Actual</label>
             <input
               type="text"
               value={editionName}
@@ -235,9 +299,19 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
           </div>
 
           <div className="p-3.5 flex items-center justify-between">
-            <label className="text-xs text-[#8E8E93] w-32 flex-shrink-0">PIN Administrador</label>
+            <div className="flex items-center space-x-1.5 w-44 flex-shrink-0">
+              <label className="text-xs text-[#8E8E93]">PIN Maestro Torneo</label>
+              <button
+                type="button"
+                onClick={() => setShowAdminPin(!showAdminPin)}
+                className="text-[#8E8E93] hover:text-white"
+                title="Mostrar/Ocultar"
+              >
+                {showAdminPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+              </button>
+            </div>
             <input
-              type="password"
+              type={showAdminPin ? 'text' : 'password'}
               maxLength={6}
               value={adminPin}
               onChange={(e) => setAdminPin(e.target.value)}
@@ -291,18 +365,25 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       </form>
 
       {/* Super Admin Section */}
-      <div className="ios-card p-4 space-y-3 border border-white/5">
+      <div className="ios-card p-4 space-y-4 border border-white/5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-semibold text-[#8E8E93] uppercase tracking-wider">
-            Opciones Avanzadas (Super Admin)
-          </span>
-          {!isSuperAdmin && (
+          <div className="flex items-center space-x-1.5">
+            <Crown className="w-4 h-4 text-[#FFD60A]" />
+            <span className="text-xs font-bold text-white uppercase tracking-wider">
+              Zona Super Administrador
+            </span>
+          </div>
+          {!isSuperAdmin ? (
             <button
               onClick={() => setShowSuperAdminSection(!showSuperAdminSection)}
               className="text-xs text-[#0A84FF] font-semibold"
             >
-              {showSuperAdminSection ? 'Ocultar' : 'Acceder'}
+              {showSuperAdminSection ? 'Ocultar' : 'Acceder con PIN'}
             </button>
+          ) : (
+            <span className="text-[10px] font-bold text-[#30D158] bg-[#30D158]/15 px-2 py-0.5 rounded-full">
+              Super Admin Activo
+            </span>
           )}
         </div>
 
@@ -331,36 +412,187 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         )}
 
         {isSuperAdmin && (
-          <div className="space-y-3 pt-2 text-xs">
-            <div className="space-y-1.5">
-              <label className="text-[#8E8E93] block">Supabase URL</label>
-              <input
-                type="text"
-                value={supabaseUrl}
-                onChange={(e) => setSupabaseUrl(e.target.value)}
-                className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[#8E8E93] block">Supabase Anon Key</label>
-              <input
-                type="password"
-                value={supabaseAnonKey}
-                onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
-              />
+          <div className="space-y-4 pt-1 text-xs">
+            {/* Super Admin Master PIN */}
+            <div className="p-3.5 bg-[#2C2C2E]/60 border border-white/10 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <KeyRound className="w-3.5 h-3.5 text-[#FFD60A]" />
+                  <label className="text-xs text-[#FFD60A] font-semibold">PIN Maestro Super Admin</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowSuperAdminPin(!showSuperAdminPin)}
+                    className="text-[#8E8E93] hover:text-white"
+                  >
+                    {showSuperAdminPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
+                <input
+                  type={showSuperAdminPin ? 'text' : 'password'}
+                  maxLength={6}
+                  value={superAdminPin}
+                  onChange={(e) => setSuperAdminPin(e.target.value)}
+                  className="bg-[#1C1C1E] border border-white/10 rounded-lg px-2 py-1 text-right text-[#FFD60A] font-mono font-bold w-24 focus:outline-none"
+                />
+              </div>
+              <p className="text-[11px] text-[#8E8E93]">
+                Esta clave maestra te permite acceso irrestricto a la base de datos, credenciales cloud y reseteo total.
+              </p>
             </div>
 
-            {supabaseMessage && (
-              <p className="text-xs text-white p-2 bg-[#2C2C2E] rounded-lg">{supabaseMessage}</p>
-            )}
+            {/* Administradores y Contraseñas Management List */}
+            <div className="p-3.5 bg-[#2C2C2E]/60 border border-white/10 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <ShieldCheck className="w-4 h-4 text-[#30D158]" />
+                  <span className="text-xs font-bold text-white uppercase tracking-wider">
+                    Administradores y Claves de Acceso
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#8E8E93]">{adminPlayers.length} administradores</span>
+              </div>
 
-            <button
-              onClick={handleTestSupabase}
-              className="w-full py-2 bg-[#0A84FF] text-white font-bold rounded-xl ios-touch"
-            >
-              Guardar y Probar Conexión
-            </button>
+              {adminSavedNotice && (
+                <div className="p-2 bg-[#30D158]/15 border border-[#30D158]/30 rounded-lg text-[#30D158] text-[11px] font-bold text-center animate-fade-in">
+                  {adminSavedNotice}
+                </div>
+              )}
+
+              {/* List of Admins with individual PIN control */}
+              <div className="space-y-2">
+                {adminPlayers.map((admin) => {
+                  const currentPin = editingAdminPins[admin.id] !== undefined
+                    ? editingAdminPins[admin.id]
+                    : (admin.pin || '1234');
+
+                  return (
+                    <div key={admin.id} className="p-2.5 bg-[#1C1C1E] border border-white/5 rounded-xl flex items-center justify-between space-x-2">
+                      <div className="flex items-center space-x-2.5 min-w-0 flex-1">
+                        {admin.avatar ? (
+                          <img src={admin.avatar} alt={admin.name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-full bg-[#2C2C2E] text-[#30D158] font-bold text-[10px] flex items-center justify-center flex-shrink-0">
+                            {admin.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="font-semibold text-white truncate text-xs">{admin.name}</div>
+                          <div className="text-[10px] text-[#8E8E93] truncate">
+                            {admin.phone || 'Sin teléfono'} • {admin.nickname ? `"${admin.nickname}"` : 'Admin'}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* PIN Control Field */}
+                      <div className="flex items-center space-x-1.5 flex-shrink-0">
+                        <div className="flex items-center bg-[#2C2C2E] border border-white/10 rounded-lg px-2 py-1 space-x-1">
+                          <Key className="w-3 h-3 text-[#30D158]" />
+                          <input
+                            type="text"
+                            maxLength={6}
+                            value={currentPin}
+                            onChange={(e) => setEditingAdminPins(prev => ({ ...prev, [admin.id]: e.target.value }))}
+                            className="bg-transparent text-xs text-[#30D158] font-mono font-bold w-14 text-center focus:outline-none"
+                            placeholder="PIN"
+                          />
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateAdminPin(admin.id, currentPin)}
+                          className="px-2 py-1 bg-[#30D158] text-black font-bold text-[10px] rounded-lg ios-touch"
+                          title="Guardar PIN"
+                        >
+                          Guardar
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRevokeAdmin(admin)}
+                          className="p-1 text-[#8E8E93] hover:text-[#FF453A]"
+                          title="Revocar Admin"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Quick Appoint Admin Form */}
+              {nonAdminPlayers.length > 0 && (
+                <form onSubmit={handleAppointNewAdmin} className="pt-2 border-t border-white/5 space-y-2">
+                  <span className="text-[11px] font-semibold text-[#8E8E93] block">Nombrar nuevo Administrador:</span>
+                  <div className="flex items-center space-x-2">
+                    <select
+                      value={newAdminPlayerId}
+                      onChange={(e) => setNewAdminPlayerId(e.target.value)}
+                      className="bg-[#1C1C1E] border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-white flex-1 focus:outline-none"
+                    >
+                      <option value="">Seleccionar participante...</option>
+                      {nonAdminPlayers.map(p => (
+                        <option key={p.id} value={p.id}>{p.name} {p.nickname ? `("${p.nickname}")` : ''}</option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      maxLength={6}
+                      value={newAdminAssignedPin}
+                      onChange={(e) => setNewAdminAssignedPin(e.target.value)}
+                      placeholder="PIN"
+                      className="w-16 bg-[#1C1C1E] border border-white/10 rounded-xl px-2 py-1.5 text-xs text-[#30D158] font-mono font-bold text-center focus:outline-none"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={!newAdminPlayerId}
+                      className="px-3 py-1.5 bg-[#30D158] disabled:opacity-40 text-black font-bold text-xs rounded-xl ios-touch"
+                    >
+                      Nombrar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* Supabase Cloud Connection */}
+            <div className="p-3.5 bg-[#2C2C2E]/60 border border-white/10 rounded-2xl space-y-2.5">
+              <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                Nube & Sincronización Supabase
+              </span>
+              <div className="space-y-1.5">
+                <label className="text-[#8E8E93] block">Supabase URL</label>
+                <input
+                  type="text"
+                  value={supabaseUrl}
+                  onChange={(e) => setSupabaseUrl(e.target.value)}
+                  className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-[#8E8E93] block">Supabase Anon Key</label>
+                <input
+                  type="password"
+                  value={supabaseAnonKey}
+                  onChange={(e) => setSupabaseAnonKey(e.target.value)}
+                  className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs"
+                />
+              </div>
+
+              {supabaseMessage && (
+                <p className="text-xs text-white p-2 bg-[#1C1C1E] rounded-lg">{supabaseMessage}</p>
+              )}
+
+              <button
+                type="button"
+                onClick={handleTestSupabase}
+                className="w-full py-2.5 bg-[#0A84FF] text-white font-bold rounded-xl ios-touch"
+              >
+                Guardar y Probar Conexión
+              </button>
+            </div>
 
             <div className="pt-2 border-t border-white/5 flex items-center justify-between">
               <label className="px-3 py-1.5 bg-[#2C2C2E] text-white rounded-lg cursor-pointer inline-flex items-center">
@@ -369,6 +601,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               </label>
 
               <button
+                type="button"
                 onClick={() => {
                   if (confirm('⚠️ ¿Borrar todos los datos y reiniciar el torneo?')) {
                     onResetData();
