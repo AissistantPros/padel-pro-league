@@ -3,6 +3,7 @@ import type {
   TournamentDay,
   GrandFinaleBracket,
   TournamentConfig,
+  PlayerRegistrationRequest,
 } from '../types/index.ts';
 import { getSupabase } from './supabaseClient.ts';
 
@@ -14,7 +15,17 @@ const STORAGE_KEYS = {
   ADMIN_AUTH: 'padel_admin_auth_v1',
   SUPER_ADMIN_AUTH: 'padel_super_admin_auth_v1',
   CURRENT_PLAYER_ID: 'padel_current_player_id_v1',
+  REGISTRATION_REQUESTS: 'padel_registration_requests_v1',
   LAST_SYNC: 'padel_last_sync_v1',
+};
+
+export const generateShortPin = (): string => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let pin = '';
+  for (let i = 0; i < 5; i++) {
+    pin += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return pin;
 };
 
 export const DEFAULT_CONFIG: TournamentConfig = {
@@ -32,26 +43,26 @@ export const DEFAULT_CONFIG: TournamentConfig = {
 };
 
 export const INITIAL_PLAYERS: Player[] = [
-  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', role: 'admin', pin: '9999', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', role: 'admin', pin: '1234', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', role: 'player', registeredAt: '2026-08-01', isActive: true },
-  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', role: 'player', registeredAt: '2026-08-01', isActive: true },
+  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: '9999', registeredAt: '2026-08-01', isActive: true, loginCount: 1, activeClicks: 10 },
+  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', email: 'pedro@padelg20.com', role: 'admin', pin: '1234', registeredAt: '2026-08-01', isActive: true, loginCount: 1, activeClicks: 10 },
+  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', email: 'rodrigo@padelg20.com', role: 'player', pin: 'G2003', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', email: 'mauricio@padelg20.com', role: 'player', pin: 'G2004', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', email: 'santiago@padelg20.com', role: 'player', pin: 'G2005', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', email: 'carlos@padelg20.com', role: 'player', pin: 'G2006', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', email: 'javier@padelg20.com', role: 'player', pin: 'G2007', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', email: 'diego@padelg20.com', role: 'player', pin: 'G2008', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', email: 'fernando@padelg20.com', role: 'player', pin: 'G2009', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', email: 'andres@padelg20.com', role: 'player', pin: 'G2010', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', email: 'emilio@padelg20.com', role: 'player', pin: 'G2011', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', email: 'memo@padelg20.com', role: 'player', pin: 'G2012', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', email: 'richie@padelg20.com', role: 'player', pin: 'G2013', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', email: 'alex@padelg20.com', role: 'player', pin: 'G2014', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', email: 'jorge@padelg20.com', role: 'player', pin: 'G2015', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', email: 'gabo@padelg20.com', role: 'player', pin: 'G2016', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', email: 'lalo@padelg20.com', role: 'player', pin: 'G2017', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', email: 'pablo@padelg20.com', role: 'player', pin: 'G2018', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', email: 'mateo@padelg20.com', role: 'player', pin: 'G2019', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', email: 'hector@padelg20.com', role: 'player', pin: 'G2020', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
 ];
 
 export const StorageService = {
@@ -96,9 +107,21 @@ export const StorageService = {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PLAYERS);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed: Player[] = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
+          // Ensure all players have a pin assigned
+          let needsUpdate = false;
+          const validated = parsed.map((p, idx) => {
+            if (!p.pin) {
+              needsUpdate = true;
+              return { ...p, pin: `G20${(idx + 1).toString().padStart(2, '0')}` };
+            }
+            return p;
+          });
+          if (needsUpdate) {
+            localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(validated));
+          }
+          return validated;
         }
       }
     } catch (e) {
@@ -133,6 +156,142 @@ export const StorageService = {
           }
         });
     }
+  },
+
+  // Telemetry: Logins & Click Engagement
+  recordUserLogin(playerId: string): void {
+    const players = this.getPlayers();
+    const updated = players.map(p => {
+      if (p.id === playerId) {
+        return {
+          ...p,
+          loginCount: (p.loginCount || 0) + 1,
+          lastLoginAt: new Date().toISOString(),
+          lastActiveAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+    this.savePlayers(updated);
+  },
+
+  recordUserClicks(playerId: string, clicksCount: number): void {
+    const players = this.getPlayers();
+    const updated = players.map(p => {
+      if (p.id === playerId) {
+        return {
+          ...p,
+          activeClicks: (p.activeClicks || 0) + clicksCount,
+          lastActiveAt: new Date().toISOString(),
+        };
+      }
+      return p;
+    });
+    this.savePlayers(updated);
+  },
+
+  // Registration Requests
+  getRegistrationRequests(): PlayerRegistrationRequest[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.REGISTRATION_REQUESTS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error('Error reading registration requests', e);
+    }
+    return [];
+  },
+
+  saveRegistrationRequests(requests: PlayerRegistrationRequest[]): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(requests));
+    } catch (e) {
+      console.error('Error saving registration requests', e);
+    }
+
+    const supabase = getSupabase();
+    if (supabase) {
+      supabase
+        .from('tournament_settings')
+        .upsert({ id: 'registration_requests', data: requests, updated_at: new Date().toISOString() })
+        .then(({ error }: { error: any }) => {
+          if (error) console.warn('Supabase saveRegistrationRequests error:', error.message);
+        });
+    }
+  },
+
+  addRegistrationRequest(data: {
+    name: string;
+    nickname?: string;
+    phone: string;
+    email: string;
+    avatar: string;
+    notes?: string;
+  }): PlayerRegistrationRequest {
+    const requests = this.getRegistrationRequests();
+    const newReq: PlayerRegistrationRequest = {
+      id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      name: data.name.trim(),
+      nickname: data.nickname?.trim() || undefined,
+      phone: data.phone.trim(),
+      email: data.email.trim(),
+      avatar: data.avatar,
+      requestedAt: new Date().toISOString(),
+      status: 'pending',
+      notes: data.notes?.trim() || undefined,
+    };
+
+    const updated = [newReq, ...requests];
+    this.saveRegistrationRequests(updated);
+    return newReq;
+  },
+
+  approveRegistrationRequest(
+    requestId: string,
+    customPin?: string
+  ): { player: Player; pin: string; welcomeMessage: string } | null {
+    const requests = this.getRegistrationRequests();
+    const req = requests.find(r => r.id === requestId);
+    if (!req) return null;
+
+    const players = this.getPlayers();
+    const pin = (customPin || generateShortPin()).toUpperCase();
+
+    const newPlayer: Player = {
+      id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      name: req.name.trim(),
+      nickname: req.nickname?.trim() || undefined,
+      phone: req.phone.trim(),
+      email: req.email.trim(),
+      avatar: req.avatar,
+      role: 'player',
+      pin: pin,
+      registeredAt: new Date().toISOString().split('T')[0],
+      isActive: true,
+      loginCount: 0,
+      activeClicks: 0,
+      notes: req.notes,
+    };
+
+    const updatedPlayers = [...players, newPlayer];
+    this.savePlayers(updatedPlayers);
+
+    // Remove or mark approved
+    const updatedRequests = requests.filter(r => r.id !== requestId);
+    this.saveRegistrationRequests(updatedRequests);
+
+    const displayName = newPlayer.nickname || newPlayer.name;
+    const welcomeMessage = `Bienvenido ${displayName} Haz sido aceptado al torneo G20 by Pedro Castillo, puedes entrar a la webapp en https://padel-tournament-app-gamma.vercel.app/ y tu código unico de jugador para entrar a la app es ${pin}.`;
+
+    return { player: newPlayer, pin, welcomeMessage };
+  },
+
+  rejectRegistrationRequest(requestId: string): void {
+    const requests = this.getRegistrationRequests();
+    const updated = requests.filter(r => r.id !== requestId);
+    this.saveRegistrationRequests(updated);
   },
 
   // Tournament Days
@@ -221,16 +380,18 @@ export const StorageService = {
     players: Player[];
     days: TournamentDay[];
     bracket: GrandFinaleBracket | null;
+    requests: PlayerRegistrationRequest[];
   } | null> {
     const supabase = getSupabase();
     if (!supabase) return null;
 
     try {
-      const [confRes, playersRes, daysRes, finaleRes] = await Promise.all([
+      const [confRes, playersRes, daysRes, finaleRes, reqRes] = await Promise.all([
         supabase.from('tournament_settings').select('data').eq('id', 'main_config').maybeSingle(),
         supabase.from('players').select('data'),
         supabase.from('tournament_days').select('data'),
         supabase.from('grand_finale').select('data').eq('id', 'main_bracket').maybeSingle(),
+        supabase.from('tournament_settings').select('data').eq('id', 'registration_requests').maybeSingle(),
       ]);
 
       const config: TournamentConfig = confRes.data?.data || DEFAULT_CONFIG;
@@ -240,21 +401,22 @@ export const StorageService = {
       
       if (players.length === 0) {
         players = INITIAL_PLAYERS;
-        // Auto-seed to Supabase
         const pRows = INITIAL_PLAYERS.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
         supabase.from('players').insert(pRows).then();
       }
 
       const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || [];
       const bracket: GrandFinaleBracket | null = finaleRes.data?.data || null;
+      const requests: PlayerRegistrationRequest[] = reqRes.data?.data || [];
 
       localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
       localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(days));
       if (bracket) localStorage.setItem(STORAGE_KEYS.GRAND_FINALE, JSON.stringify(bracket));
       else localStorage.removeItem(STORAGE_KEYS.GRAND_FINALE);
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(requests));
 
-      return { config, players, days, bracket };
+      return { config, players, days, bracket, requests };
     } catch (e) {
       console.error('Error pulling state from Supabase:', e);
       return null;
@@ -266,7 +428,8 @@ export const StorageService = {
     config: TournamentConfig,
     players: Player[],
     days: TournamentDay[],
-    bracket: GrandFinaleBracket | null
+    bracket: GrandFinaleBracket | null,
+    requests?: PlayerRegistrationRequest[]
   ): Promise<boolean> {
     const supabase = getSupabase();
     if (!supabase) return false;
@@ -277,6 +440,14 @@ export const StorageService = {
         data: config,
         updated_at: new Date().toISOString()
       });
+
+      if (requests !== undefined) {
+        await supabase.from('tournament_settings').upsert({
+          id: 'registration_requests',
+          data: requests,
+          updated_at: new Date().toISOString()
+        });
+      }
 
       await supabase.from('players').delete().neq('id', '___all___');
       if (players.length > 0) {
@@ -313,6 +484,7 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.DAYS);
     localStorage.removeItem(STORAGE_KEYS.GRAND_FINALE);
     localStorage.removeItem(STORAGE_KEYS.CONFIG);
+    localStorage.removeItem(STORAGE_KEYS.REGISTRATION_REQUESTS);
 
     const supabase = getSupabase();
     if (supabase) {
@@ -324,6 +496,7 @@ export const StorageService = {
         data: DEFAULT_CONFIG,
         updated_at: new Date().toISOString()
       });
+      await supabase.from('tournament_settings').delete().eq('id', 'registration_requests');
     }
   },
 

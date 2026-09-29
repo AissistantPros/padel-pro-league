@@ -12,8 +12,24 @@ export interface Player {
   email?: string;
   registeredAt: string;
   isActive: boolean;
-  role?: 'player' | 'admin'; // Tournament admin permission
-  pin?: string; // Optional player pin
+  role?: 'player' | 'admin' | 'superadmin'; // Tournament permission
+  pin?: string; // Player unique access PIN
+  notes?: string;
+  loginCount?: number;
+  lastLoginAt?: string;
+  activeClicks?: number;
+  lastActiveAt?: string;
+}
+
+export interface PlayerRegistrationRequest {
+  id: string;
+  name: string;
+  nickname?: string;
+  phone: string;
+  email: string;
+  avatar: string; // Base64 or image URL
+  requestedAt: string;
+  status: 'pending' | 'approved' | 'rejected';
   notes?: string;
 }
 

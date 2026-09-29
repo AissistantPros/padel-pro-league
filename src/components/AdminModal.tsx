@@ -28,8 +28,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   if (!isOpen) return null;
 
   const verifyAndLogin = (candidatePin: string) => {
+    const cleanPin = candidatePin.trim().toUpperCase();
+    if (!cleanPin) return false;
+
     // 1. Check Super Admin Master PIN (e.g. 9999)
-    if (candidatePin === (config.superAdminPin || '9999')) {
+    if (cleanPin === (config.superAdminPin || '9999').toUpperCase()) {
       setSuccessInfo({ title: '👑 Acceso concedido: Super Administrador', type: 'super' });
       setError(false);
       setTimeout(() => {
@@ -43,7 +46,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
 
     // 2. Check Master Tournament Admin PIN (e.g. 1234)
-    if (candidatePin === (config.adminPin || '1234')) {
+    if (cleanPin === (config.adminPin || '1234').toUpperCase()) {
       setSuccessInfo({ title: '🛡️ Acceso concedido: Administrador Maestro', type: 'admin' });
       setError(false);
       setTimeout(() => {
@@ -55,10 +58,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       return true;
     }
 
-    // 3. Check Individual Admin Player PIN (e.g. personal PIN assigned in database)
-    const matchingAdmin = players.find(p => p.role === 'admin' && p.pin && p.pin === candidatePin);
+    // 3. Check Individual Super Admin Player PIN
+    const matchingSuperAdmin = players.find(p => p.role === 'superadmin' && p.pin && p.pin.toUpperCase() === cleanPin);
+    if (matchingSuperAdmin) {
+      setSuccessInfo({ title: `👑 ¡Bienvenido ${matchingSuperAdmin.nickname || matchingSuperAdmin.name}!`, type: 'super' });
+      setError(false);
+      setTimeout(() => {
+        if (onAuthenticateSuperAdmin) onAuthenticateSuperAdmin();
+        onAuthenticate();
+        if (onSelectCurrentPlayer) onSelectCurrentPlayer(matchingSuperAdmin.id);
+        setPinInput('');
+        setSuccessInfo(null);
+        onClose();
+      }, 500);
+      return true;
+    }
+
+    // 4. Check Individual Admin Player PIN
+    const matchingAdmin = players.find(p => p.role === 'admin' && p.pin && p.pin.toUpperCase() === cleanPin);
     if (matchingAdmin) {
-      setSuccessInfo({ title: `🎾 ¡Bienvenido ${matchingAdmin.name}!`, type: 'player' });
+      setSuccessInfo({ title: `🎾 ¡Bienvenido ${matchingAdmin.nickname || matchingAdmin.name}!`, type: 'admin' });
       setError(false);
       setTimeout(() => {
         onAuthenticate();
@@ -80,10 +99,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  const handleKeypadPress = (num: string) => {
+  const handleKeypadPress = (val: string) => {
     if (successInfo) return;
-    if (pinInput.length < 6) {
-      const next = pinInput + num;
+    if (pinInput.length < 8) {
+      const next = (pinInput + val).toUpperCase();
       setPinInput(next);
       setError(false);
       verifyAndLogin(next);
@@ -113,24 +132,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </button>
         </div>
 
-        <div className="space-y-4 text-center">
+        <form onSubmit={handleSubmit} className="space-y-4 text-center">
           <p className="text-xs text-[#8E8E93]">
             Introduce tu PIN personal de administrador o la clave del torneo.
           </p>
 
-          {/* Passcode Dots / Digits */}
-          <div className="flex justify-center items-center space-x-3 py-1">
-            {[0, 1, 2, 3].map((idx) => {
-              const filled = pinInput.length > idx;
-              return (
-                <div
-                  key={idx}
-                  className={`w-3.5 h-3.5 rounded-full transition-all ${
-                    filled ? 'bg-white scale-110' : 'border border-white/30'
-                  }`}
-                />
-              );
-            })}
+          {/* PIN Input with support for keyboard & alphanumeric */}
+          <div className="relative">
+            <input
+              type="text"
+              value={pinInput}
+              onChange={(e) => {
+                const val = e.target.value.toUpperCase();
+                setPinInput(val);
+                setError(false);
+                if (val.length >= 4) {
+                  verifyAndLogin(val);
+                }
+              }}
+              placeholder="PIN / CLAVE"
+              className="w-full bg-[#000000] border-2 border-white/20 focus:border-[#FFD60A] rounded-2xl py-3 px-4 text-center text-xl font-mono font-black tracking-widest text-white placeholder-white/20 focus:outline-none transition-all uppercase"
+              maxLength={8}
+              autoFocus
+            />
           </div>
 
           {successInfo ? (
@@ -140,36 +164,41 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             </div>
           ) : error ? (
             <p className="text-xs text-[#FF453A] font-medium animate-shake">
-              PIN incorrecto
+              PIN o Clave incorrecta
             </p>
           ) : (
             <div className="h-4" />
           )}
 
           {/* iOS Passcode Keypad */}
-          <div className="grid grid-cols-3 gap-3 max-w-[240px] mx-auto pt-1">
+          <div className="grid grid-cols-3 gap-2.5 max-w-[240px] mx-auto pt-1">
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map(n => (
               <button
                 key={n}
                 type="button"
                 onClick={() => handleKeypadPress(n)}
-                className="w-16 h-16 rounded-full bg-[#2C2C2E] active:bg-[#3A3A3C] font-semibold text-xl text-white mx-auto flex items-center justify-center ios-touch border border-white/5"
+                className="w-16 h-14 rounded-2xl bg-[#2C2C2E] active:bg-[#3A3A3C] font-bold text-lg text-white mx-auto flex items-center justify-center ios-touch border border-white/5 shadow-sm"
               >
                 {n}
               </button>
             ))}
-            <div />
+            <button
+              type="submit"
+              className="w-16 h-14 rounded-2xl bg-[#FFD60A]/15 text-[#FFD60A] font-bold text-xs mx-auto flex items-center justify-center ios-touch border border-[#FFD60A]/30"
+            >
+              OK
+            </button>
             <button
               type="button"
               onClick={() => handleKeypadPress('0')}
-              className="w-16 h-16 rounded-full bg-[#2C2C2E] active:bg-[#3A3A3C] font-semibold text-xl text-white mx-auto flex items-center justify-center ios-touch border border-white/5"
+              className="w-16 h-14 rounded-2xl bg-[#2C2C2E] active:bg-[#3A3A3C] font-bold text-lg text-white mx-auto flex items-center justify-center ios-touch border border-white/5 shadow-sm"
             >
               0
             </button>
             <button
               type="button"
               onClick={handleBackspace}
-              className="w-16 h-16 rounded-full font-medium text-xs text-[#8E8E93] hover:text-white mx-auto flex items-center justify-center ios-touch"
+              className="w-16 h-14 rounded-2xl font-medium text-xs text-[#8E8E93] hover:text-white mx-auto flex items-center justify-center ios-touch"
             >
               Borrar
             </button>
@@ -183,7 +212,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               El Super Admin puede ver y configurar los PINs en Ajustes y Jugadores.
             </span>
           </div>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -1,0 +1,254 @@
+import React, { useState } from 'react';
+import {
+  X,
+  UserCheck,
+  UserX,
+  Copy,
+  Check,
+  Phone,
+  Mail,
+  Calendar,
+  Sparkles,
+  Key,
+  Share2,
+  AlertCircle,
+  Clock,
+  ShieldCheck,
+} from 'lucide-react';
+import confetti from 'canvas-confetti';
+import type { PlayerRegistrationRequest, Player } from '../types/index.ts';
+import { StorageService } from '../services/storageService.ts';
+
+interface PendingRegistrationsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  requests: PlayerRegistrationRequest[];
+  onApproveRequest: (requestId: string) => void;
+  onRejectRequest: (requestId: string) => void;
+}
+
+export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps> = ({
+  isOpen,
+  onClose,
+  requests,
+  onApproveRequest,
+  onRejectRequest,
+}) => {
+  const [approvedResult, setApprovedResult] = useState<{
+    player: Player;
+    pin: string;
+    welcomeMessage: string;
+  } | null>(null);
+  const [copiedWelcome, setCopiedWelcome] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleApprove = (reqId: string) => {
+    const result = StorageService.approveRegistrationRequest(reqId);
+    if (result) {
+      setApprovedResult(result);
+      onApproveRequest(reqId);
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+    }
+  };
+
+  const handleReject = (reqId: string) => {
+    StorageService.rejectRegistrationRequest(reqId);
+    onRejectRequest(reqId);
+  };
+
+  const handleCopyWelcome = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedWelcome(true);
+    confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+    setTimeout(() => setCopiedWelcome(false), 3000);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in select-none">
+      <div className="absolute inset-0" onClick={onClose} />
+
+      <div className="relative w-full max-w-xl bg-[#1C1C1E] border border-white/15 rounded-3xl p-6 text-white shadow-2xl z-10 space-y-5 animate-slide-up max-h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className="flex items-center space-x-2.5">
+            <div className="w-8 h-8 rounded-xl bg-[#FFD60A]/15 text-[#FFD60A] flex items-center justify-center border border-[#FFD60A]/30">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-white">Solicitudes de Registro</h3>
+              <p className="text-xs text-[#8E8E93]">
+                {requests.length} {requests.length === 1 ? 'solicitud pendiente' : 'solicitudes pendientes'} de revisión
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-8 h-8 rounded-full bg-[#2C2C2E] text-[#8E8E93] hover:text-white flex items-center justify-center ios-touch"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Modal Body / List */}
+        <div className="flex-1 overflow-y-auto space-y-4 pr-1">
+          {requests.length === 0 ? (
+            <div className="text-center py-12 space-y-2">
+              <UserCheck className="w-12 h-12 text-[#30D158] mx-auto opacity-70" />
+              <h4 className="text-base font-bold text-white">No hay solicitudes pendientes</h4>
+              <p className="text-xs text-[#8E8E93] max-w-xs mx-auto">
+                Todos los registros de jugadores han sido procesados y aprobados.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {requests.map((req) => (
+                <div
+                  key={req.id}
+                  className="bg-[#2C2C2E]/60 border border-white/10 rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      {req.avatar ? (
+                        <img
+                          src={req.avatar}
+                          alt={req.name}
+                          className="w-14 h-14 rounded-full object-cover border-2 border-[#30D158] flex-shrink-0 bg-black"
+                        />
+                      ) : (
+                        <div className="w-14 h-14 rounded-full bg-black text-white font-bold flex items-center justify-center border-2 border-[#30D158] flex-shrink-0">
+                          {req.name.slice(0, 2).toUpperCase()}
+                        </div>
+                      )}
+
+                      <div className="min-w-0">
+                        <div className="flex items-center space-x-2">
+                          <h4 className="text-sm font-bold text-white truncate">{req.name}</h4>
+                          {req.nickname && (
+                            <span className="text-[10px] font-semibold text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full border border-[#FFD60A]/30">
+                              "{req.nickname}"
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-xs text-[#8E8E93] space-y-0.5 mt-1">
+                          <div className="flex items-center space-x-1">
+                            <Phone className="w-3 h-3 text-[#30D158]" />
+                            <span>{req.phone}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <Mail className="w-3 h-3 text-[#64D2FF]" />
+                            <span className="truncate">{req.email}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="text-[10px] text-[#8E8E93] whitespace-nowrap">
+                      {new Date(req.requestedAt).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
+                    </span>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/5">
+                    <button
+                      type="button"
+                      onClick={() => handleReject(req.id)}
+                      className="px-3 py-1.5 rounded-xl bg-[#FF453A]/15 text-[#FF453A] hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-xs font-bold flex items-center ios-touch"
+                    >
+                      <UserX className="w-3.5 h-3.5 mr-1" /> Rechazar
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleApprove(req.id)}
+                      className="px-4 py-1.5 rounded-xl bg-[#30D158] text-black font-black text-xs flex items-center ios-touch shadow-md hover:bg-[#28B84B]"
+                    >
+                      <UserCheck className="w-3.5 h-3.5 mr-1 stroke-[2.5]" /> Aceptar Jugador
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Approval Success Modal Overlay with Ready WhatsApp Welcome Copy */}
+        {approvedResult && (
+          <div className="fixed inset-0 z-[170] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fade-in">
+            <div className="bg-[#1C1C1E] border-2 border-[#30D158]/50 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl animate-slide-up">
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 rounded-full bg-[#30D158]/20 text-[#30D158] flex items-center justify-center mx-auto border border-[#30D158]/40">
+                  <Check className="w-6 h-6 stroke-[3]" />
+                </div>
+                <h3 className="text-lg font-black text-white">
+                  ¡Jugador Aprobado con Éxito!
+                </h3>
+                <p className="text-xs text-[#8E8E93]">
+                  Se ha generado la clave única de 5 caracteres para <strong>{approvedResult.player.name}</strong>.
+                </p>
+              </div>
+
+              {/* PIN Pill */}
+              <div className="bg-black/60 p-4 rounded-2xl border border-white/15 text-center space-y-1">
+                <span className="text-[10px] uppercase font-bold text-[#8E8E93]">Clave Única Asignada</span>
+                <div className="text-3xl font-mono font-black text-[#FFD60A] tracking-widest">
+                  {approvedResult.pin}
+                </div>
+              </div>
+
+              {/* WhatsApp Welcome Message Preview */}
+              <div className="bg-[#2C2C2E]/60 p-3.5 rounded-2xl border border-white/10 space-y-2">
+                <span className="text-[10px] uppercase font-bold text-[#30D158] block">Mensaje para Enviar por WhatsApp:</span>
+                <p className="text-xs text-[#E5E5EA] leading-relaxed italic bg-black/40 p-2.5 rounded-xl">
+                  "{approvedResult.welcomeMessage}"
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleCopyWelcome(approvedResult.welcomeMessage)}
+                  className={`w-full py-3 rounded-2xl font-black text-xs flex items-center justify-center shadow-lg ios-touch ${
+                    copiedWelcome ? 'bg-[#30D158] text-black' : 'bg-[#25D366] text-white hover:bg-[#20bd5a]'
+                  }`}
+                >
+                  {copiedWelcome ? (
+                    <>
+                      <Check className="w-4 h-4 mr-1.5" /> ¡Mensaje Copiado! Pégalo en WhatsApp
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 mr-1.5" /> Copiar Mensaje de Bienvenida
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setApprovedResult(null)}
+                  className="w-full py-2.5 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#8E8E93] hover:text-white font-bold text-xs ios-touch"
+                >
+                  Continuar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="border-t border-white/10 pt-3 flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-4 py-2 rounded-xl bg-[#2C2C2E] text-white text-xs font-bold ios-touch hover:bg-[#3A3A3C]"
+          >
+            Cerrar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -4,6 +4,7 @@ import type {
   TournamentDay,
   TournamentConfig,
   GrandFinaleBracket,
+  PlayerRegistrationRequest,
 } from './types/index.ts';
 import { StorageService, INITIAL_PLAYERS } from './services/storageService.ts';
 import { getSupabase } from './services/supabaseClient.ts';
@@ -18,6 +19,8 @@ import { PlayersManager } from './components/PlayersManager.tsx';
 import { MyProfileView } from './components/MyProfileView.tsx';
 import { ConfigModal } from './components/ConfigModal.tsx';
 import { AdminModal } from './components/AdminModal.tsx';
+import { LoginGate } from './components/LoginGate.tsx';
+import { PendingRegistrationsModal } from './components/PendingRegistrationsModal.tsx';
 
 export function App() {
   const [players, setPlayers] = useState<Player[]>(() => {
@@ -27,6 +30,8 @@ export function App() {
   const [days, setDays] = useState<TournamentDay[]>(() => StorageService.getTournamentDays());
   const [config, setConfig] = useState<TournamentConfig>(() => StorageService.getConfig());
   const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
+  const [registrationRequests, setRegistrationRequests] = useState<PlayerRegistrationRequest[]>(() => StorageService.getRegistrationRequests());
+  const [isPendingRequestsModalOpen, setIsPendingRequestsModalOpen] = useState<boolean>(false);
   
   // Auth state
   const [isAdmin, setIsAdmin] = useState<boolean>(() => StorageService.getIsAdminAuthenticated());
@@ -52,9 +57,10 @@ export function App() {
         if (cloudData.days) setDays(cloudData.days);
         if (cloudData.config) setConfig(cloudData.config);
         if (cloudData.bracket !== undefined) setGrandFinale(cloudData.bracket);
+        if (cloudData.requests) setRegistrationRequests(cloudData.requests);
       }
 
-      // 2. Realtime listener for live score updates on courts
+      // 2. Realtime listener for live updates
       const channel = supabase
         .channel('padel_live_sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_days' }, (payload: any) => {
@@ -85,6 +91,14 @@ export function App() {
             });
           }
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_settings' }, (payload: any) => {
+          if (payload.new && payload.new.id === 'registration_requests' && payload.new.data) {
+            setRegistrationRequests(payload.new.data);
+          }
+          if (payload.new && payload.new.id === 'main_config' && payload.new.data) {
+            setConfig(payload.new.data);
+          }
+        })
         .subscribe();
 
       return () => {
@@ -95,6 +109,34 @@ export function App() {
     hydrateAndSubscribe();
   }, []);
 
+  // Track player click engagement telemetry
+  useEffect(() => {
+    if (!currentPlayerId) return;
+
+    let clicksBuffer = 0;
+    const handleClick = () => {
+      clicksBuffer += 1;
+    };
+
+    window.addEventListener('click', handleClick);
+
+    const interval = setInterval(() => {
+      if (clicksBuffer > 0) {
+        StorageService.recordUserClicks(currentPlayerId, clicksBuffer);
+        setPlayers(StorageService.getPlayers());
+        clicksBuffer = 0;
+      }
+    }, 10000);
+
+    return () => {
+      window.removeEventListener('click', handleClick);
+      clearInterval(interval);
+      if (clicksBuffer > 0) {
+        StorageService.recordUserClicks(currentPlayerId, clicksBuffer);
+      }
+    };
+  }, [currentPlayerId]);
+
   const [activeTab, setActiveTab] = useState<'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile'>('standings');
   const [selectedPlayerForIntelligence, setSelectedPlayerForIntelligence] = useState<string>('');
 
@@ -102,7 +144,8 @@ export function App() {
     return players.find(p => p.id === currentPlayerId) || null;
   }, [players, currentPlayerId]);
 
-  const effectiveIsAdmin = isAdmin || currentPlayer?.role === 'admin';
+  const effectiveIsAdmin = isAdmin || isSuperAdmin || currentPlayer?.role === 'admin' || currentPlayer?.role === 'superadmin';
+  const effectiveIsSuperAdmin = isSuperAdmin || currentPlayer?.role === 'superadmin';
 
   const statsList = useMemo(() => {
     return buildChampionshipIntelligence(players, days, config);
@@ -158,12 +201,48 @@ export function App() {
     StorageService.setSuperAdminAuthenticated(false);
   };
 
+  const handleLogout = () => {
+    setIsAdmin(false);
+    setIsSuperAdmin(false);
+    setCurrentPlayerId(null);
+    StorageService.setAdminAuthenticated(false);
+    StorageService.setSuperAdminAuthenticated(false);
+    StorageService.setCurrentPlayerId(null);
+    setActiveTab('standings');
+  };
+
+  const handleLoginSuccess = (player: Player | null, role: 'player' | 'admin' | 'superadmin') => {
+    if (player) {
+      handleSelectCurrentPlayer(player.id);
+      if (player.role === 'admin') {
+        setIsAdmin(true);
+        StorageService.setAdminAuthenticated(true);
+      } else if (player.role === 'superadmin') {
+        setIsAdmin(true);
+        setIsSuperAdmin(true);
+        StorageService.setAdminAuthenticated(true);
+        StorageService.setSuperAdminAuthenticated(true);
+      }
+    } else {
+      if (role === 'superadmin') {
+        setIsAdmin(true);
+        setIsSuperAdmin(true);
+        StorageService.setAdminAuthenticated(true);
+        StorageService.setSuperAdminAuthenticated(true);
+      } else if (role === 'admin') {
+        setIsAdmin(true);
+        StorageService.setAdminAuthenticated(true);
+      }
+    }
+  };
+
   const handleExportData = () => {
     const backup = {
       config,
       players,
       days,
       grandFinale,
+      registrationRequests,
       exportedAt: new Date().toISOString(),
     };
     const jsonStr = JSON.stringify(backup, null, 2);
@@ -185,6 +264,10 @@ export function App() {
       if (data.days) handleSaveDays(data.days);
       if (data.config) handleSaveConfig(data.config);
       if (data.grandFinale !== undefined) handleSaveGrandFinale(data.grandFinale);
+      if (data.registrationRequests) {
+        setRegistrationRequests(data.registrationRequests);
+        StorageService.saveRegistrationRequests(data.registrationRequests);
+      }
       return true;
     } catch (e) {
       console.error('Error importing backup:', e);
@@ -198,6 +281,7 @@ export function App() {
     StorageService.savePlayers(INITIAL_PLAYERS);
     setDays([]);
     setGrandFinale(null);
+    setRegistrationRequests([]);
   };
 
   const handleSelectPlayerForIntelligence = (playerId: string) => {
@@ -210,6 +294,22 @@ export function App() {
     handleSaveConfig(updated);
   };
 
+  // STRICT ACCESS GATE: If user has not authenticated with their Player PIN or Admin/SuperAdmin PIN, render LoginGate
+  const isAuthenticated = Boolean(currentPlayer || isAdmin || isSuperAdmin);
+
+  if (!isAuthenticated) {
+    return (
+      <LoginGate
+        config={config}
+        players={players}
+        onLoginSuccess={handleLoginSuccess}
+        onRequestSubmitted={(newReq) => {
+          setRegistrationRequests(prev => [newReq, ...prev]);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#000000] text-white flex flex-col selection:bg-[#30D158] selection:text-black overflow-x-hidden max-w-[100vw]">
       {/* Top Header (iOS Navigation Bar) */}
@@ -217,10 +317,12 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isAdmin={effectiveIsAdmin}
+        isSuperAdmin={effectiveIsSuperAdmin}
         currentPlayer={currentPlayer}
-        setIsAdminModalOpen={setIsAdminModalOpen}
+        pendingRequestsCount={registrationRequests.length}
+        onOpenPendingRequests={() => setIsPendingRequestsModalOpen(true)}
         config={config}
-        onLogoutAdmin={handleLogoutAdmin}
+        onLogout={handleLogout}
       />
 
       {/* Main Content Area */}
@@ -255,6 +357,9 @@ export function App() {
             players={players}
             statsList={statsList}
             isAdmin={effectiveIsAdmin}
+            isSuperAdmin={effectiveIsSuperAdmin}
+            pendingRequests={registrationRequests}
+            onOpenPendingRequests={() => setIsPendingRequestsModalOpen(true)}
             onSavePlayers={handleSavePlayers}
             onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}
           />
@@ -295,7 +400,7 @@ export function App() {
             config={config}
             players={players}
             isAdmin={effectiveIsAdmin}
-            isSuperAdmin={isSuperAdmin}
+            isSuperAdmin={effectiveIsSuperAdmin}
             onSaveConfig={handleSaveConfig}
             onSavePlayers={handleSavePlayers}
             onAuthenticateSuperAdmin={handleAuthenticateSuperAdmin}
@@ -315,7 +420,7 @@ export function App() {
           <span className="text-[#FFD60A] font-medium">{config.editionName}</span>
         </div>
         <div className="text-xs text-[#8E8E93] max-w-md mx-auto leading-relaxed">
-          Desarrollado por <strong className="text-white font-semibold">Esteban Reyna</strong> • <span className="font-mono text-[#8E8E93]">v2.4.0</span> • <strong className="text-white font-semibold">IA Factory Cancún</strong> en colaboración con <strong className="text-white font-semibold">Marketing 101 Cancún</strong>
+          Desarrollado por <strong className="text-white font-semibold">Esteban Reyna</strong> • <span className="font-mono text-[#8E8E93]">v2.5.0</span> • <strong className="text-white font-semibold">IA Factory Cancún</strong> en colaboración con <strong className="text-white font-semibold">Marketing 101 Cancún</strong>
         </div>
       </footer>
 
@@ -331,6 +436,20 @@ export function App() {
         onAuthenticate={handleAuthenticateAdmin}
         onAuthenticateSuperAdmin={handleAuthenticateSuperAdmin}
         onSelectCurrentPlayer={handleSelectCurrentPlayer}
+      />
+
+      {/* Pending Player Registrations Review Modal (Admins only) */}
+      <PendingRegistrationsModal
+        isOpen={isPendingRequestsModalOpen}
+        onClose={() => setIsPendingRequestsModalOpen(false)}
+        requests={registrationRequests}
+        onApproveRequest={(reqId) => {
+          setPlayers(StorageService.getPlayers());
+          setRegistrationRequests(StorageService.getRegistrationRequests());
+        }}
+        onRejectRequest={(reqId) => {
+          setRegistrationRequests(StorageService.getRegistrationRequests());
+        }}
       />
     </div>
   );

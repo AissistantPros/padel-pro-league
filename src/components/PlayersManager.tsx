@@ -1,11 +1,39 @@
 import React, { useState } from 'react';
-import { Users, UserPlus, Edit2, Trash2, Check, X, Search, FileText, Camera, Upload, ShieldCheck, Shield, ChevronRight, Key, Eye, EyeOff, RefreshCw } from 'lucide-react';
-import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
+import {
+  Users,
+  UserPlus,
+  Edit2,
+  Trash2,
+  Check,
+  X,
+  Search,
+  FileText,
+  Camera,
+  Upload,
+  ShieldCheck,
+  Shield,
+  ChevronRight,
+  Key,
+  Eye,
+  EyeOff,
+  RefreshCw,
+  Crown,
+  Bell,
+  Activity,
+  MousePointer,
+  Mail,
+  Phone,
+} from 'lucide-react';
+import type { Player, PlayerIntelligenceStats, PlayerRegistrationRequest } from '../types/index.ts';
+import { generateShortPin } from '../services/storageService.ts';
 
 interface PlayersManagerProps {
   players: Player[];
   statsList: PlayerIntelligenceStats[];
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
+  pendingRequests?: PlayerRegistrationRequest[];
+  onOpenPendingRequests?: () => void;
   onSavePlayers: (players: Player[]) => void;
   onSelectPlayerForIntelligence: (playerId: string) => void;
 }
@@ -14,6 +42,9 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   players,
   statsList,
   isAdmin,
+  isSuperAdmin = false,
+  pendingRequests = [],
+  onOpenPendingRequests,
   onSavePlayers,
   onSelectPlayerForIntelligence,
 }) => {
@@ -21,20 +52,24 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const [isBulkAdding, setIsBulkAdding] = useState(false);
   const [bulkText, setBulkText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // New Player Form State
   const [newName, setNewName] = useState('');
   const [newNickname, setNewNickname] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const [newEmail, setNewEmail] = useState('');
   const [newAvatar, setNewAvatar] = useState<string>('');
-  const [newIsAdmin, setNewIsAdmin] = useState(false);
-  const [newPin, setNewPin] = useState('1234');
+  const [newRole, setNewRole] = useState<'player' | 'admin' | 'superadmin'>('player');
+  const [newPin, setNewPin] = useState(generateShortPin());
   
   // Full Edit Player Modal State
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [editName, setEditName] = useState('');
   const [editNickname, setEditNickname] = useState('');
   const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
   const [editAvatar, setEditAvatar] = useState<string>('');
-  const [editIsAdmin, setEditIsAdmin] = useState(false);
+  const [editRole, setEditRole] = useState<'player' | 'admin' | 'superadmin'>('player');
   const [editPin, setEditPin] = useState('');
   const [showEditPin, setShowEditPin] = useState(false);
 
@@ -72,10 +107,6 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const generateRandomPin = () => {
-    return Math.floor(1000 + Math.random() * 9000).toString();
-  };
-
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
@@ -85,20 +116,24 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       name: newName.trim(),
       nickname: newNickname.trim() || undefined,
       phone: newPhone.trim() || undefined,
+      email: newEmail.trim() || undefined,
       avatar: newAvatar || undefined,
-      role: newIsAdmin ? 'admin' : 'player',
-      pin: newIsAdmin ? (newPin.trim() || '1234') : undefined,
+      role: newRole,
+      pin: (newPin.trim() || generateShortPin()).toUpperCase(),
       registeredAt: new Date().toISOString().split('T')[0],
       isActive: true,
+      loginCount: 0,
+      activeClicks: 0,
     };
 
     onSavePlayers([...players, newPlayer]);
     setNewName('');
     setNewNickname('');
     setNewPhone('');
+    setNewEmail('');
     setNewAvatar('');
-    setNewIsAdmin(false);
-    setNewPin('1234');
+    setNewRole('player');
+    setNewPin(generateShortPin());
     setIsAddingPlayer(false);
   };
 
@@ -126,8 +161,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         name,
         nickname,
         role: 'player',
+        pin: generateShortPin(),
         registeredAt: new Date().toISOString().split('T')[0],
         isActive: true,
+        loginCount: 0,
+        activeClicks: 0,
       };
     });
 
@@ -141,9 +179,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setEditName(player.name);
     setEditNickname(player.nickname || '');
     setEditPhone(player.phone || '');
+    setEditEmail(player.email || '');
     setEditAvatar(player.avatar || '');
-    setEditIsAdmin(player.role === 'admin');
-    setEditPin(player.pin || (player.role === 'admin' ? '1234' : ''));
+    setEditRole(player.role || 'player');
+    setEditPin(player.pin || generateShortPin());
     setShowEditPin(false);
   };
 
@@ -158,9 +197,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             name: editName.trim(),
             nickname: editNickname.trim() || undefined,
             phone: editPhone.trim() || undefined,
+            email: editEmail.trim() || undefined,
             avatar: editAvatar || undefined,
-            role: (editIsAdmin ? 'admin' : 'player') as 'player' | 'admin',
-            pin: editIsAdmin ? (editPin.trim() || '1234') : undefined,
+            role: editRole,
+            pin: editPin.trim().toUpperCase() || p.pin || generateShortPin(),
           }
         : p
     );
@@ -168,29 +208,8 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setEditingPlayer(null);
   };
 
-  const handleToggleAdminRole = (player: Player) => {
-    const willBeAdmin = player.role !== 'admin';
-    const assignedPin = player.pin || '1234';
-    const confirmMsg = willBeAdmin
-      ? `¿Nombrar a "${player.name}" como Administrador del Torneo?\nSu PIN inicial será "${assignedPin}".`
-      : `¿Revocar los permisos de Administrador a "${player.name}"?`;
-
-    if (confirm(confirmMsg)) {
-      const updated = players.map(p =>
-        p.id === player.id
-          ? {
-              ...p,
-              role: willBeAdmin ? ('admin' as const) : ('player' as const),
-              pin: willBeAdmin ? assignedPin : p.pin,
-            }
-          : p
-      );
-      onSavePlayers(updated);
-    }
-  };
-
   const handleDeletePlayer = (playerId: string) => {
-    if (confirm('¿Eliminar este participante de la lista?')) {
+    if (confirm('¿Eliminar este participante de la lista oficial del torneo?')) {
       onSavePlayers(players.filter(p => p.id !== playerId));
     }
   };
@@ -198,7 +217,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const filteredPlayers = players.filter(p => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
-    return p.name.toLowerCase().includes(q) || (p.nickname && p.nickname.toLowerCase().includes(q));
+    return (
+      p.name.toLowerCase().includes(q) ||
+      (p.nickname && p.nickname.toLowerCase().includes(q)) ||
+      (p.pin && p.pin.toLowerCase().includes(q))
+    );
   });
 
   return (
@@ -208,14 +231,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         <div className="flex items-center justify-between">
           <div>
             <span className="text-xs font-semibold text-[#8E8E93]">
-              {players.length} registrados
+              {players.length} jugadores en base de datos
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-white mt-0.5">
-              Jugadores
+              Jugadores & Accesos
             </h1>
           </div>
 
-          {isAdmin && (
+          {(isAdmin || isSuperAdmin) && (
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => {
@@ -231,14 +254,41 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   setIsAddingPlayer(!isAddingPlayer);
                   setIsBulkAdding(false);
                 }}
-                className="px-3 py-1.5 rounded-xl bg-[#30D158] text-black font-bold text-xs ios-touch flex items-center"
+                className="px-3.5 py-1.5 rounded-xl bg-[#30D158] text-black font-bold text-xs ios-touch flex items-center shadow-md hover:bg-[#28B84B]"
               >
-                <UserPlus className="w-3.5 h-3.5 mr-1" />
+                <UserPlus className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
                 Inscribir
               </button>
             </div>
           )}
         </div>
+
+        {/* Pending Registration Requests Banner Alert */}
+        {(isAdmin || isSuperAdmin) && pendingRequests.length > 0 && onOpenPendingRequests && (
+          <div className="mt-3 p-3.5 bg-gradient-to-r from-[#FFD60A]/15 via-[#1C1C1E] to-[#FFD60A]/10 border border-[#FFD60A]/30 rounded-2xl flex items-center justify-between gap-3 animate-fade-in">
+            <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-full bg-[#FFD60A]/20 text-[#FFD60A] flex items-center justify-center flex-shrink-0">
+                <Bell className="w-4 h-4" />
+              </div>
+              <div className="min-w-0">
+                <h4 className="text-xs font-bold text-white">
+                  {pendingRequests.length} {pendingRequests.length === 1 ? 'solicitud de registro pendiente' : 'solicitudes de registro pendientes'}
+                </h4>
+                <p className="text-[11px] text-[#8E8E93] truncate">
+                  Aprueba los accesos y genera sus claves de jugador.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={onOpenPendingRequests}
+              className="px-3 py-1.5 rounded-xl bg-[#FFD60A] text-black font-black text-xs ios-touch flex-shrink-0 shadow-md"
+            >
+              Revisar
+            </button>
+          </div>
+        )}
 
         {/* iOS Native Search Bar */}
         <div className="relative mt-3">
@@ -247,7 +297,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar jugador o apodo..."
+            placeholder="Buscar por nombre, apodo o clave..."
             className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-[#8E8E93] focus:outline-none focus:border-[#30D158]"
           />
         </div>
@@ -258,7 +308,9 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
           <form onSubmit={handleAddPlayer} className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 space-y-4 animate-slide-up">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
-              <h3 className="text-base font-bold text-white">Inscribir Nuevo Jugador</h3>
+              <h3 className="text-base font-bold text-white flex items-center">
+                <UserPlus className="w-4 h-4 mr-1.5 text-[#30D158]" /> Inscribir Nuevo Jugador
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsAddingPlayer(false)}
@@ -304,9 +356,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#30D158]"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-[#8E8E93] block mb-1">Apodo (Opcional)</label>
+                  <label className="text-xs text-[#8E8E93] block mb-1">Apodo</label>
                   <input
                     type="text"
                     value={newNickname}
@@ -321,35 +374,49 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                     type="text"
                     value={newPhone}
                     onChange={(e) => setNewPhone(e.target.value)}
-                    placeholder="WhatsApp"
+                    placeholder="+52 998..."
                     className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#30D158]"
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="text-xs text-[#8E8E93] block mb-1">Correo Electrónico</label>
+                <input
+                  type="email"
+                  value={newEmail}
+                  onChange={(e) => setNewEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#30D158]"
+                />
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2 pt-1">
-              <input
-                type="checkbox"
-                id="newIsAdmin"
-                checked={newIsAdmin}
-                onChange={(e) => setNewIsAdmin(e.target.checked)}
-                className="w-4 h-4 rounded text-[#30D158] bg-[#2C2C2E]"
-              />
-              <label htmlFor="newIsAdmin" className="text-xs text-[#FFD60A] font-semibold cursor-pointer flex items-center">
-                <Shield className="w-3.5 h-3.5 mr-1" /> Nombrar como Administrador del Torneo
-              </label>
-            </div>
+            {/* Role & PIN */}
+            <div className="p-3.5 bg-[#2C2C2E] border border-white/10 rounded-2xl space-y-3">
+              <div>
+                <label className="text-xs text-[#FFD60A] font-semibold block mb-1">
+                  Rol y Permisos en el Sistema
+                </label>
+                <select
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value as any)}
+                  className="w-full bg-[#1C1C1E] border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold outline-none"
+                >
+                  <option value="player">🎾 Jugador Regular</option>
+                  <option value="admin">🛡️ Administrador del Torneo</option>
+                  {isSuperAdmin && <option value="superadmin">👑 Super Administrador</option>}
+                </select>
+              </div>
 
-            {newIsAdmin && (
-              <div className="p-3.5 bg-[#2C2C2E] border border-white/10 rounded-2xl space-y-2 animate-fade-in">
+              <div className="space-y-1.5 pt-2 border-t border-white/5">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs text-[#FFD60A] font-semibold flex items-center">
-                    <Key className="w-3.5 h-3.5 mr-1" /> PIN de Acceso Administrador
+                  <label className="text-xs text-[#8E8E93] font-medium flex items-center">
+                    <Key className="w-3.5 h-3.5 mr-1 text-[#30D158]" /> Clave / PIN Único (Máx 5 Caracteres)
                   </label>
                   <button
                     type="button"
-                    onClick={() => setNewPin(generateRandomPin())}
+                    onClick={() => setNewPin(generateShortPin())}
                     className="text-[11px] text-[#0A84FF] hover:underline flex items-center font-medium"
                   >
                     <RefreshCw className="w-3 h-3 mr-1" /> Generar PIN
@@ -357,17 +424,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                 </div>
                 <input
                   type="text"
-                  maxLength={6}
+                  maxLength={8}
                   value={newPin}
-                  onChange={(e) => setNewPin(e.target.value)}
-                  placeholder="1234"
-                  className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl px-3 py-2 text-sm text-[#30D158] font-mono font-bold focus:outline-none focus:border-[#30D158]"
+                  onChange={(e) => setNewPin(e.target.value.toUpperCase())}
+                  placeholder="G20X9"
+                  className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl px-3 py-2 text-base text-[#30D158] font-mono font-bold uppercase focus:outline-none focus:border-[#30D158]"
                 />
-                <span className="text-[11px] text-[#8E8E93] block">
-                  Con este PIN, el nuevo administrador podrá ingresar al panel y cargar marcadores.
-                </span>
               </div>
-            )}
+            </div>
 
             <button
               type="submit"
@@ -382,7 +446,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       {/* Edit Player Modal Sheet */}
       {editingPlayer && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/75 backdrop-blur-md animate-fade-in">
-          <form onSubmit={handleSaveEdit} className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 space-y-4 animate-slide-up">
+          <form onSubmit={handleSaveEdit} className="relative w-full max-w-lg bg-[#1C1C1E] border-t sm:border border-white/10 rounded-t-[28px] sm:rounded-[28px] p-6 text-white shadow-2xl z-10 space-y-4 animate-slide-up max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-white/5 pb-3">
               <h3 className="text-base font-bold text-white flex items-center">
                 <Edit2 className="w-4 h-4 mr-1.5 text-[#30D158]" /> Editar Jugador
@@ -431,9 +495,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-[#30D158]"
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-xs text-[#8E8E93] block mb-1">Apodo (Opcional)</label>
+                  <label className="text-xs text-[#8E8E93] block mb-1">Apodo</label>
                   <input
                     type="text"
                     value={editNickname}
@@ -453,63 +518,67 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   />
                 </div>
               </div>
-            </div>
 
-            {/* Admin Role & PIN Management */}
-            <div className="p-3.5 bg-[#2C2C2E]/70 border border-white/10 rounded-2xl space-y-2.5">
-              <div className="flex items-center justify-between">
-                <label htmlFor="editIsAdmin" className="text-xs text-[#FFD60A] font-semibold cursor-pointer flex items-center">
-                  <ShieldCheck className="w-4 h-4 mr-1 text-[#FFD60A]" /> Rol: Administrador del Torneo
-                </label>
+              <div>
+                <label className="text-xs text-[#8E8E93] block mb-1">Correo Electrónico</label>
                 <input
-                  type="checkbox"
-                  id="editIsAdmin"
-                  checked={editIsAdmin}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setEditIsAdmin(checked);
-                    if (checked && !editPin) setEditPin('1234');
-                  }}
-                  className="w-4 h-4 rounded text-[#30D158] bg-[#1C1C1E]"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="correo@ejemplo.com"
+                  className="w-full bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-[#30D158]"
                 />
               </div>
+            </div>
 
-              {editIsAdmin && (
-                <div className="space-y-2 pt-2 border-t border-white/5 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs text-[#8E8E93] font-medium flex items-center">
-                      <Key className="w-3.5 h-3.5 mr-1 text-[#30D158]" /> PIN de Acceso Personal
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setEditPin(generateRandomPin())}
-                      className="text-[11px] text-[#0A84FF] hover:underline flex items-center font-medium"
-                    >
-                      <RefreshCw className="w-3 h-3 mr-1" /> Generar PIN
-                    </button>
-                  </div>
-                  <div className="relative">
-                    <input
-                      type={showEditPin ? 'text' : 'password'}
-                      maxLength={6}
-                      value={editPin}
-                      onChange={(e) => setEditPin(e.target.value)}
-                      placeholder="1234"
-                      className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl pl-3 pr-10 py-2.5 text-sm text-[#30D158] font-mono font-bold focus:outline-none focus:border-[#30D158]"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowEditPin(!showEditPin)}
-                      className="absolute right-3 top-2.5 text-[#8E8E93] hover:text-white"
-                    >
-                      {showEditPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                  <p className="text-[11px] text-[#8E8E93] leading-relaxed">
-                    El Super Admin puede ver y modificar este PIN en cualquier momento.
-                  </p>
+            {/* Role & Personal PIN */}
+            <div className="p-3.5 bg-[#2C2C2E]/70 border border-white/10 rounded-2xl space-y-3">
+              <div>
+                <label className="text-xs text-[#FFD60A] font-semibold block mb-1">
+                  Rol del Usuario
+                </label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value as any)}
+                  className="w-full bg-[#1C1C1E] border border-white/10 text-white rounded-xl px-3 py-2 text-xs font-semibold outline-none"
+                >
+                  <option value="player">🎾 Jugador Regular</option>
+                  <option value="admin">🛡️ Administrador del Torneo</option>
+                  {isSuperAdmin && <option value="superadmin">👑 Super Administrador</option>}
+                </select>
+              </div>
+
+              <div className="space-y-1.5 pt-2 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs text-[#8E8E93] font-medium flex items-center">
+                    <Key className="w-3.5 h-3.5 mr-1 text-[#30D158]" /> Clave de Acceso Única (PIN)
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setEditPin(generateShortPin())}
+                    className="text-[11px] text-[#0A84FF] hover:underline flex items-center font-medium"
+                  >
+                    <RefreshCw className="w-3 h-3 mr-1" /> Generar PIN
+                  </button>
                 </div>
-              )}
+                <div className="relative">
+                  <input
+                    type={showEditPin ? 'text' : 'password'}
+                    maxLength={8}
+                    value={editPin}
+                    onChange={(e) => setEditPin(e.target.value.toUpperCase())}
+                    placeholder="G20X9"
+                    className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl pl-3 pr-10 py-2.5 text-sm text-[#30D158] font-mono font-bold uppercase focus:outline-none focus:border-[#30D158]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPin(!showEditPin)}
+                    className="absolute right-3 top-2.5 text-[#8E8E93] hover:text-white"
+                  >
+                    {showEditPin ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
             </div>
 
             <button
@@ -560,20 +629,21 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
       <div className="ios-grouped-list divide-y divide-white/5">
         {filteredPlayers.map((player) => {
           const stats = statsList.find(s => s.playerId === player.id);
+          const isSuper = player.role === 'superadmin';
           const isPlayerAdmin = player.role === 'admin';
 
           return (
-            <div key={player.id} className="ios-grouped-row py-3 px-4 flex items-center justify-between">
+            <div key={player.id} className="ios-grouped-row py-3.5 px-4 flex items-center justify-between">
               <div className="flex items-center space-x-3 min-w-0 flex-1">
                 {/* Photo */}
                 {player.avatar ? (
                   <img
                     src={player.avatar}
                     alt={player.name}
-                    className="w-10 h-10 rounded-full object-cover border border-white/10 flex-shrink-0 bg-[#2C2C2E]"
+                    className="w-11 h-11 rounded-full object-cover border border-white/10 flex-shrink-0 bg-[#2C2C2E]"
                   />
                 ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#2C2C2E] text-[#8E8E93] font-bold text-xs flex items-center justify-center flex-shrink-0">
+                  <div className="w-11 h-11 rounded-full bg-[#2C2C2E] text-[#8E8E93] font-bold text-xs flex items-center justify-center flex-shrink-0 border border-white/10">
                     {player.name.slice(0, 2).toUpperCase()}
                   </div>
                 )}
@@ -588,21 +658,33 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                       <span className="text-sm sm:text-base font-semibold text-white break-words leading-tight">
                         {player.name}
                       </span>
-                      {isPlayerAdmin && (
-                        <span className="text-[10px] font-bold text-[#FFD60A] bg-[#FFD60A]/15 px-1.5 py-0.5 rounded-full flex items-center">
-                          <ShieldCheck className="w-2.5 h-2.5 mr-0.5 text-[#FFD60A]" /> Admin
+                      {isSuper ? (
+                        <span className="text-[10px] font-black text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full flex items-center border border-[#FFD60A]/30">
+                          <Crown className="w-2.5 h-2.5 mr-1 text-[#FFD60A]" /> Super Admin
                         </span>
-                      )}
+                      ) : isPlayerAdmin ? (
+                        <span className="text-[10px] font-bold text-[#64D2FF] bg-[#0A84FF]/15 px-2 py-0.5 rounded-full flex items-center border border-[#0A84FF]/30">
+                          <ShieldCheck className="w-2.5 h-2.5 mr-0.5 text-[#64D2FF]" /> Admin
+                        </span>
+                      ) : null}
                     </div>
-                    <div className="text-xs text-[#8E8E93] flex items-center space-x-1.5 flex-wrap mt-0.5">
-                      <span>{player.nickname ? `"${player.nickname}"` : 'Participante Oficial'}</span>
-                      {isPlayerAdmin && isAdmin && (
-                        <span className="text-[#30D158] font-mono font-semibold bg-[#30D158]/10 px-1.5 py-0.2 rounded">
-                          PIN: {player.pin || '1234'}
-                        </span>
-                      )}
-                      {stats && stats.totalMatchesPlayed > 0 && (
-                        <span>• {stats.totalChampionshipPoints.toFixed(1)} pts</span>
+
+                    <div className="text-xs text-[#8E8E93] flex items-center space-x-2 flex-wrap mt-1">
+                      <span>{player.nickname ? `"${player.nickname}"` : 'Participante'}</span>
+                      
+                      {/* Telemetry Activity Indicator for Admins */}
+                      {(isAdmin || isSuperAdmin) && (
+                        <>
+                          <span>•</span>
+                          <span className="text-[#30D158] font-mono font-bold bg-[#30D158]/10 px-1.5 py-0.5 rounded text-[11px]">
+                            🔑 PIN: {player.pin || '-'}
+                          </span>
+                          <span>•</span>
+                          <span className="text-[#64D2FF] text-[11px] flex items-center">
+                            <MousePointer className="w-3 h-3 mr-0.5" />
+                            {player.activeClicks || 0} clicks
+                          </span>
+                        </>
                       )}
                     </div>
                   </div>
@@ -610,27 +692,18 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               </div>
 
               {/* Action Buttons for Admin */}
-              {isAdmin && (
+              {(isAdmin || isSuperAdmin) && (
                 <div className="flex items-center space-x-1 flex-shrink-0">
                   <button
-                    onClick={() => handleToggleAdminRole(player)}
-                    className={`p-1.5 rounded-lg text-xs font-semibold ${
-                      isPlayerAdmin ? 'text-[#FFD60A] hover:text-[#FF9F0A]' : 'text-[#8E8E93] hover:text-white'
-                    }`}
-                    title={isPlayerAdmin ? 'Quitar rol admin' : 'Nombrar admin'}
-                  >
-                    <Shield className="w-4 h-4" />
-                  </button>
-                  <button
                     onClick={() => handleStartEdit(player)}
-                    className="p-1.5 text-[#8E8E93] hover:text-white"
-                    title="Editar y gestionar PIN"
+                    className="p-2 text-[#8E8E93] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
+                    title="Editar datos y PIN"
                   >
                     <Edit2 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => handleDeletePlayer(player.id)}
-                    className="p-1.5 text-[#8E8E93] hover:text-[#FF453A]"
+                    className="p-2 text-[#8E8E93] hover:text-[#FF453A] bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
                     title="Eliminar"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -638,7 +711,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                 </div>
               )}
 
-              {!isAdmin && (
+              {!(isAdmin || isSuperAdmin) && (
                 <button
                   onClick={() => onSelectPlayerForIntelligence(player.id)}
                   className="text-[#8E8E93]"

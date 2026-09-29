@@ -1,25 +1,44 @@
 import React from 'react';
-import { Trophy, Activity, Users, Award, Settings, Lock, Unlock, Zap, ShieldCheck, Sparkles, User } from 'lucide-react';
+import {
+  Trophy,
+  Activity,
+  Users,
+  Award,
+  Settings,
+  Lock,
+  Unlock,
+  Zap,
+  ShieldCheck,
+  Sparkles,
+  User,
+  Crown,
+  LogOut,
+  Bell,
+} from 'lucide-react';
 import type { TournamentConfig, Player } from '../types/index.ts';
 
 interface HeaderProps {
   activeTab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile';
   setActiveTab: (tab: 'standings' | 'matchday' | 'intelligence' | 'grand_finale' | 'players' | 'settings' | 'my_profile') => void;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   currentPlayer: Player | null;
-  setIsAdminModalOpen: (open: boolean) => void;
+  pendingRequestsCount?: number;
+  onOpenPendingRequests?: () => void;
   config: TournamentConfig;
-  onLogoutAdmin: () => void;
+  onLogout: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   isAdmin,
+  isSuperAdmin,
   currentPlayer,
-  setIsAdminModalOpen,
+  pendingRequestsCount = 0,
+  onOpenPendingRequests,
   config,
-  onLogoutAdmin,
+  onLogout,
 }) => {
   return (
     <header className="sticky top-0 z-40 bg-black/80 backdrop-blur-2xl border-b border-white/10 select-none">
@@ -55,56 +74,70 @@ export const Header: React.FC<HeaderProps> = ({
             </div>
           </div>
 
-          {/* Right Area: Player Identity & Admin Toggle */}
+          {/* Right Area: Roles Badges, Notifications & Logout */}
           <div className="flex items-center space-x-2">
-            {/* Current Player Indicator */}
-            {currentPlayer ? (
+            {/* Pending Requests Bell Notification */}
+            {(isAdmin || isSuperAdmin) && pendingRequestsCount > 0 && onOpenPendingRequests && (
               <button
-                onClick={() => setActiveTab('my_profile')}
-                className="flex items-center space-x-2 p-1 sm:px-3 sm:py-1.5 rounded-full bg-[#1C1C1E] border border-white/10 hover:border-white/20 transition-all ios-touch"
-                title="Mi perfil"
+                type="button"
+                onClick={onOpenPendingRequests}
+                className="relative p-2 rounded-full bg-[#FFD60A]/15 border border-[#FFD60A]/40 text-[#FFD60A] ios-touch animate-pulse"
+                title={`${pendingRequestsCount} solicitudes pendientes`}
               >
-                {currentPlayer.avatar ? (
-                  <img src={currentPlayer.avatar} alt={currentPlayer.name} className="w-7 h-7 rounded-full object-cover" />
-                ) : (
-                  <div className="w-7 h-7 rounded-full bg-[#2C2C2E] text-[#30D158] font-bold text-xs flex items-center justify-center">
-                    {currentPlayer.name.slice(0, 2).toUpperCase()}
-                  </div>
-                )}
-                <span className="text-xs font-semibold text-white hidden sm:inline max-w-[90px] truncate">
-                  {currentPlayer.name.split(' ')[0]}
+                <Bell className="w-4 h-4" />
+                <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-[#FF453A] text-white text-[9px] font-black flex items-center justify-center shadow-md">
+                  {pendingRequestsCount}
                 </span>
-              </button>
-            ) : (
-              <button
-                onClick={() => setActiveTab('my_profile')}
-                className="hidden sm:inline-flex items-center px-3 py-1.5 rounded-full bg-[#1C1C1E] text-[#8E8E93] hover:text-white text-xs font-semibold border border-white/10 ios-touch"
-              >
-                <User className="w-3.5 h-3.5 mr-1 text-[#30D158]" /> Mi Perfil
               </button>
             )}
 
-            {/* Admin Control Button */}
-            {isAdmin ? (
-              <div className="flex items-center space-x-2">
-                <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-[#FFD60A]/15 text-[#FFD60A] border border-[#FFD60A]/30">
-                  <ShieldCheck className="w-3.5 h-3.5 mr-1" /> Admin
-                </span>
-                <button
-                  onClick={onLogoutAdmin}
-                  className="px-3 py-1.5 rounded-full bg-[#2C2C2E] text-white text-xs font-semibold border border-white/10 ios-touch"
-                >
-                  Salir
-                </button>
-              </div>
+            {/* Role Badges */}
+            {isSuperAdmin ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#FFD60A]/20 via-[#FF9F0A]/20 to-[#FFD60A]/20 text-[#FFD60A] border border-[#FFD60A]/40 shadow-sm shadow-[#FFD60A]/10">
+                <Crown className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" />
+                <span className="hidden sm:inline">Super</span> Admin
+              </span>
+            ) : isAdmin ? (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#0A84FF]/15 text-[#64D2FF] border border-[#0A84FF]/30">
+                <ShieldCheck className="w-3.5 h-3.5 mr-1" />
+                <span className="hidden sm:inline">Administrador</span>
+                <span className="sm:hidden">Admin</span>
+              </span>
             ) : (
+              <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30">
+                🎾 Jugador
+              </span>
+            )}
+
+            {/* Current Player Indicator */}
+            {currentPlayer && (
               <button
-                onClick={() => setIsAdminModalOpen(true)}
-                className="px-3 py-1.5 rounded-full bg-[#1C1C1E] hover:bg-[#2C2C2E] text-[#0A84FF] text-xs font-semibold border border-white/10 ios-touch flex items-center"
+                onClick={() => setActiveTab('my_profile')}
+                className="flex items-center space-x-1.5 p-1 sm:px-2.5 sm:py-1 rounded-full bg-[#1C1C1E] border border-white/10 hover:border-white/20 transition-all ios-touch"
+                title="Mi perfil"
               >
-                <Lock className="w-3.5 h-3.5 mr-1 text-[#0A84FF]" /> Admin
+                {currentPlayer.avatar ? (
+                  <img src={currentPlayer.avatar} alt={currentPlayer.name} className="w-6 h-6 rounded-full object-cover" />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-[#2C2C2E] text-[#30D158] font-bold text-[10px] flex items-center justify-center">
+                    {currentPlayer.name.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <span className="text-xs font-semibold text-white hidden md:inline max-w-[85px] truncate">
+                  {currentPlayer.nickname || currentPlayer.name.split(' ')[0]}
+                </span>
               </button>
             )}
+
+            {/* Exit / Logout Button */}
+            <button
+              onClick={onLogout}
+              className="px-3 py-1.5 rounded-full bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#8E8E93] hover:text-white text-xs font-semibold border border-white/10 ios-touch flex items-center"
+              title="Cerrar Sesión"
+            >
+              <LogOut className="w-3.5 h-3.5 mr-1" />
+              <span>Salir</span>
+            </button>
           </div>
         </div>
 
@@ -147,12 +180,12 @@ export const Header: React.FC<HeaderProps> = ({
             >
               👤 Mi Perfil
             </button>
-            {isAdmin && (
+            {(isAdmin || isSuperAdmin) && (
               <button
                 onClick={() => setActiveTab('settings')}
                 className={`ios-segmented-item ${activeTab === 'settings' ? 'active' : ''}`}
               >
-                ⚙️ Ajustes
+                ⚙️ Ajustes {isSuperAdmin ? '(Super)' : ''}
               </button>
             )}
           </div>
