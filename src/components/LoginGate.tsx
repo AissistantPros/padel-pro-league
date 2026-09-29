@@ -489,26 +489,12 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               <h3 className="text-xl font-black text-white">
                 ¡Gracias por registrarte, {regNickname || regName}!
               </h3>
-              <p className="text-xs text-[#E5E5EA] leading-relaxed max-w-sm mx-auto">
-                Tu solicitud ha sido enviada a los administradores del <strong>Torneo G20 by Pedro Castillo</strong>.
+              <p className="text-sm text-[#E5E5EA] leading-relaxed max-w-sm mx-auto pt-1">
+                Tu solicitud ha sido enviada a los administradores y pronto tendrás respuesta con tu clave de acceso.
               </p>
-              <div className="p-3 bg-black/40 rounded-xl border border-white/10 text-xs text-[#8E8E93] text-left space-y-1">
-                <p>• Tu solicitud se encuentra en <strong>revisión pendiente</strong>.</p>
-                <p>• El administrador recibirá tu alerta de inmediato para generarte tu <strong>código único de 5 caracteres</strong>.</p>
-              </div>
             </div>
 
-            <div className="pt-2 space-y-3">
-              <div className="p-3.5 bg-[#2AABEE]/15 border border-[#2AABEE]/30 rounded-2xl flex items-center space-x-3 text-left">
-                <div className="w-9 h-9 rounded-full bg-[#2AABEE]/20 text-[#2AABEE] flex items-center justify-center flex-shrink-0">
-                  <Send className="w-4 h-4" />
-                </div>
-                <div className="text-xs">
-                  <p className="font-bold text-white">Notificación automática enviada ✈️</p>
-                  <p className="text-[11px] text-[#8E8E93]">El administrador ha recibido tu solicitud por Telegram y te proporcionará tu clave de acceso en breve.</p>
-                </div>
-              </div>
-
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={() => {
