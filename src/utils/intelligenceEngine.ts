@@ -240,6 +240,8 @@ export function buildChampionshipIntelligence(
   const K = config.bayesianFactorK || 4; // Bayesian damping parameter
   const attendanceBonus = config.attendanceBonusPoints || 0.5;
 
+  const activePlayerIds = new Set(players.map(p => p.id));
+
   const playerStatsList: PlayerIntelligenceStats[] = players.map(player => {
     let daysAttended = 0;
     let totalMatchesPlayed = 0;
@@ -304,9 +306,17 @@ export function buildChampionshipIntelligence(
 
           if (!isTeamA && !isTeamB) return; // Player was not in this match
 
-          totalMatchesPlayed += 1;
           const myTeam = isTeamA ? match.teamA : match.teamB;
           const oppTeam = isTeamA ? match.teamB : match.teamA;
+          const partnerId = myTeam.player1Id === player.id ? myTeam.player2Id : myTeam.player1Id;
+          const partnerName = myTeam.player1Id === player.id ? myTeam.player2Name : myTeam.player1Name;
+
+          // STRICT CHECK: Discard match if partner or opponents are ghost / deleted players
+          if (partnerId && !activePlayerIds.has(partnerId)) return;
+          if (oppTeam.player1Id && !activePlayerIds.has(oppTeam.player1Id)) return;
+          if (oppTeam.player2Id && !activePlayerIds.has(oppTeam.player2Id)) return;
+
+          totalMatchesPlayed += 1;
           const myScore = isTeamA ? match.score.scoreA : match.score.scoreB;
           const oppScore = isTeamA ? match.score.scoreB : match.score.scoreA;
 
@@ -323,11 +333,8 @@ export function buildChampionshipIntelligence(
           const margin = calculateMarginBonus(myScore, oppScore, match.score.isCutoff);
           totalDecimalBonus += margin;
 
-          // Partner Synergy tracking
-          const partnerId = myTeam.player1Id === player.id ? myTeam.player2Id : myTeam.player1Id;
-          const partnerName = myTeam.player1Id === player.id ? myTeam.player2Name : myTeam.player1Name;
-
-          if (partnerId) {
+          // Partner Synergy tracking (active players only)
+          if (partnerId && activePlayerIds.has(partnerId)) {
             const pStat = partnerMap.get(partnerId) || {
               name: partnerName,
               played: 0,
@@ -344,12 +351,12 @@ export function buildChampionshipIntelligence(
             partnerMap.set(partnerId, pStat);
           }
 
-          // Opponent tracking (both individual opponents)
+          // Opponent tracking (both individual active opponents)
           [
             { id: oppTeam.player1Id, name: oppTeam.player1Name },
             { id: oppTeam.player2Id, name: oppTeam.player2Name }
           ].forEach(opp => {
-            if (!opp.id) return;
+            if (!opp.id || !activePlayerIds.has(opp.id)) return;
             const oStat = opponentMap.get(opp.id) || {
               name: opp.name,
               played: 0,
@@ -372,7 +379,7 @@ export function buildChampionshipIntelligence(
             { id: oppTeam.player2Id, name: oppTeam.player2Name }
           ].sort((a, b) => a.id.localeCompare(b.id));
 
-          if (rp1.id && rp2.id) {
+          if (rp1.id && rp2.id && activePlayerIds.has(rp1.id) && activePlayerIds.has(rp2.id)) {
             const pairKey = `${rp1.id}&${rp2.id}`;
             const rStat = rivalPairMap.get(pairKey) || {
               pairKey,
@@ -391,21 +398,23 @@ export function buildChampionshipIntelligence(
           }
 
           // Duo vs Duo key
-          const oppKey = [oppTeam.player1Id, oppTeam.player2Id].sort().join('&');
-          const duoKey = `${partnerId}_vs_${oppKey}`;
-          const dStat = duoMap.get(duoKey) || {
-            partnerId,
-            partnerName,
-            opp1Id: oppTeam.player1Id,
-            opp1Name: oppTeam.player1Name,
-            opp2Id: oppTeam.player2Id,
-            opp2Name: oppTeam.player2Name,
-            wins: 0,
-            losses: 0,
-          };
-          if (won) dStat.wins += 1;
-          else if (!draw) dStat.losses += 1;
-          duoMap.set(duoKey, dStat);
+          if (partnerId && activePlayerIds.has(partnerId) && activePlayerIds.has(oppTeam.player1Id) && activePlayerIds.has(oppTeam.player2Id)) {
+            const oppKey = [oppTeam.player1Id, oppTeam.player2Id].sort().join('&');
+            const duoKey = `${partnerId}_vs_${oppKey}`;
+            const dStat = duoMap.get(duoKey) || {
+              partnerId,
+              partnerName,
+              opp1Id: oppTeam.player1Id,
+              opp1Name: oppTeam.player1Name,
+              opp2Id: oppTeam.player2Id,
+              opp2Name: oppTeam.player2Name,
+              wins: 0,
+              losses: 0,
+            };
+            if (won) dStat.wins += 1;
+            else if (!draw) dStat.losses += 1;
+            duoMap.set(duoKey, dStat);
+          }
 
           // Add to player's match history log
           matchHistory.push({

@@ -619,39 +619,47 @@ export const StorageService = {
 
   saveTournamentDays(days: TournamentDay[]): void {
     try {
-      localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(days));
+      if (days && days.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(days));
+      } else {
+        localStorage.removeItem(STORAGE_KEYS.DAYS);
+      }
     } catch (e) {
       console.error('Error saving days to localStorage', e);
     }
 
     const supabase = getSupabase();
     if (supabase) {
-      supabase
-        .from('tournament_days')
-        .select('id')
-        .then(({ data: existingRows, error }) => {
-          if (error) {
-            console.warn('Supabase saveTournamentDays fetch error:', error.message);
-            return;
-          }
+      if (!days || days.length === 0) {
+        supabase.from('tournament_days').delete().neq('id', '___none___').then();
+      } else {
+        supabase
+          .from('tournament_days')
+          .select('id')
+          .then(({ data: existingRows, error }) => {
+            if (error) {
+              console.warn('Supabase saveTournamentDays fetch error:', error.message);
+              return;
+            }
 
-          const existingIds: string[] = (existingRows || []).map((r: any) => r.id);
-          const currentIds = new Set(days.map(d => d.id));
-          const toDelete = existingIds.filter(id => !currentIds.has(id));
+            const existingIds: string[] = (existingRows || []).map((r: any) => r.id);
+            const currentIds = new Set(days.map(d => d.id));
+            const toDelete = existingIds.filter(id => !currentIds.has(id));
 
-          if (toDelete.length > 0) {
-            supabase.from('tournament_days').delete().in('id', toDelete).then();
-          }
+            if (toDelete.length > 0) {
+              supabase.from('tournament_days').delete().in('id', toDelete).then();
+            }
 
-          if (days.length > 0) {
-            const rows = days.map(d => ({
-              id: d.id,
-              data: d,
-              updated_at: new Date().toISOString(),
-            }));
-            supabase.from('tournament_days').upsert(rows).then();
-          }
-        });
+            if (days.length > 0) {
+              const rows = days.map(d => ({
+                id: d.id,
+                data: d,
+                updated_at: new Date().toISOString(),
+              }));
+              supabase.from('tournament_days').upsert(rows).then();
+            }
+          });
+      }
     }
   },
 
@@ -760,15 +768,11 @@ export const StorageService = {
       if (daysRes.data && Array.isArray(daysRes.data) && daysRes.data.length > 0) {
         days = daysRes.data.map((r: any) => r.data).filter(Boolean);
       } else {
-        days = this.getTournamentDays();
-        if (days.length > 0) {
-          const rows = days.map(d => ({
-            id: d.id,
-            data: d,
-            updated_at: new Date().toISOString(),
-          }));
-          supabase.from('tournament_days').upsert(rows).then();
-        }
+        // Cloud has 0 tournament days: tournament has not started yet!
+        days = [];
+        try {
+          localStorage.removeItem(STORAGE_KEYS.DAYS);
+        } catch (e) {}
       }
 
       const bracket: GrandFinaleBracket | null = finaleRes.data?.data || this.getGrandFinaleBracket();
