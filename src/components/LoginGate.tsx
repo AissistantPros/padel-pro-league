@@ -230,22 +230,16 @@ export const LoginGate: React.FC<LoginGateProps> = ({
             <img
               src={config.tournamentLogoUrl}
               alt="Logo Oficial"
-              className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl object-cover border-2 border-[#FFD60A]/40 shadow-2xl shadow-[#FFD60A]/10 bg-[#1C1C1E]"
+              className="w-52 h-52 sm:w-60 sm:h-60 mx-auto rounded-3xl object-contain border-2 border-[#FFD60A]/40 shadow-2xl shadow-[#FFD60A]/10 bg-[#1C1C1E] p-2"
             />
           ) : (
-            <div className="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-3xl bg-gradient-to-tr from-[#1C1C1E] to-[#2C2C2E] border-2 border-[#FFD60A]/40 flex items-center justify-center text-4xl shadow-2xl shadow-[#FFD60A]/10">
+            <div className="w-52 h-52 sm:w-60 sm:h-60 mx-auto rounded-3xl bg-gradient-to-tr from-[#1C1C1E] to-[#2C2C2E] border-2 border-[#FFD60A]/40 flex items-center justify-center text-7xl shadow-2xl shadow-[#FFD60A]/10">
               🎾
             </div>
           )}
 
           <div>
-            <span className="text-[11px] font-black uppercase tracking-widest text-[#FFD60A] bg-[#FFD60A]/15 px-3 py-1 rounded-full border border-[#FFD60A]/30 inline-block">
-              {config.editionName || 'Torneo G20 by Pedro Castillo'}
-            </span>
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight mt-2">
-              {config.tournamentName || 'G20 by Peter Inc. 🎾'}
-            </h1>
-            <p className="text-xs text-[#8E8E93] mt-1">
+            <p className="text-xs sm:text-sm font-medium text-[#8E8E93] tracking-wide">
               Plataforma Oficial de Competición & Pádel Intelligence
             </p>
           </div>
@@ -534,8 +528,8 @@ export const LoginGate: React.FC<LoginGateProps> = ({
         )}
 
         {/* Footer info */}
-        <div className="text-center text-[10px] text-[#8E8E93]">
-          Torneo de Pádel G20 • Sistema de Gestión Deportiva
+        <div className="text-center text-xs text-[#8E8E93] font-medium tracking-wide">
+          Desarrollado por Esteban Reyna. IA Factory Cancun
         </div>
       </div>
 
