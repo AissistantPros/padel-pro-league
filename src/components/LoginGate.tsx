@@ -127,8 +127,11 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               const remotePlayers: Player[] = dbRows.map((r: any) => r.data).filter(Boolean);
               matchingPlayer = remotePlayers.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
               if (matchingPlayer) {
-                const merged = [...players.filter(p => p.id !== matchingPlayer!.id), matchingPlayer];
-                StorageService.savePlayers(merged);
+                try {
+                  localStorage.setItem('padel_players_v1', JSON.stringify(remotePlayers));
+                } catch (e) {
+                  console.warn('Error updating local players cache:', e);
+                }
               }
             }
           }

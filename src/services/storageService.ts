@@ -44,9 +44,9 @@ export const generateSecurePin = (length: number = 5): string => {
 export const generateShortPin = generateSecurePin;
 
 export const DEFAULT_CONFIG: TournamentConfig = {
-  tournamentName: 'G20 by Peter Inc. 🎾',
+  tournamentName: 'Torneo de Pádel G20 🎾',
   editionNumber: 3,
-  editionName: '3er Torneo G20 by Peter Inc.',
+  editionName: '3ra Edición Torneo G20',
   tournamentLogoUrl: '',
   courtNames: ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4', 'Pista 5', 'Pista 6'],
   adminPin: 'G20AD', // Secure 5-char Master Tournament Admin PIN
@@ -89,7 +89,6 @@ export async function sendTelegramNotification(
 
 export const INITIAL_PLAYERS: Player[] = [
   { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: 'EST99', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', email: 'pedro@padelg20.com', role: 'admin', pin: 'G20AD', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
 ];
 
 export const StorageService = {
@@ -435,7 +434,7 @@ export const StorageService = {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        await Promise.all([
+        const [playerRes, reqRes] = await Promise.all([
           supabase.from('players').upsert({
             id: newPlayer.id,
             data: newPlayer,
@@ -447,13 +446,22 @@ export const StorageService = {
             updated_at: new Date().toISOString(),
           }),
         ]);
+
+        if (playerRes.error) {
+          console.error('CRITICAL: Supabase player upsert error:', playerRes.error);
+          throw new Error(`Error guardando jugador en base de datos: ${playerRes.error.message}`);
+        }
+        if (reqRes.error) {
+          console.warn('Supabase requests update warning:', reqRes.error);
+        }
       } catch (err) {
         console.error('Error persisting approved player to Supabase:', err);
+        throw err;
       }
     }
 
     const displayName = newPlayer.nickname || newPlayer.name;
-    const welcomeMessage = `Bienvenido ${displayName} Haz sido aceptado al torneo G20 by Pedro Castillo, puedes entrar a la webapp en https://padel-tournament-app-gamma.vercel.app/ y tu código unico de jugador para entrar a la app es ${pin}.`;
+    const welcomeMessage = `¡Bienvenido ${displayName}! Has sido aceptado al Torneo de Pádel G20. Puedes ingresar a la webapp en https://padel-tournament-app-gamma.vercel.app/ con tu código de jugador: ${pin}`;
 
     return { player: newPlayer, pin, welcomeMessage, updatedPlayers, updatedRequests };
   },
