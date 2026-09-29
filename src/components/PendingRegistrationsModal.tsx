@@ -24,14 +24,16 @@ interface PendingRegistrationsModalProps {
   isOpen: boolean;
   onClose: () => void;
   requests: PlayerRegistrationRequest[];
-  onApproveRequest: (requestId: string) => void;
-  onRejectRequest: (requestId: string) => void;
+  players?: Player[];
+  onApproveRequest: (player: Player, remainingRequests: PlayerRegistrationRequest[]) => void;
+  onRejectRequest: (remainingRequests: PlayerRegistrationRequest[]) => void;
 }
 
 export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps> = ({
   isOpen,
   onClose,
   requests,
+  players = [],
   onApproveRequest,
   onRejectRequest,
 }) => {
@@ -41,21 +43,32 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
     welcomeMessage: string;
   } | null>(null);
   const [copiedWelcome, setCopiedWelcome] = useState(false);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleApprove = (reqId: string) => {
-    const result = StorageService.approveRegistrationRequest(reqId);
-    if (result) {
-      setApprovedResult(result);
-      onApproveRequest(reqId);
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+  const handleApprove = async (req: PlayerRegistrationRequest) => {
+    try {
+      setApprovingId(req.id);
+      const result = await StorageService.approveRegistrationRequest(req, players, requests);
+      if (result) {
+        setApprovedResult(result);
+        onApproveRequest(result.player, result.updatedRequests);
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+      }
+    } catch (err) {
+      console.error('Error approving request:', err);
+      alert('Error al autorizar el jugador en la base de datos.');
+    } finally {
+      setApprovingId(null);
     }
   };
 
-  const handleReject = (reqId: string) => {
-    StorageService.rejectRegistrationRequest(reqId);
-    onRejectRequest(reqId);
+  const handleReject = async (reqId: string) => {
+    if (confirm('¿Rechazar esta solicitud de registro?')) {
+      const remaining = await StorageService.rejectRegistrationRequest(reqId, requests);
+      onRejectRequest(remaining);
+    }
   };
 
   const handleCopyWelcome = (text: string) => {
@@ -163,10 +176,12 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
 
                     <button
                       type="button"
-                      onClick={() => handleApprove(req.id)}
-                      className="px-4 py-1.5 rounded-xl bg-[#30D158] text-black font-black text-xs flex items-center ios-touch shadow-md hover:bg-[#28B84B]"
+                      disabled={approvingId === req.id}
+                      onClick={() => handleApprove(req)}
+                      className="px-4 py-1.5 rounded-xl bg-[#30D158] text-black font-black text-xs flex items-center ios-touch shadow-md hover:bg-[#28B84B] disabled:opacity-50"
                     >
-                      <UserCheck className="w-3.5 h-3.5 mr-1 stroke-[2.5]" /> Aceptar Jugador
+                      <UserCheck className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                      {approvingId === req.id ? 'Autorizando...' : 'Aceptar Jugador'}
                     </button>
                   </div>
                 </div>

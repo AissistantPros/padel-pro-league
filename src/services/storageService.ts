@@ -287,15 +287,34 @@ export const StorageService = {
     }
   },
 
-  addRegistrationRequest(data: {
+  async addRegistrationRequest(data: {
     name: string;
     nickname?: string;
     phone: string;
     email: string;
     avatar: string;
     notes?: string;
-  }): PlayerRegistrationRequest {
-    const requests = this.getRegistrationRequests();
+  }): Promise<PlayerRegistrationRequest> {
+    const supabase = getSupabase();
+    let currentRequests: PlayerRegistrationRequest[] = [];
+    if (supabase) {
+      try {
+        const { data: dbData } = await supabase
+          .from('tournament_settings')
+          .select('data')
+          .eq('id', 'registration_requests')
+          .maybeSingle();
+        if (dbData?.data && Array.isArray(dbData.data)) {
+          currentRequests = dbData.data;
+        }
+      } catch (err) {
+        console.warn('Error fetching current requests before add:', err);
+      }
+    }
+    if (currentRequests.length === 0) {
+      currentRequests = this.getRegistrationRequests();
+    }
+
     const newReq: PlayerRegistrationRequest = {
       id: `req_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       name: data.name.trim(),
@@ -308,25 +327,58 @@ export const StorageService = {
       notes: data.notes?.trim() || undefined,
     };
 
-    const updated = [newReq, ...requests];
-    this.saveRegistrationRequests(updated);
+    const updated = [newReq, ...currentRequests.filter(r => r.id !== newReq.id)];
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Error saving requests locally:', e);
+    }
+
+    if (supabase) {
+      try {
+        await supabase
+          .from('tournament_settings')
+          .upsert({ id: 'registration_requests', data: updated, updated_at: new Date().toISOString() });
+      } catch (err) {
+        console.error('Error saving registration request to Supabase:', err);
+      }
+    }
+
     return newReq;
   },
 
-  approveRegistrationRequest(
-    requestId: string,
+  async approveRegistrationRequest(
+    requestOrId: string | PlayerRegistrationRequest,
+    currentPlayers?: Player[],
+    currentRequests?: PlayerRegistrationRequest[],
     customPin?: string
-  ): { player: Player; pin: string; welcomeMessage: string } | null {
-    const requests = this.getRegistrationRequests();
-    const req = requests.find(r => r.id === requestId);
+  ): Promise<{
+    player: Player;
+    pin: string;
+    welcomeMessage: string;
+    updatedPlayers: Player[];
+    updatedRequests: PlayerRegistrationRequest[];
+  } | null> {
+    const activeRequests = currentRequests && currentRequests.length > 0 
+      ? currentRequests 
+      : this.getRegistrationRequests();
+
+    const req = typeof requestOrId === 'string'
+      ? activeRequests.find(r => r.id === requestOrId)
+      : requestOrId;
+
     if (!req) return null;
 
-    const players = this.getPlayers();
-    const existingPins = new Set(players.map(p => p.pin?.toUpperCase()));
+    const activePlayers = currentPlayers && currentPlayers.length > 0
+      ? currentPlayers
+      : this.getPlayers();
+
+    const existingPins = new Set(activePlayers.map(p => (p.pin || '').trim().toUpperCase()));
     
-    let pin = (customPin || generateSecurePin()).toUpperCase();
+    let pin = (customPin || generateSecurePin()).trim().toUpperCase();
     while (!customPin && existingPins.has(pin)) {
-      pin = generateSecurePin().toUpperCase();
+      pin = generateSecurePin().trim().toUpperCase();
     }
 
     const newPlayer: Player = {
@@ -345,23 +397,74 @@ export const StorageService = {
       notes: req.notes,
     };
 
-    const updatedPlayers = [...players, newPlayer];
-    this.savePlayers(updatedPlayers);
+    const updatedPlayers = [...activePlayers.filter(p => p.id !== newPlayer.id), newPlayer];
+    const updatedRequests = activeRequests.filter(r => r.id !== req.id);
 
-    // Remove or mark approved
-    const updatedRequests = requests.filter(r => r.id !== requestId);
-    this.saveRegistrationRequests(updatedRequests);
+    // Save to LocalStorage
+    try {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updatedPlayers));
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(updatedRequests));
+    } catch (e) {
+      console.warn('Error saving to localStorage:', e);
+    }
+
+    // Save to Supabase Cloud atomically
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await Promise.all([
+          supabase.from('players').upsert({
+            id: newPlayer.id,
+            data: newPlayer,
+            updated_at: new Date().toISOString(),
+          }),
+          supabase.from('tournament_settings').upsert({
+            id: 'registration_requests',
+            data: updatedRequests,
+            updated_at: new Date().toISOString(),
+          }),
+        ]);
+      } catch (err) {
+        console.error('Error persisting approved player to Supabase:', err);
+      }
+    }
 
     const displayName = newPlayer.nickname || newPlayer.name;
     const welcomeMessage = `Bienvenido ${displayName} Haz sido aceptado al torneo G20 by Pedro Castillo, puedes entrar a la webapp en https://padel-tournament-app-gamma.vercel.app/ y tu código unico de jugador para entrar a la app es ${pin}.`;
 
-    return { player: newPlayer, pin, welcomeMessage };
+    return { player: newPlayer, pin, welcomeMessage, updatedPlayers, updatedRequests };
   },
 
-  rejectRegistrationRequest(requestId: string): void {
-    const requests = this.getRegistrationRequests();
-    const updated = requests.filter(r => r.id !== requestId);
-    this.saveRegistrationRequests(updated);
+  async rejectRegistrationRequest(
+    requestId: string,
+    currentRequests?: PlayerRegistrationRequest[]
+  ): Promise<PlayerRegistrationRequest[]> {
+    const activeRequests = currentRequests && currentRequests.length > 0
+      ? currentRequests
+      : this.getRegistrationRequests();
+
+    const updatedRequests = activeRequests.filter(r => r.id !== requestId);
+
+    try {
+      localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(updatedRequests));
+    } catch (e) {
+      console.warn('Error saving requests locally:', e);
+    }
+
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('tournament_settings').upsert({
+          id: 'registration_requests',
+          data: updatedRequests,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error('Error rejecting registration request in Supabase:', err);
+      }
+    }
+
+    return updatedRequests;
   },
 
   // Tournament Days

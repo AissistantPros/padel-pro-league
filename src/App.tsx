@@ -447,12 +447,13 @@ export function App() {
         isOpen={isPendingRequestsModalOpen}
         onClose={() => setIsPendingRequestsModalOpen(false)}
         requests={registrationRequests}
-        onApproveRequest={(reqId) => {
-          setPlayers(StorageService.getPlayers());
-          setRegistrationRequests(StorageService.getRegistrationRequests());
+        players={players}
+        onApproveRequest={(newPlayer, remainingRequests) => {
+          setPlayers(prev => [...prev.filter(p => p.id !== newPlayer.id), newPlayer]);
+          setRegistrationRequests(remainingRequests);
         }}
-        onRejectRequest={(reqId) => {
-          setRegistrationRequests(StorageService.getRegistrationRequests());
+        onRejectRequest={(remainingRequests) => {
+          setRegistrationRequests(remainingRequests);
         }}
       />
     </div>

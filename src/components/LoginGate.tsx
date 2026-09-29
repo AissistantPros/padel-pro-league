@@ -21,6 +21,7 @@ import {
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
 import { StorageService, sendTelegramNotification } from '../services/storageService.ts';
+import { getSupabase } from '../services/supabaseClient.ts';
 import { ImageCropModal } from './ImageCropModal.tsx';
 
 interface LoginGateProps {
@@ -80,12 +81,13 @@ export const LoginGate: React.FC<LoginGateProps> = ({
   };
 
   // Login Verification
-  const verifyPin = (candidate: string) => {
+  const verifyPin = async (candidate: string) => {
     const cleanPin = candidate.trim().toUpperCase();
     if (!cleanPin) return;
 
     // 1. Super Admin Master PIN
-    if (cleanPin === (config.superAdminPin || 'EST99').toUpperCase() || cleanPin === '9999' || cleanPin === 'EST99') {
+    const isSuper = cleanPin === (config.superAdminPin || 'EST99').trim().toUpperCase() || cleanPin === '9999' || cleanPin === 'EST99';
+    if (isSuper) {
       setLoginSuccessInfo({ name: 'Super Administrador', role: 'superadmin' });
       setLoginError(null);
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
@@ -96,7 +98,8 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     }
 
     // 2. Tournament Master Admin PIN
-    if (cleanPin === (config.adminPin || 'G20AD').toUpperCase() || cleanPin === '1234' || cleanPin === 'G20AD') {
+    const isAdmin = cleanPin === (config.adminPin || 'G20AD').trim().toUpperCase() || cleanPin === '1234' || cleanPin === 'G20AD';
+    if (isAdmin) {
       setLoginSuccessInfo({ name: 'Administrador Maestro', role: 'admin' });
       setLoginError(null);
       confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
@@ -106,8 +109,25 @@ export const LoginGate: React.FC<LoginGateProps> = ({
       return;
     }
 
-    // 3. Match Player PIN
-    const matchingPlayer = players.find(p => p.pin && p.pin.toUpperCase() === cleanPin);
+    // 3. Match Player PIN in current memory
+    let matchingPlayer = players.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
+
+    // 4. Fallback Live Check: Query Supabase directly in case the player was just approved!
+    if (!matchingPlayer) {
+      try {
+        const supabase = getSupabase();
+        if (supabase) {
+          const { data: dbRows } = await supabase.from('players').select('data');
+          if (dbRows && Array.isArray(dbRows)) {
+            const remotePlayers: Player[] = dbRows.map((r: any) => r.data).filter(Boolean);
+            matchingPlayer = remotePlayers.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
+          }
+        }
+      } catch (err) {
+        console.warn('Live PIN check error:', err);
+      }
+    }
+
     if (matchingPlayer) {
       if (!matchingPlayer.isActive) {
         setLoginError('Tu cuenta está inactiva. Contacta a un administrador.');
@@ -130,7 +150,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
       return;
     }
 
-    setLoginError('Clave o PIN no reconocido. Verifica o solicita tu registro.');
+    setLoginError('Clave no reconocida. Puedes escribirla en mayúsculas o minúsculas.');
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -139,7 +159,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
   };
 
   // Registration Submit
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setRegError(null);
 
@@ -163,7 +183,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     setIsSubmittingReg(true);
 
     try {
-      const newReq = StorageService.addRegistrationRequest({
+      const newReq = await StorageService.addRegistrationRequest({
         name: regName.trim(),
         nickname: regNickname.trim() || undefined,
         phone: regPhone.trim(),
@@ -284,7 +304,10 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                     setPinInput(e.target.value.toUpperCase());
                     setLoginError(null);
                   }}
-                  placeholder="EJ: 9999 O G20X9"
+                  autoCapitalize="characters"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  placeholder="EJ: EST99 O G20AD"
                   maxLength={8}
                   className="w-full text-center text-2xl font-mono font-black tracking-widest uppercase bg-black/60 border border-white/15 focus:border-[#30D158] focus:ring-2 focus:ring-[#30D158]/20 rounded-2xl py-3.5 text-white placeholder:text-[#505054] outline-none transition-all"
                 />
