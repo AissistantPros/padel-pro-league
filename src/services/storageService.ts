@@ -16,6 +16,7 @@ const STORAGE_KEYS = {
   SUPER_ADMIN_AUTH: 'padel_super_admin_auth_v1',
   CURRENT_PLAYER_ID: 'padel_current_player_id_v1',
   REGISTRATION_REQUESTS: 'padel_registration_requests_v1',
+  DELETED_PLAYER_IDS: 'padel_deleted_player_ids_v1',
   LAST_SYNC: 'padel_last_sync_v1',
 };
 
@@ -128,33 +129,70 @@ export const StorageService = {
     }
   },
 
+  // Deleted Player Tombstones & Blacklist
+  getDeletedPlayerIds(): string[] {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.DELETED_PLAYER_IDS);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.warn('Error reading deleted player IDs:', e);
+    }
+    return [];
+  },
+
+  addDeletedPlayerId(playerId: string): void {
+    if (!playerId) return;
+    const current = this.getDeletedPlayerIds();
+    if (!current.includes(playerId)) {
+      const updated = [...current, playerId];
+      try {
+        localStorage.setItem(STORAGE_KEYS.DELETED_PLAYER_IDS, JSON.stringify(updated));
+      } catch (e) {}
+
+      const supabase = getSupabase();
+      if (supabase) {
+        supabase
+          .from('tournament_settings')
+          .upsert({ id: 'deleted_player_ids', data: updated, updated_at: new Date().toISOString() })
+          .then();
+      }
+    }
+  },
+
   // Players
   getPlayers(): Player[] {
+    const deletedIds = new Set(this.getDeletedPlayerIds());
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PLAYERS);
       if (stored !== null) {
         const parsed: Player[] = JSON.parse(stored);
         if (Array.isArray(parsed)) {
-          return parsed;
+          return parsed.filter(p => p && p.id && !deletedIds.has(p.id));
         }
       }
     } catch (e) {
       console.error('Error reading players from localStorage', e);
     }
-    return INITIAL_PLAYERS;
+    return INITIAL_PLAYERS.filter(p => !deletedIds.has(p.id));
   },
 
   savePlayers(players: Player[]): void {
+    const deletedIds = new Set(this.getDeletedPlayerIds());
+    const cleanPlayers = players.filter(p => p && p.id && !deletedIds.has(p.id));
+
     try {
-      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(cleanPlayers));
     } catch (e) {
       console.error('Error saving players to localStorage', e);
     }
 
     const supabase = getSupabase();
-    if (supabase && players.length > 0) {
-      // Safe Supabase Sync: Upsert active players without deleting unselected ones
-      const rows = players.map(p => ({
+    if (supabase && cleanPlayers.length > 0) {
+      // Safe Supabase Sync: Upsert active non-deleted players
+      const rows = cleanPlayers.map(p => ({
         id: p.id,
         data: p,
         updated_at: new Date().toISOString(),
@@ -166,10 +204,16 @@ export const StorageService = {
   },
 
   /**
-   * Explicitly delete a player from database and local storage.
+   * Explicitly and permanently eradicate a player from database, cache, and local storage.
    * Called only on user confirmation from PlayersManager.
    */
   async deletePlayer(playerId: string, currentPlayers?: Player[]): Promise<Player[]> {
+    if (!playerId) return currentPlayers || this.getPlayers();
+
+    // 1. Mark in permanent blacklist/tombstone
+    this.addDeletedPlayerId(playerId);
+
+    // 2. Filter out of local list
     const active = currentPlayers && currentPlayers.length > 0 ? currentPlayers : this.getPlayers();
     const updated = active.filter(p => p.id !== playerId);
     try {
@@ -177,6 +221,14 @@ export const StorageService = {
     } catch (e) {
       console.warn('Error saving players locally:', e);
     }
+
+    // 3. Clear auth if deleted player is the active session
+    const curPlayerId = this.getCurrentPlayerId();
+    if (curPlayerId === playerId) {
+      this.setCurrentPlayerId(null);
+    }
+
+    // 4. Permanent Supabase cloud eradication
     const supabase = getSupabase();
     if (supabase) {
       try {
@@ -184,7 +236,23 @@ export const StorageService = {
         if (error) {
           console.error(`Supabase deletePlayer error for ${playerId}:`, error.message);
         } else {
-          console.log(`Player ${playerId} successfully deleted from Supabase`);
+          console.log(`Player ${playerId} permanently eradicated from Supabase`);
+        }
+
+        // Clean matching registration requests
+        const targetPlayer = active.find(p => p.id === playerId);
+        const reqs = this.getRegistrationRequests();
+        const updatedReqs = reqs.filter(r => 
+          r.name?.trim().toLowerCase() !== targetPlayer?.name?.trim().toLowerCase() &&
+          r.phone?.trim() !== targetPlayer?.phone?.trim()
+        );
+        if (updatedReqs.length !== reqs.length) {
+          this.saveRegistrationRequests(updatedReqs);
+          await supabase.from('tournament_settings').upsert({
+            id: 'registration_requests',
+            data: updatedReqs,
+            updated_at: new Date().toISOString(),
+          });
         }
       } catch (err) {
         console.error('Error deleting player from Supabase:', err);
@@ -208,8 +276,15 @@ export const StorageService = {
     return updated;
   },
 
-  // Telemetry: Logins & Click Engagement (Atomic single-player upsert, never deletes others)
+  // Telemetry: Logins & Click Engagement (Uses .update to NEVER re-create a deleted player)
   recordUserLogin(playerId: string): void {
+    if (!playerId) return;
+    const deletedIds = this.getDeletedPlayerIds();
+    if (deletedIds.includes(playerId)) {
+      if (this.getCurrentPlayerId() === playerId) this.setCurrentPlayerId(null);
+      return;
+    }
+
     const players = this.getPlayers();
     let updatedPlayer: Player | null = null;
     const updated = players.map(p => {
@@ -224,22 +299,37 @@ export const StorageService = {
       }
       return p;
     });
+
+    if (!updatedPlayer) return;
+
     try {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
     } catch (e) {
       console.error('Error saving login telemetry locally:', e);
     }
+
     const supabase = getSupabase();
     if (supabase && updatedPlayer) {
-      supabase.from('players').upsert({
-        id: (updatedPlayer as Player).id,
-        data: updatedPlayer,
-        updated_at: new Date().toISOString(),
-      }).then();
+      // Use UPDATE (never upsert) so a deleted row is NEVER resurrected
+      supabase
+        .from('players')
+        .update({
+          data: updatedPlayer,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', (updatedPlayer as Player).id)
+        .then();
     }
   },
 
   recordUserClicks(playerId: string, clicksCount: number): void {
+    if (!playerId || clicksCount <= 0) return;
+    const deletedIds = this.getDeletedPlayerIds();
+    if (deletedIds.includes(playerId)) {
+      if (this.getCurrentPlayerId() === playerId) this.setCurrentPlayerId(null);
+      return;
+    }
+
     const players = this.getPlayers();
     let updatedPlayer: Player | null = null;
     const updated = players.map(p => {
@@ -253,18 +343,26 @@ export const StorageService = {
       }
       return p;
     });
+
+    if (!updatedPlayer) return;
+
     try {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
     } catch (e) {
       console.error('Error saving click telemetry locally:', e);
     }
+
     const supabase = getSupabase();
     if (supabase && updatedPlayer) {
-      supabase.from('players').upsert({
-        id: (updatedPlayer as Player).id,
-        data: updatedPlayer,
-        updated_at: new Date().toISOString(),
-      }).then();
+      // Use UPDATE (never upsert) so a deleted row is NEVER resurrected
+      supabase
+        .from('players')
+        .update({
+          data: updatedPlayer,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', (updatedPlayer as Player).id)
+        .then();
     }
   },
 
@@ -608,21 +706,44 @@ export const StorageService = {
     if (!supabase) return null;
 
     try {
-      const [confRes, playersRes, daysRes, finaleRes, reqRes] = await Promise.all([
+      const [confRes, playersRes, daysRes, finaleRes, reqRes, delRes] = await Promise.all([
         supabase.from('tournament_settings').select('data').eq('id', 'main_config').maybeSingle(),
         supabase.from('players').select('data'),
         supabase.from('tournament_days').select('data'),
         supabase.from('grand_finale').select('data').eq('id', 'main_bracket').maybeSingle(),
         supabase.from('tournament_settings').select('data').eq('id', 'registration_requests').maybeSingle(),
+        supabase.from('tournament_settings').select('data').eq('id', 'deleted_player_ids').maybeSingle(),
       ]);
 
       const config: TournamentConfig = confRes.data?.data || this.getConfig();
+
+      // Synchronize deleted player tombstones
+      const cloudDeletedIds: string[] = Array.isArray(delRes.data?.data) ? delRes.data.data : [];
+      const localDeletedIds = this.getDeletedPlayerIds();
+      const allDeletedIds = Array.from(new Set([...cloudDeletedIds, ...localDeletedIds]));
+      if (allDeletedIds.length > 0) {
+        try {
+          localStorage.setItem(STORAGE_KEYS.DELETED_PLAYER_IDS, JSON.stringify(allDeletedIds));
+        } catch (e) {}
+      }
+      const deletedSet = new Set(allDeletedIds);
       
       let players: Player[] = [];
       if (playersRes.data && Array.isArray(playersRes.data) && playersRes.data.length > 0) {
-        players = playersRes.data.map((r: any) => r.data).filter(Boolean);
+        players = playersRes.data
+          .map((r: any) => r.data)
+          .filter(Boolean)
+          .filter((p: Player) => p && p.id && !deletedSet.has(p.id));
+
+        // Purge any ghost deleted players that may linger in Supabase
+        const ghosts = playersRes.data
+          .map((r: any) => r.data?.id)
+          .filter((id: string) => id && deletedSet.has(id));
+        if (ghosts.length > 0) {
+          supabase.from('players').delete().in('id', ghosts).then();
+        }
       } else {
-        players = this.getPlayers();
+        players = this.getPlayers().filter(p => !deletedSet.has(p.id));
         if (players.length > 0) {
           const rows = players.map(p => ({
             id: p.id,
@@ -729,6 +850,7 @@ export const StorageService = {
     localStorage.removeItem(STORAGE_KEYS.GRAND_FINALE);
     localStorage.removeItem(STORAGE_KEYS.CONFIG);
     localStorage.removeItem(STORAGE_KEYS.REGISTRATION_REQUESTS);
+    localStorage.removeItem(STORAGE_KEYS.DELETED_PLAYER_IDS);
 
     const supabase = getSupabase();
     if (supabase) {
@@ -741,6 +863,7 @@ export const StorageService = {
         updated_at: new Date().toISOString()
       });
       await supabase.from('tournament_settings').delete().eq('id', 'registration_requests');
+      await supabase.from('tournament_settings').delete().eq('id', 'deleted_player_ids');
     }
   },
 

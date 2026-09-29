@@ -80,10 +80,24 @@ export function App() {
           if (payload.eventType === 'DELETE') {
             const deletedId = payload.old?.id;
             if (deletedId) {
+              StorageService.addDeletedPlayerId(deletedId);
               setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== deletedId));
+              if (currentPlayerId === deletedId) {
+                handleLogout();
+              }
             }
           } else if (payload.new && payload.new.data) {
             const updatedPlayer = payload.new.data as Player;
+            const deletedIds = StorageService.getDeletedPlayerIds();
+            if (deletedIds.includes(updatedPlayer.id)) {
+              // Rogue or stale insertion of an already deleted player! Eradicate immediately
+              const sb = getSupabase();
+              if (sb) {
+                sb.from('players').delete().eq('id', updatedPlayer.id).then();
+              }
+              setPlayers(prev => prev.filter(p => p.id !== updatedPlayer.id));
+              return;
+            }
             setPlayers(prev => {
               const idx = prev.findIndex(p => p.id === updatedPlayer.id);
               if (idx !== -1) {
@@ -101,6 +115,16 @@ export function App() {
           }
           if (payload.new && payload.new.id === 'main_config' && payload.new.data) {
             setConfig(payload.new.data);
+          }
+          if (payload.new && payload.new.id === 'deleted_player_ids' && payload.new.data) {
+            const deletedIds: string[] = payload.new.data;
+            if (Array.isArray(deletedIds)) {
+              deletedIds.forEach(id => StorageService.addDeletedPlayerId(id));
+              setPlayers(prev => prev.filter(p => !deletedIds.includes(p.id)));
+              if (currentPlayerId && deletedIds.includes(currentPlayerId)) {
+                handleLogout();
+              }
+            }
           }
         })
         .subscribe();
@@ -127,7 +151,6 @@ export function App() {
     const interval = setInterval(() => {
       if (clicksBuffer > 0) {
         StorageService.recordUserClicks(currentPlayerId, clicksBuffer);
-        setPlayers(StorageService.getPlayers());
         clicksBuffer = 0;
       }
     }, 10000);
@@ -237,9 +260,13 @@ export function App() {
         setIsSuperAdmin(true);
         StorageService.setAdminAuthenticated(true);
         StorageService.setSuperAdminAuthenticated(true);
+        // Link to superadmin player (Esteban) or clear test IDs
+        const adminPlayer = players.find(p => p.role === 'superadmin' || p.pin === 'EST99');
+        handleSelectCurrentPlayer(adminPlayer ? adminPlayer.id : 'p_1');
       } else if (role === 'admin') {
         setIsAdmin(true);
         StorageService.setAdminAuthenticated(true);
+        handleSelectCurrentPlayer(null);
       }
     }
   };

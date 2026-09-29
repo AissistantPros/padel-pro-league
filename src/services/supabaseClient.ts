@@ -7,16 +7,15 @@ const SUPABASE_URL_KEY = 'padel_supabase_url_custom';
 const SUPABASE_KEY_KEY = 'padel_supabase_anon_key_custom';
 
 export function getSupabaseCredentials(): { url: string; anonKey: string } {
-  // Check custom localStorage first, then env vars, then permanent project defaults
-  const customUrl = localStorage.getItem(SUPABASE_URL_KEY) || '';
-  const customKey = localStorage.getItem(SUPABASE_KEY_KEY) || '';
-
   const envUrl = import.meta.env.VITE_SUPABASE_URL || '';
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
 
+  const customUrl = localStorage.getItem(SUPABASE_URL_KEY) || '';
+  const customKey = localStorage.getItem(SUPABASE_KEY_KEY) || '';
+
   return {
-    url: customUrl || envUrl || DEFAULT_SUPABASE_URL,
-    anonKey: customKey || envKey || DEFAULT_SUPABASE_KEY,
+    url: envUrl || DEFAULT_SUPABASE_URL || customUrl,
+    anonKey: envKey || DEFAULT_SUPABASE_KEY || customKey,
   };
 }
 

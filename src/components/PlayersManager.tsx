@@ -202,9 +202,15 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   };
 
   const handleDeletePlayer = async (playerId: string) => {
-    if (confirm('¿Eliminar este participante de la lista oficial del torneo?')) {
-      const remaining = await StorageService.deletePlayer(playerId, players);
+    const targetPlayer = players.find(p => p.id === playerId);
+    const name = targetPlayer?.name || 'este participante';
+    if (confirm(`¿Eliminar definitivamente a "${name}" de la lista oficial del torneo?\n\nEsta acción borrará al participante de la base de datos de forma permanente.`)) {
+      // 1. Instant optimistic UI removal so there is no flicker or hesitation
+      const remaining = players.filter(p => p.id !== playerId);
       onSavePlayers(remaining);
+
+      // 2. Permanent eradication from Supabase & tombstone blacklist
+      await StorageService.deletePlayer(playerId, remaining);
     }
   };
 
