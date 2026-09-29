@@ -93,16 +93,26 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Role Badges */}
             {isSuperAdmin ? (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#FFD60A]/20 via-[#FF9F0A]/20 to-[#FFD60A]/20 text-[#FFD60A] border border-[#FFD60A]/40 shadow-sm shadow-[#FFD60A]/10">
+              <button
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-black bg-gradient-to-r from-[#FFD60A]/20 via-[#FF9F0A]/20 to-[#FFD60A]/20 text-[#FFD60A] border border-[#FFD60A]/40 shadow-sm shadow-[#FFD60A]/10 hover:brightness-110 ios-touch"
+                title="Abrir Panel Super Admin"
+              >
                 <Crown className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" />
-                <span className="hidden sm:inline">Super</span> Admin
-              </span>
+                <span>SA</span>
+              </button>
             ) : isAdmin ? (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#0A84FF]/15 text-[#64D2FF] border border-[#0A84FF]/30">
+              <button
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-[#0A84FF]/15 text-[#64D2FF] border border-[#0A84FF]/30 hover:brightness-110 ios-touch"
+                title="Ajustes del Torneo"
+              >
                 <ShieldCheck className="w-3.5 h-3.5 mr-1" />
                 <span className="hidden sm:inline">Administrador</span>
                 <span className="sm:hidden">Admin</span>
-              </span>
+              </button>
             ) : (
               <span className="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30">
                 🎾 Jugador

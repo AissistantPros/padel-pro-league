@@ -372,55 +372,75 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
         </div>
       </form>
 
-      {/* Super Admin Section */}
-      <div className="ios-card p-4 space-y-4 border border-white/5">
+      {/* Super Admin Section (SA) */}
+      <div className="ios-card p-4 space-y-4 border border-white/5 bg-gradient-to-b from-[#1C1C1E] to-[#141416]">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-1.5">
-            <Crown className="w-4 h-4 text-[#FFD60A]" />
-            <span className="text-xs font-bold text-white uppercase tracking-wider">
-              Zona Super Administrador
-            </span>
+          <div className="flex items-center space-x-2">
+            <div className="w-6 h-6 rounded-lg bg-[#FFD60A]/20 flex items-center justify-center border border-[#FFD60A]/30">
+              <Crown className="w-3.5 h-3.5 text-[#FFD60A]" />
+            </div>
+            <div>
+              <div className="flex items-center space-x-1.5">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">
+                  Panel Super Admin (SA)
+                </span>
+                {isSuperAdmin && (
+                  <span className="text-[9px] font-black text-[#FFD60A] bg-[#FFD60A]/20 px-1.5 py-0.5 rounded border border-[#FFD60A]/40">
+                    ACTIVO
+                  </span>
+                )}
+              </div>
+              <p className="text-[10px] text-[#8E8E93]">
+                Herramientas avanzadas, base de datos y credenciales
+              </p>
+            </div>
           </div>
-          {!isSuperAdmin ? (
-            <button
-              onClick={() => setShowSuperAdminSection(!showSuperAdminSection)}
-              className="text-xs text-[#0A84FF] font-semibold"
-            >
-              {showSuperAdminSection ? 'Ocultar' : 'Acceder con PIN'}
-            </button>
-          ) : (
-            <span className="text-[10px] font-bold text-[#30D158] bg-[#30D158]/15 px-2 py-0.5 rounded-full">
-              Super Admin Activo
-            </span>
-          )}
+
+          <button
+            type="button"
+            onClick={() => setShowSuperAdminSection(!showSuperAdminSection)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ios-touch flex items-center ${
+              showSuperAdminSection
+                ? 'bg-[#FFD60A] text-black shadow-md shadow-[#FFD60A]/20'
+                : 'bg-[#2C2C2E] text-[#FFD60A] border border-[#FFD60A]/30 hover:bg-[#3A3A3C]'
+            }`}
+          >
+            <Crown className="w-3 h-3 mr-1" />
+            <span>{showSuperAdminSection ? 'Ocultar SA' : 'Abrir SA'}</span>
+          </button>
         </div>
 
+        {/* If not logged in as Super Admin and tries to open, allow elevating with Super Admin PIN */}
         {!isSuperAdmin && showSuperAdminSection && (
-          <form onSubmit={handleUnlockSuperAdmin} className="space-y-2 pt-1">
+          <form onSubmit={handleUnlockSuperAdmin} className="space-y-2 pt-2 border-t border-white/5 animate-fade-in">
+            <p className="text-[11px] text-[#8E8E93]">
+              Introduce tu clave de Super Admin para desbloquear las opciones de infraestructura:
+            </p>
             <div className="flex items-center space-x-2">
               <input
-                type="password"
-                maxLength={6}
+                type="text"
+                maxLength={8}
                 value={superPinInput}
-                onChange={(e) => setSuperPinInput(e.target.value)}
-                placeholder="PIN Super Admin (9999)"
-                className="bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-xs text-white flex-1"
+                onChange={(e) => setSuperPinInput(e.target.value.toUpperCase())}
+                placeholder="CLAVE SA (EST99)"
+                className="bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-xs text-white uppercase font-mono font-bold flex-1 focus:outline-none focus:border-[#FFD60A]"
               />
               <button
                 type="submit"
-                className="px-3.5 py-2 bg-[#0A84FF] text-white font-bold text-xs rounded-xl ios-touch"
+                className="px-3.5 py-2 bg-[#FFD60A] text-black font-bold text-xs rounded-xl ios-touch shadow-md"
               >
-                Entrar
+                Desbloquear
               </button>
             </div>
             {superPinError && (
-              <p className="text-xs text-[#FF453A]">PIN incorrecto (9999)</p>
+              <p className="text-xs text-[#FF453A] animate-shake">Clave SA no reconocida</p>
             )}
           </form>
         )}
 
-        {isSuperAdmin && (
-          <div className="space-y-4 pt-1 text-xs">
+        {/* Super Admin Options (Visible immediately if user is already Super Admin or has unlocked) */}
+        {(isSuperAdmin || showSuperAdminSection) && (isSuperAdmin) && (
+          <div className="space-y-4 pt-2 border-t border-white/5 text-xs animate-fade-in">
             {/* Super Admin Master PIN */}
             <div className="p-3.5 bg-[#2C2C2E]/60 border border-white/10 rounded-2xl space-y-2">
               <div className="flex items-center justify-between">
