@@ -151,6 +151,10 @@ export function App() {
   const effectiveIsAdmin = isAdmin || isSuperAdmin || currentPlayer?.role === 'admin' || currentPlayer?.role === 'superadmin';
   const effectiveIsSuperAdmin = isSuperAdmin || currentPlayer?.role === 'superadmin';
 
+  const pendingRequestsOnly = useMemo(() => {
+    return registrationRequests.filter(r => !r.status || r.status === 'pending');
+  }, [registrationRequests]);
+
   const statsList = useMemo(() => {
     return buildChampionshipIntelligence(players, days, config);
   }, [players, days, config]);
@@ -323,7 +327,7 @@ export function App() {
         isAdmin={effectiveIsAdmin}
         isSuperAdmin={effectiveIsSuperAdmin}
         currentPlayer={currentPlayer}
-        pendingRequestsCount={registrationRequests.length}
+        pendingRequestsCount={pendingRequestsOnly.length}
         onOpenPendingRequests={() => setIsPendingRequestsModalOpen(true)}
         config={config}
         onLogout={handleLogout}
@@ -362,7 +366,7 @@ export function App() {
             statsList={statsList}
             isAdmin={effectiveIsAdmin}
             isSuperAdmin={effectiveIsSuperAdmin}
-            pendingRequests={registrationRequests}
+            pendingRequests={pendingRequestsOnly}
             onOpenPendingRequests={() => setIsPendingRequestsModalOpen(true)}
             onSavePlayers={handleSavePlayers}
             onSelectPlayerForIntelligence={handleSelectPlayerForIntelligence}

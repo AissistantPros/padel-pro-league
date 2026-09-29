@@ -201,9 +201,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     setEditingPlayer(null);
   };
 
-  const handleDeletePlayer = (playerId: string) => {
+  const handleDeletePlayer = async (playerId: string) => {
     if (confirm('¿Eliminar este participante de la lista oficial del torneo?')) {
-      onSavePlayers(players.filter(p => p.id !== playerId));
+      const remaining = await StorageService.deletePlayer(playerId);
+      onSavePlayers(remaining);
     }
   };
 

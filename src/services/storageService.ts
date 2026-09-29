@@ -171,41 +171,40 @@ export const StorageService = {
     }
 
     const supabase = getSupabase();
-    if (supabase) {
-      // Atomic Supabase Sync: Fetch existing IDs, delete only removed players, upsert active players
-      supabase
-        .from('players')
-        .select('id')
-        .then(({ data: existingRows, error }) => {
-          if (error) {
-            console.warn('Supabase savePlayers fetch error:', error.message);
-            return;
-          }
-
-          const existingIds: string[] = (existingRows || []).map((r: any) => r.id);
-          const currentIds = new Set(players.map(p => p.id));
-          const toDelete = existingIds.filter(id => !currentIds.has(id));
-
-          // 1. Delete removed players permanently
-          if (toDelete.length > 0) {
-            supabase.from('players').delete().in('id', toDelete).then(({ error: delErr }) => {
-              if (delErr) console.warn('Supabase delete players error:', delErr.message);
-            });
-          }
-
-          // 2. Upsert current players
-          if (players.length > 0) {
-            const rows = players.map(p => ({
-              id: p.id,
-              data: p,
-              updated_at: new Date().toISOString(),
-            }));
-            supabase.from('players').upsert(rows).then(({ error: upErr }) => {
-              if (upErr) console.warn('Supabase upsert players error:', upErr.message);
-            });
-          }
-        });
+    if (supabase && players.length > 0) {
+      // Safe Supabase Sync: Upsert active players without deleting unselected ones
+      const rows = players.map(p => ({
+        id: p.id,
+        data: p,
+        updated_at: new Date().toISOString(),
+      }));
+      supabase.from('players').upsert(rows).then(({ error: upErr }) => {
+        if (upErr) console.warn('Supabase upsert players error:', upErr.message);
+      });
     }
+  },
+
+  /**
+   * Explicitly delete a player from database and local storage.
+   * Called only on user confirmation from PlayersManager.
+   */
+  async deletePlayer(playerId: string): Promise<Player[]> {
+    const current = this.getPlayers();
+    const updated = current.filter(p => p.id !== playerId);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn('Error saving players locally:', e);
+    }
+    const supabase = getSupabase();
+    if (supabase) {
+      try {
+        await supabase.from('players').delete().eq('id', playerId);
+      } catch (err) {
+        console.error('Error deleting player from Supabase:', err);
+      }
+    }
+    return updated;
   },
 
   // Regenerate random security codes for all players
@@ -223,36 +222,64 @@ export const StorageService = {
     return updated;
   },
 
-  // Telemetry: Logins & Click Engagement
+  // Telemetry: Logins & Click Engagement (Atomic single-player upsert, never deletes others)
   recordUserLogin(playerId: string): void {
     const players = this.getPlayers();
+    let updatedPlayer: Player | null = null;
     const updated = players.map(p => {
       if (p.id === playerId) {
-        return {
+        updatedPlayer = {
           ...p,
           loginCount: (p.loginCount || 0) + 1,
           lastLoginAt: new Date().toISOString(),
           lastActiveAt: new Date().toISOString(),
         };
+        return updatedPlayer;
       }
       return p;
     });
-    this.savePlayers(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving login telemetry locally:', e);
+    }
+    const supabase = getSupabase();
+    if (supabase && updatedPlayer) {
+      supabase.from('players').upsert({
+        id: (updatedPlayer as Player).id,
+        data: updatedPlayer,
+        updated_at: new Date().toISOString(),
+      }).then();
+    }
   },
 
   recordUserClicks(playerId: string, clicksCount: number): void {
     const players = this.getPlayers();
+    let updatedPlayer: Player | null = null;
     const updated = players.map(p => {
       if (p.id === playerId) {
-        return {
+        updatedPlayer = {
           ...p,
           activeClicks: (p.activeClicks || 0) + clicksCount,
           lastActiveAt: new Date().toISOString(),
         };
+        return updatedPlayer;
       }
       return p;
     });
-    this.savePlayers(updated);
+    try {
+      localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Error saving click telemetry locally:', e);
+    }
+    const supabase = getSupabase();
+    if (supabase && updatedPlayer) {
+      supabase.from('players').upsert({
+        id: (updatedPlayer as Player).id,
+        data: updatedPlayer,
+        updated_at: new Date().toISOString(),
+      }).then();
+    }
   },
 
   // Registration Requests
@@ -398,7 +425,16 @@ export const StorageService = {
     };
 
     const updatedPlayers = [...activePlayers.filter(p => p.id !== newPlayer.id), newPlayer];
-    const updatedRequests = activeRequests.filter(r => r.id !== req.id);
+    // Keep request in DB history marked as approved with its generated PIN
+    const updatedRequests = activeRequests.map(r =>
+      r.id === req.id
+        ? {
+            ...r,
+            status: 'approved' as const,
+            notes: (r.notes ? r.notes + ' | ' : '') + `Aprobado con clave ${pin}`,
+          }
+        : r
+    );
 
     // Save to LocalStorage
     try {
@@ -443,7 +479,15 @@ export const StorageService = {
       ? currentRequests
       : this.getRegistrationRequests();
 
-    const updatedRequests = activeRequests.filter(r => r.id !== requestId);
+    // Keep request in DB history marked as rejected
+    const updatedRequests = activeRequests.map(r =>
+      r.id === requestId
+        ? {
+            ...r,
+            status: 'rejected' as const,
+          }
+        : r
+    );
 
     try {
       localStorage.setItem(STORAGE_KEYS.REGISTRATION_REQUESTS, JSON.stringify(updatedRequests));
@@ -654,31 +698,13 @@ export const StorageService = {
         });
       }
 
-      // Sync players
-      const { data: existingRows } = await supabase.from('players').select('id');
-      const existingIds = (existingRows || []).map((r: any) => r.id);
-      const currentIds = new Set(players.map(p => p.id));
-      const toDelete = existingIds.filter(id => !currentIds.has(id));
-
-      if (toDelete.length > 0) {
-        await supabase.from('players').delete().in('id', toDelete);
-      }
-
+      // Upsert players safely without deleting unselected ones
       if (players.length > 0) {
         const pRows = players.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
         await supabase.from('players').upsert(pRows);
       }
 
-      // Sync days
-      const { data: existingDays } = await supabase.from('tournament_days').select('id');
-      const existingDayIds = (existingDays || []).map((r: any) => r.id);
-      const currentDayIds = new Set(days.map(d => d.id));
-      const toDeleteDays = existingDayIds.filter(id => !currentDayIds.has(id));
-
-      if (toDeleteDays.length > 0) {
-        await supabase.from('tournament_days').delete().in('id', toDeleteDays);
-      }
-
+      // Upsert tournament days safely
       if (days.length > 0) {
         const dRows = days.map(d => ({ id: d.id, data: d, updated_at: new Date().toISOString() }));
         await supabase.from('tournament_days').upsert(dRows);

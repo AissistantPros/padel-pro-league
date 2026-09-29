@@ -37,6 +37,7 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
   onApproveRequest,
   onRejectRequest,
 }) => {
+  const [viewTab, setViewTab] = useState<'pending' | 'history'>('pending');
   const [approvedResult, setApprovedResult] = useState<{
     player: Player;
     pin: string;
@@ -46,6 +47,9 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
   const [approvingId, setApprovingId] = useState<string | null>(null);
 
   if (!isOpen) return null;
+
+  const pendingRequests = requests.filter(r => !r.status || r.status === 'pending');
+  const historyRequests = requests.filter(r => r.status === 'approved' || r.status === 'rejected');
 
   const handleApprove = async (req: PlayerRegistrationRequest) => {
     try {
@@ -92,7 +96,7 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
             <div>
               <h3 className="text-base font-bold text-white">Solicitudes de Registro</h3>
               <p className="text-xs text-[#8E8E93]">
-                {requests.length} {requests.length === 1 ? 'solicitud pendiente' : 'solicitudes pendientes'} de revisión
+                {pendingRequests.length} {pendingRequests.length === 1 ? 'pendiente' : 'pendientes'} • {historyRequests.length} en historial
               </p>
             </div>
           </div>
@@ -105,88 +109,178 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
           </button>
         </div>
 
+        {/* Tab switch: Pendientes vs Historial */}
+        <div className="ios-segmented-control grid grid-cols-2 p-1 bg-black/40 rounded-2xl border border-white/10">
+          <button
+            type="button"
+            onClick={() => setViewTab('pending')}
+            className={`ios-segmented-item py-2 text-xs font-bold ${viewTab === 'pending' ? 'active shadow-lg' : 'text-[#8E8E93]'}`}
+          >
+            Pendientes ({pendingRequests.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewTab('history')}
+            className={`ios-segmented-item py-2 text-xs font-bold ${viewTab === 'history' ? 'active shadow-lg' : 'text-[#8E8E93]'}`}
+          >
+            Historial ({historyRequests.length})
+          </button>
+        </div>
+
         {/* Modal Body / List */}
         <div className="flex-1 overflow-y-auto space-y-4 pr-1">
-          {requests.length === 0 ? (
-            <div className="text-center py-12 space-y-2">
-              <UserCheck className="w-12 h-12 text-[#30D158] mx-auto opacity-70" />
-              <h4 className="text-base font-bold text-white">No hay solicitudes pendientes</h4>
-              <p className="text-xs text-[#8E8E93] max-w-xs mx-auto">
-                Todos los registros de jugadores han sido procesados y aprobados.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {requests.map((req) => (
-                <div
-                  key={req.id}
-                  className="bg-[#2C2C2E]/60 border border-white/10 rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center space-x-3 min-w-0">
-                      {req.avatar ? (
-                        <img
-                          src={req.avatar}
-                          alt={req.name}
-                          className="w-14 h-14 rounded-full object-cover border-2 border-[#30D158] flex-shrink-0 bg-black"
-                        />
-                      ) : (
-                        <div className="w-14 h-14 rounded-full bg-black text-white font-bold flex items-center justify-center border-2 border-[#30D158] flex-shrink-0">
-                          {req.name.slice(0, 2).toUpperCase()}
-                        </div>
-                      )}
-
-                      <div className="min-w-0">
-                        <div className="flex items-center space-x-2">
-                          <h4 className="text-sm font-bold text-white truncate">{req.name}</h4>
-                          {req.nickname && (
-                            <span className="text-[10px] font-semibold text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full border border-[#FFD60A]/30">
-                              "{req.nickname}"
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="text-xs text-[#8E8E93] space-y-0.5 mt-1">
-                          <div className="flex items-center space-x-1">
-                            <Phone className="w-3 h-3 text-[#30D158]" />
-                            <span>{req.phone}</span>
+          {viewTab === 'pending' ? (
+            pendingRequests.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <UserCheck className="w-12 h-12 text-[#30D158] mx-auto opacity-70" />
+                <h4 className="text-base font-bold text-white">No hay solicitudes pendientes</h4>
+                <p className="text-xs text-[#8E8E93] max-w-xs mx-auto">
+                  Todos los registros de jugadores han sido procesados.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#2C2C2E]/60 border border-white/10 rounded-2xl p-4 space-y-3 hover:border-white/20 transition-all"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        {req.avatar ? (
+                          <img
+                            src={req.avatar}
+                            alt={req.name}
+                            className="w-14 h-14 rounded-full object-cover border-2 border-[#30D158] flex-shrink-0 bg-black"
+                          />
+                        ) : (
+                          <div className="w-14 h-14 rounded-full bg-black text-white font-bold flex items-center justify-center border-2 border-[#30D158] flex-shrink-0">
+                            {req.name.slice(0, 2).toUpperCase()}
                           </div>
-                          <div className="flex items-center space-x-1">
-                            <Mail className="w-3 h-3 text-[#64D2FF]" />
-                            <span className="truncate">{req.email}</span>
+                        )}
+
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-sm font-bold text-white truncate">{req.name}</h4>
+                            {req.nickname && (
+                              <span className="text-[10px] font-semibold text-[#FFD60A] bg-[#FFD60A]/15 px-2 py-0.5 rounded-full border border-[#FFD60A]/30">
+                                "{req.nickname}"
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-[#8E8E93] space-y-0.5 mt-1">
+                            <div className="flex items-center space-x-1">
+                              <Phone className="w-3 h-3 text-[#30D158]" />
+                              <span>{req.phone}</span>
+                            </div>
+                            <div className="flex items-center space-x-1">
+                              <Mail className="w-3 h-3 text-[#64D2FF]" />
+                              <span className="truncate">{req.email}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
+
+                      <span className="text-[10px] text-[#8E8E93] whitespace-nowrap">
+                        {new Date(req.requestedAt).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
+                      </span>
                     </div>
 
-                    <span className="text-[10px] text-[#8E8E93] whitespace-nowrap">
-                      {new Date(req.requestedAt).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
-                    </span>
-                  </div>
+                    {/* Actions */}
+                    <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/5">
+                      <button
+                        type="button"
+                        onClick={() => handleReject(req.id)}
+                        className="px-3 py-1.5 rounded-xl bg-[#FF453A]/15 text-[#FF453A] hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-xs font-bold flex items-center ios-touch"
+                      >
+                        <UserX className="w-3.5 h-3.5 mr-1" /> Rechazar
+                      </button>
 
-                  {/* Actions */}
-                  <div className="flex items-center justify-end space-x-2 pt-2 border-t border-white/5">
-                    <button
-                      type="button"
-                      onClick={() => handleReject(req.id)}
-                      className="px-3 py-1.5 rounded-xl bg-[#FF453A]/15 text-[#FF453A] hover:bg-[#FF453A]/25 border border-[#FF453A]/30 text-xs font-bold flex items-center ios-touch"
-                    >
-                      <UserX className="w-3.5 h-3.5 mr-1" /> Rechazar
-                    </button>
-
-                    <button
-                      type="button"
-                      disabled={approvingId === req.id}
-                      onClick={() => handleApprove(req)}
-                      className="px-4 py-1.5 rounded-xl bg-[#30D158] text-black font-black text-xs flex items-center ios-touch shadow-md hover:bg-[#28B84B] disabled:opacity-50"
-                    >
-                      <UserCheck className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
-                      {approvingId === req.id ? 'Autorizando...' : 'Aceptar Jugador'}
-                    </button>
+                      <button
+                        type="button"
+                        disabled={approvingId === req.id}
+                        onClick={() => handleApprove(req)}
+                        className="px-4 py-1.5 rounded-xl bg-[#30D158] text-black font-black text-xs flex items-center ios-touch shadow-md hover:bg-[#28B84B] disabled:opacity-50"
+                      >
+                        <UserCheck className="w-3.5 h-3.5 mr-1 stroke-[2.5]" />
+                        {approvingId === req.id ? 'Autorizando...' : 'Aceptar Jugador'}
+                      </button>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )
+          ) : (
+            historyRequests.length === 0 ? (
+              <div className="text-center py-12 space-y-2">
+                <Clock className="w-12 h-12 text-[#8E8E93] mx-auto opacity-50" />
+                <h4 className="text-base font-bold text-white">Historial vacío</h4>
+                <p className="text-xs text-[#8E8E93] max-w-xs mx-auto">
+                  Aquí aparecerán las solicitudes aprobadas y rechazadas.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {historyRequests.map((req) => (
+                  <div
+                    key={req.id}
+                    className="bg-[#2C2C2E]/40 border border-white/10 rounded-2xl p-4 space-y-2.5"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center space-x-3 min-w-0">
+                        {req.avatar ? (
+                          <img
+                            src={req.avatar}
+                            alt={req.name}
+                            className="w-12 h-12 rounded-full object-cover border border-white/20 flex-shrink-0 bg-black"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-black text-white font-bold flex items-center justify-center border border-white/20 flex-shrink-0">
+                            {req.name.slice(0, 2).toUpperCase()}
+                          </div>
+                        )}
+
+                        <div className="min-w-0">
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-sm font-bold text-white truncate">{req.name}</h4>
+                            {req.nickname && (
+                              <span className="text-[10px] text-[#8E8E93]">
+                                "{req.nickname}"
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs text-[#8E8E93]">
+                            {req.phone} • {req.email}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="text-right flex-shrink-0">
+                        {req.status === 'approved' ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30">
+                            <ShieldCheck className="w-3 h-3 mr-1" /> Aprobado
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#FF453A]/15 text-[#FF453A] border border-[#FF453A]/30">
+                            <UserX className="w-3 h-3 mr-1" /> Rechazado
+                          </span>
+                        )}
+                        <p className="text-[10px] text-[#8E8E93] mt-1">
+                          {new Date(req.requestedAt).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}
+                        </p>
+                      </div>
+                    </div>
+
+                    {req.notes && (
+                      <div className="text-[11px] text-[#8E8E93] bg-black/40 px-3 py-1.5 rounded-xl border border-white/5 font-mono">
+                        {req.notes}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
           )}
         </div>
 
