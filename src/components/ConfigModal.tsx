@@ -461,7 +461,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                 maxLength={8}
                 value={superPinInput}
                 onChange={(e) => setSuperPinInput(e.target.value.toUpperCase())}
-                placeholder="CLAVE SA (EST99)"
+                placeholder="CLAVE SUPER ADMIN"
                 className="bg-[#2C2C2E] border border-white/10 rounded-xl px-3 py-2 text-xs text-white uppercase font-mono font-bold flex-1 focus:outline-none focus:border-[#FFD60A]"
               />
               <button
