@@ -234,6 +234,9 @@ export interface TournamentConfig {
   courtNames: string[];
   adminPin: string; // Tournament Admin PIN
   superAdminPin: string; // Super Admin PIN (Developer & Cloud keys)
+  telegramBotToken?: string; // Telegram Bot Token for instant notifications
+  telegramChatId?: string; // Telegram Chat ID to receive registration alerts
+  telegramUsername?: string; // Telegram Username (e.g. estebanreyna) for direct player messaging
   rankingSystem: 'bayesian' | 'total_points' | 'avg_points';
   bayesianFactorK: number; // Default 4
   attendanceBonusPoints: number; // Default 0.5

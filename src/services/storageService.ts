@@ -51,11 +51,39 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   courtNames: ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4', 'Pista 5', 'Pista 6'],
   adminPin: 'G20AD', // Secure 5-char Master Tournament Admin PIN
   superAdminPin: 'EST99', // Secure 5-char Master Super Admin PIN
+  telegramUsername: 'estebanreyna', // Default Telegram username
   rankingSystem: 'total_points',
   bayesianFactorK: 4,
   attendanceBonusPoints: 0.5,
   tieBreakMaxPoints: 10,
 };
+
+/**
+ * Sends real-time Telegram Bot Notification if botToken and chatId are configured
+ */
+export async function sendTelegramNotification(
+  config: TournamentConfig,
+  text: string
+): Promise<boolean> {
+  if (!config.telegramBotToken || !config.telegramChatId) {
+    return false;
+  }
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${config.telegramBotToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: config.telegramChatId,
+        text,
+        parse_mode: 'HTML',
+      }),
+    });
+    return res.ok;
+  } catch (err) {
+    console.warn('Telegram notification fetch error:', err);
+    return false;
+  }
+}
 
 export const INITIAL_PLAYERS: Player[] = [
   { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: 'EST99', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },

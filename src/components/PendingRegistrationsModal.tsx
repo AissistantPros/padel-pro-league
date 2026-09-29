@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Clock,
   ShieldCheck,
+  Send,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { PlayerRegistrationRequest, Player } from '../types/index.ts';
@@ -198,9 +199,9 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
                 </div>
               </div>
 
-              {/* WhatsApp Welcome Message Preview */}
+              {/* Welcome Message Preview */}
               <div className="bg-[#2C2C2E]/60 p-3.5 rounded-2xl border border-white/10 space-y-2">
-                <span className="text-[10px] uppercase font-bold text-[#30D158] block">Mensaje para Enviar por WhatsApp:</span>
+                <span className="text-[10px] uppercase font-bold text-[#64D2FF] block">Mensaje de Bienvenida para el Jugador:</span>
                 <p className="text-xs text-[#E5E5EA] leading-relaxed italic bg-black/40 p-2.5 rounded-xl">
                   "{approvedResult.welcomeMessage}"
                 </p>
@@ -208,16 +209,27 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
 
               {/* Actions */}
               <div className="space-y-2 pt-1">
+                {/* Send via Telegram */}
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent('https://padel-tournament-app-gamma.vercel.app/')}&text=${encodeURIComponent(approvedResult.welcomeMessage)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-3 rounded-2xl bg-[#2AABEE] hover:bg-[#229ED9] text-white font-black text-xs flex items-center justify-center shadow-lg shadow-[#2AABEE]/25 ios-touch"
+                >
+                  <Send className="w-4 h-4 mr-1.5" /> Enviar por Telegram ✈️
+                </a>
+
+                {/* Copy Text */}
                 <button
                   type="button"
                   onClick={() => handleCopyWelcome(approvedResult.welcomeMessage)}
                   className={`w-full py-3 rounded-2xl font-black text-xs flex items-center justify-center shadow-lg ios-touch ${
-                    copiedWelcome ? 'bg-[#30D158] text-black' : 'bg-[#25D366] text-white hover:bg-[#20bd5a]'
+                    copiedWelcome ? 'bg-[#30D158] text-black' : 'bg-[#1C1C1E] border border-white/15 text-white hover:bg-[#2C2C2E]'
                   }`}
                 >
                   {copiedWelcome ? (
                     <>
-                      <Check className="w-4 h-4 mr-1.5" /> ¡Mensaje Copiado! Pégalo en WhatsApp
+                      <Check className="w-4 h-4 mr-1.5" /> ¡Mensaje Copiado al Portapapeles!
                     </>
                   ) : (
                     <>
@@ -229,7 +241,7 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
                 <button
                   type="button"
                   onClick={() => setApprovedResult(null)}
-                  className="w-full py-2.5 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#8E8E93] hover:text-white font-bold text-xs ios-touch"
+                  className="w-full py-2.5 rounded-xl bg-transparent hover:bg-white/5 text-[#8E8E93] hover:text-white font-medium text-xs ios-touch"
                 >
                   Continuar
                 </button>

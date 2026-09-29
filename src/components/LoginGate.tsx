@@ -16,10 +16,11 @@ import {
   Flame,
   X,
   ChevronLeft,
+  Send,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
-import { StorageService } from '../services/storageService.ts';
+import { StorageService, sendTelegramNotification } from '../services/storageService.ts';
 
 interface LoginGateProps {
   config: TournamentConfig;
@@ -194,6 +195,15 @@ export const LoginGate: React.FC<LoginGateProps> = ({
         email: regEmail.trim(),
         avatar: regAvatar,
       });
+
+      // Send instant Telegram Bot Notification if configured
+      const telegramMsg = `🎾 <b>¡NUEVA SOLICITUD DE REGISTRO EN PÁDEL G20!</b>\n\n` +
+        `👤 <b>Jugador:</b> ${regName.trim()}\n` +
+        (regNickname.trim() ? `🏷️ <b>Apodo:</b> ${regNickname.trim()}\n` : '') +
+        `📱 <b>Teléfono:</b> ${regPhone.trim()}\n` +
+        `✉️ <b>Email:</b> ${regEmail.trim()}\n\n` +
+        `👉 <i>Entra con tu clave a la app para aprobarlo:</i>\nhttps://padel-tournament-app-gamma.vercel.app/`;
+      sendTelegramNotification(config, telegramMsg);
 
       if (onRequestSubmitted) {
         onRequestSubmitted(newReq);
@@ -516,21 +526,41 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               </p>
               <div className="p-3 bg-black/40 rounded-xl border border-white/10 text-xs text-[#8E8E93] text-left space-y-1">
                 <p>• Tu solicitud se encuentra en <strong>revisión pendiente</strong>.</p>
-                <p>• En cuanto sea aprobada, el administrador te enviará tu <strong>código único de 5 caracteres</strong> por WhatsApp para ingresar.</p>
+                <p>• El administrador recibirá tu alerta de inmediato para generarte tu <strong>código único de 5 caracteres</strong>.</p>
               </div>
             </div>
 
             <div className="pt-2 space-y-2">
+              {/* Primary Telegram Notify Button */}
+              <a
+                href={
+                  config.telegramUsername
+                    ? `https://t.me/${config.telegramUsername.replace('@', '')}?text=${encodeURIComponent(
+                        `🎾 ¡Hola! Acabo de enviar mi solicitud de registro a la WebApp del Torneo G20 con el nombre "${regNickname || regName}". ¿Podrías aprobar mi acceso y enviarme mi clave única de jugador?`
+                      )}`
+                    : `https://t.me/share/url?url=${encodeURIComponent('https://padel-tournament-app-gamma.vercel.app/')}&text=${encodeURIComponent(
+                        `🎾 ¡Hola! Acabo de enviar mi solicitud de registro a la WebApp del Torneo G20 con el nombre "${regNickname || regName}". ¿Podrías aprobar mi acceso y enviarme mi clave única de jugador?`
+                      )}`
+                }
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 rounded-2xl bg-[#2AABEE] hover:bg-[#229ED9] text-white font-black text-xs ios-touch flex items-center justify-center shadow-lg shadow-[#2AABEE]/25 active:scale-98 transition-all"
+              >
+                <Send className="w-4 h-4 mr-1.5" />
+                Avisar al Administrador por Telegram ✈️
+              </a>
+
+              {/* Secondary WhatsApp Fallback */}
               <a
                 href={`https://wa.me/?text=${encodeURIComponent(
-                  `Hola! Acabo de enviar mi solicitud de registro a la WebApp del Torneo G20 con el nombre "${regNickname || regName}". ¿Podrías aprobar mi acceso y enviarme mi clave única de jugador?`
+                  `¡Hola! Acabo de enviar mi solicitud de registro a la WebApp del Torneo G20 con el nombre "${regNickname || regName}". ¿Podrías aprobar mi acceso y enviarme mi clave única de jugador?`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs ios-touch flex items-center justify-center shadow-lg shadow-[#25D366]/20"
+                className="w-full py-2.5 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#30D158] font-bold text-xs ios-touch flex items-center justify-center border border-[#30D158]/20"
               >
-                <Phone className="w-4 h-4 mr-1.5" />
-                Avisar al Administrador por WhatsApp
+                <Phone className="w-3.5 h-3.5 mr-1.5" />
+                O avisar por WhatsApp
               </a>
 
               <button
@@ -539,7 +569,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                   setRegSuccess(false);
                   setMode('login');
                 }}
-                className="w-full py-3 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#8E8E93] hover:text-white font-bold text-xs ios-touch flex items-center justify-center"
+                className="w-full py-2.5 rounded-xl bg-transparent text-[#8E8E93] hover:text-white font-medium text-xs ios-touch flex items-center justify-center"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Volver a la Pantalla de Acceso

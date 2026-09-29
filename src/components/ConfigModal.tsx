@@ -20,11 +20,12 @@ import {
   UserCheck,
   UserPlus,
   RefreshCw,
-  Crown
+  Crown,
+  Send,
 } from 'lucide-react';
 import type { TournamentConfig, Player } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
-import { StorageService, generateSecurePin } from '../services/storageService.ts';
+import { StorageService, generateSecurePin, sendTelegramNotification } from '../services/storageService.ts';
 
 interface ConfigModalProps {
   config: TournamentConfig;
@@ -62,11 +63,18 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
   const [court3, setCourt3] = useState(config.courtNames[2] || 'Pista 3');
   const [court4, setCourt4] = useState(config.courtNames[3] || 'Pista 4');
   const [court5, setCourt5] = useState(config.courtNames[4] || 'Pista 5');
-  const [adminPin, setAdminPin] = useState(config.adminPin || '1234');
-  const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || '9999');
+  const [adminPin, setAdminPin] = useState(config.adminPin || 'G20AD');
+  const [superAdminPin, setSuperAdminPin] = useState(config.superAdminPin || 'EST99');
   const [showAdminPin, setShowAdminPin] = useState(false);
   const [showSuperAdminPin, setShowSuperAdminPin] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  // Telegram Integration State
+  const [telegramUsername, setTelegramUsername] = useState(config.telegramUsername || 'estebanreyna');
+  const [telegramBotToken, setTelegramBotToken] = useState(config.telegramBotToken || '');
+  const [telegramChatId, setTelegramChatId] = useState(config.telegramChatId || '');
+  const [telegramTestStatus, setTelegramTestStatus] = useState<string | null>(null);
+  const [isTestingTelegram, setIsTestingTelegram] = useState(false);
 
   // Editing admin player pins state
   const [editingAdminPins, setEditingAdminPins] = useState<{ [playerId: string]: string }>({});
@@ -137,9 +145,40 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       courtNames: [court1, court2, court3, court4, court5],
       adminPin,
       superAdminPin,
+      telegramUsername: telegramUsername.trim() || undefined,
+      telegramBotToken: telegramBotToken.trim() || undefined,
+      telegramChatId: telegramChatId.trim() || undefined,
     };
     onSaveConfig(updated);
     alert('Ajustes guardados correctamente.');
+  };
+
+  const handleTestTelegram = async () => {
+    if (!telegramBotToken.trim() || !telegramChatId.trim()) {
+      setTelegramTestStatus('⚠️ Ingresa el Bot Token y Chat ID para enviar la prueba.');
+      return;
+    }
+    setIsTestingTelegram(true);
+    setTelegramTestStatus('Enviando mensaje de prueba a Telegram...');
+    
+    const testConfig: TournamentConfig = {
+      ...config,
+      telegramBotToken: telegramBotToken.trim(),
+      telegramChatId: telegramChatId.trim(),
+    };
+    
+    const success = await sendTelegramNotification(
+      testConfig,
+      `🎾 <b>¡PRUEBA EXITOSA DE TELEGRAM!</b>\n\nTu bot de Telegram está conectado correctamente con la WebApp del <b>Torneo G20</b>.\n\nRecibirás las notificaciones de nuevos jugadores al instante aquí.`
+    );
+    
+    setIsTestingTelegram(false);
+    if (success) {
+      setTelegramTestStatus('✅ ¡Mensaje de prueba enviado con éxito a tu Telegram!');
+      setTimeout(() => setTelegramTestStatus(null), 5000);
+    } else {
+      setTelegramTestStatus('❌ Error al conectar con Telegram. Verifica el Bot Token y Chat ID.');
+    }
   };
 
     const handleUpdateAdminPin = (playerId: string, pin: string) => {
@@ -619,6 +658,85 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   </div>
                 </form>
               )}
+            </div>
+
+            {/* Telegram Notifications Integration */}
+            <div className="p-3.5 bg-gradient-to-br from-[#2AABEE]/15 via-[#1C1C1E] to-[#229ED9]/10 border border-[#2AABEE]/30 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-6 h-6 rounded-lg bg-[#2AABEE] text-white flex items-center justify-center shadow-md">
+                    <Send className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-white uppercase tracking-wider block">
+                      Alertas Automáticas por Telegram ✈️
+                    </span>
+                    <span className="text-[10px] text-[#8E8E93]">
+                      Recibe las solicitudes de nuevos jugadores directo en tu Telegram
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#8E8E93] font-medium block">
+                    Tu Usuario de Telegram (para contacto directo):
+                  </label>
+                  <div className="flex items-center bg-[#1C1C1E] border border-white/10 rounded-xl px-2.5 py-1.5 space-x-1.5">
+                    <span className="text-xs text-[#2AABEE] font-bold">@</span>
+                    <input
+                      type="text"
+                      value={telegramUsername}
+                      onChange={(e) => setTelegramUsername(e.target.value.replace('@', ''))}
+                      placeholder="estebanreyna"
+                      className="w-full bg-transparent text-xs text-white focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#8E8E93] font-medium block">
+                    Telegram Bot Token (Opcional - para envío automático):
+                  </label>
+                  <input
+                    type="password"
+                    value={telegramBotToken}
+                    onChange={(e) => setTelegramBotToken(e.target.value)}
+                    placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz"
+                    className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs focus:outline-none focus:border-[#2AABEE]"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[11px] text-[#8E8E93] font-medium block">
+                    Telegram Chat ID (Tu ID personal de Telegram):
+                  </label>
+                  <input
+                    type="text"
+                    value={telegramChatId}
+                    onChange={(e) => setTelegramChatId(e.target.value)}
+                    placeholder="Ej: 987654321"
+                    className="w-full bg-[#1C1C1E] border border-white/10 rounded-xl p-2 font-mono text-white text-xs focus:outline-none focus:border-[#2AABEE]"
+                  />
+                </div>
+
+                {telegramTestStatus && (
+                  <p className="text-[11px] text-white p-2 bg-black/60 border border-white/10 rounded-xl animate-fade-in">
+                    {telegramTestStatus}
+                  </p>
+                )}
+
+                <button
+                  type="button"
+                  onClick={handleTestTelegram}
+                  disabled={isTestingTelegram || !telegramBotToken || !telegramChatId}
+                  className="w-full py-2 bg-[#2AABEE] hover:bg-[#229ED9] disabled:opacity-40 text-white font-bold text-xs rounded-xl ios-touch flex items-center justify-center shadow-md"
+                >
+                  <Send className="w-3.5 h-3.5 mr-1.5" />
+                  {isTestingTelegram ? 'Enviando Prueba...' : '🧪 Probar Notificación en Telegram'}
+                </button>
+              </div>
             </div>
 
             {/* Supabase Cloud Connection */}
