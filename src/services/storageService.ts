@@ -580,15 +580,39 @@ export const StorageService = {
       const config: TournamentConfig = confRes.data?.data || this.getConfig();
       
       let players: Player[] = [];
-      if (playersRes.data && Array.isArray(playersRes.data)) {
+      if (playersRes.data && Array.isArray(playersRes.data) && playersRes.data.length > 0) {
         players = playersRes.data.map((r: any) => r.data).filter(Boolean);
       } else {
         players = this.getPlayers();
+        if (players.length > 0) {
+          const rows = players.map(p => ({
+            id: p.id,
+            data: p,
+            updated_at: new Date().toISOString(),
+          }));
+          supabase.from('players').upsert(rows).then(({ error }) => {
+            if (error) console.warn('Supabase auto-seed players error:', error.message);
+          });
+        }
       }
 
-      const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || this.getTournamentDays();
+      let days: TournamentDay[] = [];
+      if (daysRes.data && Array.isArray(daysRes.data) && daysRes.data.length > 0) {
+        days = daysRes.data.map((r: any) => r.data).filter(Boolean);
+      } else {
+        days = this.getTournamentDays();
+        if (days.length > 0) {
+          const rows = days.map(d => ({
+            id: d.id,
+            data: d,
+            updated_at: new Date().toISOString(),
+          }));
+          supabase.from('tournament_days').upsert(rows).then();
+        }
+      }
+
       const bracket: GrandFinaleBracket | null = finaleRes.data?.data || this.getGrandFinaleBracket();
-      const requests: PlayerRegistrationRequest[] = reqRes.data?.data || this.getRegistrationRequests();
+      const requests: PlayerRegistrationRequest[] = reqRes.data?.data ?? this.getRegistrationRequests();
 
       localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
