@@ -51,7 +51,8 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   courtNames: ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4', 'Pista 5', 'Pista 6'],
   adminPin: 'G20AD', // Secure 5-char Master Tournament Admin PIN
   superAdminPin: 'EST99', // Secure 5-char Master Super Admin PIN
-  telegramUsername: 'estebanreyna', // Default Telegram username
+  telegramUsername: 'Estebanri', // Esteban's Telegram username
+  telegramChatId: '1575757414', // Esteban's Telegram Chat ID
   rankingSystem: 'total_points',
   bayesianFactorK: 4,
   attendanceBonusPoints: 0.5,
