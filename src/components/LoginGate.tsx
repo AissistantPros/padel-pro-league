@@ -21,6 +21,7 @@ import {
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
 import { StorageService, sendTelegramNotification } from '../services/storageService.ts';
+import { ImageCropModal } from './ImageCropModal.tsx';
 
 interface LoginGateProps {
   config: TournamentConfig;
@@ -52,43 +53,30 @@ export const LoginGate: React.FC<LoginGateProps> = ({
   const [isSubmittingReg, setIsSubmittingReg] = useState(false);
   const [regSuccess, setRegSuccess] = useState(false);
 
-  // Handle Photo Compression
+  // Photo Crop Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempImageForCrop, setTempImageForCrop] = useState<string | null>(null);
+
+  // Handle Photo Selection for Cropping
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 280;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setRegAvatar(dataUrl);
-        setRegError(null);
-      };
-      img.src = event.target?.result as string;
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setTempImageForCrop(dataUrl);
+        setIsCropModalOpen(true);
+      }
     };
     reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCropConfirmed = (croppedDataUrl: string) => {
+    setRegAvatar(croppedDataUrl);
+    setRegError(null);
   };
 
   // Login Verification
@@ -417,6 +405,18 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                     />
                   </label>
                 </div>
+                {regAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempImageForCrop(regAvatar);
+                      setIsCropModalOpen(true);
+                    }}
+                    className="text-[11px] text-[#30D158] hover:underline font-semibold flex items-center pt-0.5"
+                  >
+                    Ajustar encuadre / Zoom 🔍
+                  </button>
+                )}
                 <span className="text-[10px] text-[#FFD60A] font-bold">
                   * Foto obligatoria para tu ficha oficial
                 </span>
@@ -561,6 +561,16 @@ export const LoginGate: React.FC<LoginGateProps> = ({
           Torneo de Pádel G20 • Sistema de Gestión Deportiva
         </div>
       </div>
+
+      {/* Image Crop & Framing Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={tempImageForCrop}
+        onClose={() => setIsCropModalOpen(false)}
+        onConfirmCrop={handleCropConfirmed}
+        cropShape="round"
+        aspectRatio={1}
+      />
     </div>
   );
 };

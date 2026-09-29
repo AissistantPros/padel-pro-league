@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats } from '../types/index.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
+import { ImageCropModal } from './ImageCropModal.tsx';
 
 interface MyProfileViewProps {
   players: Player[];
@@ -41,6 +42,10 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isSavedNotice, setIsSavedNotice] = useState(false);
 
+  // Photo Crop Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempImageForCrop, setTempImageForCrop] = useState<string | null>(null);
+
   React.useEffect(() => {
     if (currentPlayer) {
       setName(currentPlayer.name);
@@ -51,38 +56,20 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
     }
   }, [currentPlayer?.id]);
 
-  const handleCompressAndSetImage = (file: File) => {
+  const handleSelectImageForCrop = (file: File) => {
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 350;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        setAvatar(dataUrl);
-      };
-      img.src = event.target?.result as string;
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setTempImageForCrop(dataUrl);
+        setIsCropModalOpen(true);
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirmed = (croppedDataUrl: string) => {
+    setAvatar(croppedDataUrl);
   };
 
   const handleSaveProfile = (e: React.FormEvent) => {
@@ -190,12 +177,26 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
               accept="image/*"
               onChange={(e) => {
                 const f = e.target.files?.[0];
-                if (f) handleCompressAndSetImage(f);
+                if (f) handleSelectImageForCrop(f);
+                e.target.value = '';
               }}
               className="hidden"
             />
           </label>
         </div>
+
+        {avatar && (
+          <button
+            type="button"
+            onClick={() => {
+              setTempImageForCrop(avatar);
+              setIsCropModalOpen(true);
+            }}
+            className="text-[11px] text-[#30D158] hover:underline font-semibold block mx-auto -mt-1 mb-2"
+          >
+            Ajustar encuadre / Zoom 🔍
+          </button>
+        )}
 
         <div>
           <div className="flex items-center justify-center space-x-2">
@@ -474,6 +475,16 @@ export const MyProfileView: React.FC<MyProfileViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Image Crop & Framing Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={tempImageForCrop}
+        onClose={() => setIsCropModalOpen(false)}
+        onConfirmCrop={handleCropConfirmed}
+        cropShape="round"
+        aspectRatio={1}
+      />
     </div>
   );
 };

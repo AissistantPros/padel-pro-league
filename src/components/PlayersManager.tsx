@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats, PlayerRegistrationRequest } from '../types/index.ts';
 import { StorageService, generateShortPin, generateSecurePin } from '../services/storageService.ts';
+import { ImageCropModal } from './ImageCropModal.tsx';
 
 interface PlayersManagerProps {
   players: Player[];
@@ -73,38 +74,30 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const [editPin, setEditPin] = useState('');
   const [showEditPin, setShowEditPin] = useState(false);
 
-  const handleCompressAndSetImage = (file: File, callback: (dataUrl: string) => void) => {
+  // Photo Crop Modal State
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempImageForCrop, setTempImageForCrop] = useState<string | null>(null);
+  const [cropTarget, setCropTarget] = useState<'new' | 'edit'>('new');
+
+  const handleSelectPhotoForCrop = (file: File, target: 'new' | 'edit') => {
     const reader = new FileReader();
     reader.onload = (event) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 250;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        callback(dataUrl);
-      };
-      img.src = event.target?.result as string;
+      const dataUrl = event.target?.result as string;
+      if (dataUrl) {
+        setTempImageForCrop(dataUrl);
+        setCropTarget(target);
+        setIsCropModalOpen(true);
+      }
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleCropConfirmed = (croppedDataUrl: string) => {
+    if (cropTarget === 'new') {
+      setNewAvatar(croppedDataUrl);
+    } else {
+      setEditAvatar(croppedDataUrl);
+    }
   };
 
   const handleAddPlayer = (e: React.FormEvent) => {
@@ -339,19 +332,35 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   <Camera className="w-6 h-6 text-[#8E8E93]" />
                 )}
               </div>
-              <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
-                <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
-                {newAvatar ? 'Cambiar Foto' : 'Subir Foto'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleCompressAndSetImage(f, setNewAvatar);
-                  }}
-                  className="hidden"
-                />
-              </label>
+              <div className="flex flex-col space-y-1">
+                <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
+                  <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
+                  {newAvatar ? 'Cambiar Foto' : 'Subir Foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleSelectPhotoForCrop(f, 'new');
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                {newAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempImageForCrop(newAvatar);
+                      setCropTarget('new');
+                      setIsCropModalOpen(true);
+                    }}
+                    className="text-[11px] text-[#30D158] hover:underline font-semibold text-left"
+                  >
+                    Ajustar encuadre / Zoom 🔍
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2.5">
@@ -479,19 +488,35 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                   <Camera className="w-6 h-6 text-[#8E8E93]" />
                 )}
               </div>
-              <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
-                <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
-                {editAvatar ? 'Cambiar Foto' : 'Subir Foto'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) handleCompressAndSetImage(f, setEditAvatar);
-                  }}
-                  className="hidden"
-                />
-              </label>
+              <div className="flex flex-col space-y-1">
+                <label className="px-3.5 py-2 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-xs font-semibold text-white cursor-pointer ios-touch inline-flex items-center">
+                  <Upload className="w-3.5 h-3.5 mr-1 text-[#30D158]" />
+                  {editAvatar ? 'Cambiar Foto' : 'Subir Foto'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) handleSelectPhotoForCrop(f, 'edit');
+                      e.target.value = '';
+                    }}
+                    className="hidden"
+                  />
+                </label>
+                {editAvatar && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTempImageForCrop(editAvatar);
+                      setCropTarget('edit');
+                      setIsCropModalOpen(true);
+                    }}
+                    className="text-[11px] text-[#30D158] hover:underline font-semibold text-left"
+                  >
+                    Ajustar encuadre / Zoom 🔍
+                  </button>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2.5">
@@ -741,6 +766,16 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           );
         })}
       </div>
+
+      {/* Image Crop & Framing Modal */}
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageSrc={tempImageForCrop}
+        onClose={() => setIsCropModalOpen(false)}
+        onConfirmCrop={handleCropConfirmed}
+        cropShape="round"
+        aspectRatio={1}
+      />
     </div>
   );
 };
