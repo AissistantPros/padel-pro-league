@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import type { TournamentConfig, Player } from '../types/index.ts';
 import { getSupabaseCredentials, saveSupabaseCredentials, getSupabase } from '../services/supabaseClient.ts';
-import { StorageService } from '../services/storageService.ts';
+import { StorageService, generateSecurePin } from '../services/storageService.ts';
 
 interface ConfigModalProps {
   config: TournamentConfig;
@@ -309,13 +309,21 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               >
                 {showAdminPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
               </button>
+              <button
+                type="button"
+                onClick={() => setAdminPin(generateSecurePin())}
+                className="text-[10px] text-[#0A84FF] hover:underline flex items-center"
+                title="Generar clave aleatoria"
+              >
+                <RefreshCw className="w-2.5 h-2.5 ml-1" />
+              </button>
             </div>
             <input
               type={showAdminPin ? 'text' : 'password'}
-              maxLength={6}
+              maxLength={8}
               value={adminPin}
-              onChange={(e) => setAdminPin(e.target.value)}
-              className="w-full bg-transparent text-right text-sm text-[#30D158] font-mono font-bold focus:outline-none"
+              onChange={(e) => setAdminPin(e.target.value.toUpperCase())}
+              className="w-full bg-transparent text-right text-sm text-[#30D158] font-mono font-bold focus:outline-none uppercase"
             />
           </div>
         </div>
@@ -426,17 +434,53 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
                   >
                     {showSuperAdminPin ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                   </button>
+                  <button
+                    type="button"
+                    onClick={() => setSuperAdminPin(generateSecurePin())}
+                    className="text-[10px] text-[#FFD60A] hover:underline flex items-center"
+                    title="Generar nueva clave aleatoria"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5 ml-1" />
+                  </button>
                 </div>
                 <input
                   type={showSuperAdminPin ? 'text' : 'password'}
-                  maxLength={6}
+                  maxLength={8}
                   value={superAdminPin}
-                  onChange={(e) => setSuperAdminPin(e.target.value)}
-                  className="bg-[#1C1C1E] border border-white/10 rounded-lg px-2 py-1 text-right text-[#FFD60A] font-mono font-bold w-24 focus:outline-none"
+                  onChange={(e) => setSuperAdminPin(e.target.value.toUpperCase())}
+                  className="bg-[#1C1C1E] border border-white/10 rounded-lg px-2 py-1 text-right text-[#FFD60A] font-mono font-bold w-24 focus:outline-none uppercase"
                 />
               </div>
               <p className="text-[11px] text-[#8E8E93]">
                 Esta clave maestra te permite acceso irrestricto a la base de datos, credenciales cloud y reseteo total.
+              </p>
+            </div>
+
+            {/* Batch Player PIN Generator Card */}
+            <div className="p-3.5 bg-gradient-to-br from-[#0A84FF]/10 via-[#1C1C1E] to-[#64D2FF]/10 border border-[#0A84FF]/30 rounded-2xl space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#64D2FF]" />
+                  <span className="text-xs font-bold text-white">Seguridad de Jugadores (Criptográfica)</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('¿Regenerar claves aleatorias criptográficas únicas para todos los jugadores? Se actualizarán en Supabase de inmediato.')) {
+                      const updated = StorageService.regenerateAllPlayerPins(players);
+                      if (onSavePlayers) onSavePlayers(updated);
+                      setAdminSavedNotice('✅ Claves criptográficas regeneradas para todos los jugadores.');
+                      setTimeout(() => setAdminSavedNotice(null), 3000);
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-[#0A84FF] text-white font-bold text-[10px] rounded-lg ios-touch flex items-center shadow-sm"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Regenerar Todas
+                </button>
+              </div>
+              <p className="text-[11px] text-[#8E8E93]">
+                Asigna códigos únicos de alta entropía (5 caracteres) a todos los jugadores participantes.
               </p>
             </div>
 

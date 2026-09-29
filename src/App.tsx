@@ -23,10 +23,7 @@ import { LoginGate } from './components/LoginGate.tsx';
 import { PendingRegistrationsModal } from './components/PendingRegistrationsModal.tsx';
 
 export function App() {
-  const [players, setPlayers] = useState<Player[]>(() => {
-    const loaded = StorageService.getPlayers();
-    return loaded.length > 0 ? loaded : INITIAL_PLAYERS;
-  });
+  const [players, setPlayers] = useState<Player[]>(() => StorageService.getPlayers());
   const [days, setDays] = useState<TournamentDay[]>(() => StorageService.getTournamentDays());
   const [config, setConfig] = useState<TournamentConfig>(() => StorageService.getConfig());
   const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
@@ -48,23 +45,25 @@ export function App() {
       // 1. Initial Pull from cloud
       const cloudData = await StorageService.pullFromCloud();
       if (cloudData) {
-        if (cloudData.players && cloudData.players.length > 0) {
+        if (cloudData.players !== undefined) {
           setPlayers(cloudData.players);
-        } else {
-          setPlayers(INITIAL_PLAYERS);
-          StorageService.savePlayers(INITIAL_PLAYERS);
         }
-        if (cloudData.days) setDays(cloudData.days);
-        if (cloudData.config) setConfig(cloudData.config);
+        if (cloudData.days !== undefined) setDays(cloudData.days);
+        if (cloudData.config !== undefined) setConfig(cloudData.config);
         if (cloudData.bracket !== undefined) setGrandFinale(cloudData.bracket);
-        if (cloudData.requests) setRegistrationRequests(cloudData.requests);
+        if (cloudData.requests !== undefined) setRegistrationRequests(cloudData.requests);
       }
 
       // 2. Realtime listener for live updates
       const channel = supabase
         .channel('padel_live_sync')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'tournament_days' }, (payload: any) => {
-          if (payload.new && payload.new.data) {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setDays(prevDays => prevDays.filter(d => d.id !== deletedId));
+            }
+          } else if (payload.new && payload.new.data) {
             const updatedDay = payload.new.data as TournamentDay;
             setDays(prevDays => {
               const idx = prevDays.findIndex(d => d.id === updatedDay.id);
@@ -78,7 +77,12 @@ export function App() {
           }
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'players' }, (payload: any) => {
-          if (payload.new && payload.new.data) {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old?.id;
+            if (deletedId) {
+              setPlayers(prevPlayers => prevPlayers.filter(p => p.id !== deletedId));
+            }
+          } else if (payload.new && payload.new.data) {
             const updatedPlayer = payload.new.data as Player;
             setPlayers(prev => {
               const idx = prev.findIndex(p => p.id === updatedPlayer.id);

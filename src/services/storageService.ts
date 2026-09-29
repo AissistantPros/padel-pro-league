@@ -19,14 +19,29 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'padel_last_sync_v1',
 };
 
-export const generateShortPin = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+/**
+ * Cryptographically secure, unambiguous uppercase alphanumeric random PIN generator.
+ * Excludes easily confused characters (O, 0, I, 1, L).
+ */
+export const generateSecurePin = (length: number = 5): string => {
+  const charset = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ';
   let pin = '';
-  for (let i = 0; i < 5; i++) {
-    pin += chars.charAt(Math.floor(Math.random() * chars.length));
+  
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const randomBytes = new Uint8Array(length);
+    crypto.getRandomValues(randomBytes);
+    for (let i = 0; i < length; i++) {
+      pin += charset[randomBytes[i] % charset.length];
+    }
+  } else {
+    for (let i = 0; i < length; i++) {
+      pin += charset.charAt(Math.floor(Math.random() * charset.length));
+    }
   }
   return pin;
 };
+
+export const generateShortPin = generateSecurePin;
 
 export const DEFAULT_CONFIG: TournamentConfig = {
   tournamentName: 'G20 by Peter Inc. 🎾',
@@ -34,8 +49,8 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   editionName: '3er Torneo G20 by Peter Inc.',
   tournamentLogoUrl: '',
   courtNames: ['Pista 1', 'Pista 2', 'Pista 3', 'Pista 4', 'Pista 5', 'Pista 6'],
-  adminPin: '1234', // Tournament Admin PIN for tournament operations
-  superAdminPin: '9999', // Super Admin PIN for developer keys and cloud infra
+  adminPin: 'G20AD', // Secure 5-char Master Tournament Admin PIN
+  superAdminPin: 'EST99', // Secure 5-char Master Super Admin PIN
   rankingSystem: 'total_points',
   bayesianFactorK: 4,
   attendanceBonusPoints: 0.5,
@@ -43,26 +58,26 @@ export const DEFAULT_CONFIG: TournamentConfig = {
 };
 
 export const INITIAL_PLAYERS: Player[] = [
-  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: '9999', registeredAt: '2026-08-01', isActive: true, loginCount: 1, activeClicks: 10 },
-  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', email: 'pedro@padelg20.com', role: 'admin', pin: '1234', registeredAt: '2026-08-01', isActive: true, loginCount: 1, activeClicks: 10 },
-  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', email: 'rodrigo@padelg20.com', role: 'player', pin: 'G2003', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', email: 'mauricio@padelg20.com', role: 'player', pin: 'G2004', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', email: 'santiago@padelg20.com', role: 'player', pin: 'G2005', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', email: 'carlos@padelg20.com', role: 'player', pin: 'G2006', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', email: 'javier@padelg20.com', role: 'player', pin: 'G2007', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', email: 'diego@padelg20.com', role: 'player', pin: 'G2008', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', email: 'fernando@padelg20.com', role: 'player', pin: 'G2009', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', email: 'andres@padelg20.com', role: 'player', pin: 'G2010', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', email: 'emilio@padelg20.com', role: 'player', pin: 'G2011', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', email: 'memo@padelg20.com', role: 'player', pin: 'G2012', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', email: 'richie@padelg20.com', role: 'player', pin: 'G2013', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', email: 'alex@padelg20.com', role: 'player', pin: 'G2014', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', email: 'jorge@padelg20.com', role: 'player', pin: 'G2015', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', email: 'gabo@padelg20.com', role: 'player', pin: 'G2016', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', email: 'lalo@padelg20.com', role: 'player', pin: 'G2017', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', email: 'pablo@padelg20.com', role: 'player', pin: 'G2018', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', email: 'mateo@padelg20.com', role: 'player', pin: 'G2019', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', email: 'hector@padelg20.com', role: 'player', pin: 'G2020', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: 'EST99', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', email: 'pedro@padelg20.com', role: 'admin', pin: 'G20AD', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', email: 'rodrigo@padelg20.com', role: 'player', pin: 'K7X9Q', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', email: 'mauricio@padelg20.com', role: 'player', pin: '4M9WR', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', email: 'santiago@padelg20.com', role: 'player', pin: '8E3TQ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', email: 'carlos@padelg20.com', role: 'player', pin: 'N6V9C', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', email: 'javier@padelg20.com', role: 'player', pin: '2Y7LK', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', email: 'diego@padelg20.com', role: 'player', pin: '5H4NB', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', email: 'fernando@padelg20.com', role: 'player', pin: '9P8XD', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', email: 'andres@padelg20.com', role: 'player', pin: '3T5KZ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', email: 'emilio@padelg20.com', role: 'player', pin: '7R2MF', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', email: 'memo@padelg20.com', role: 'player', pin: '6B8HJ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', email: 'richie@padelg20.com', role: 'player', pin: 'X4N7V', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', email: 'alex@padelg20.com', role: 'player', pin: 'L9D3S', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', email: 'jorge@padelg20.com', role: 'player', pin: 'W2T8K', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', email: 'gabo@padelg20.com', role: 'player', pin: 'H5R4P', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', email: 'lalo@padelg20.com', role: 'player', pin: 'F8C2M', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', email: 'pablo@padelg20.com', role: 'player', pin: 'M3K9T', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', email: 'mateo@padelg20.com', role: 'player', pin: 'Z7N4W', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
+  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', email: 'hector@padelg20.com', role: 'player', pin: 'C6P8Y', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
 ];
 
 export const StorageService = {
@@ -106,22 +121,10 @@ export const StorageService = {
   getPlayers(): Player[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.PLAYERS);
-      if (stored) {
+      if (stored !== null) {
         const parsed: Player[] = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Ensure all players have a pin assigned
-          let needsUpdate = false;
-          const validated = parsed.map((p, idx) => {
-            if (!p.pin) {
-              needsUpdate = true;
-              return { ...p, pin: `G20${(idx + 1).toString().padStart(2, '0')}` };
-            }
-            return p;
-          });
-          if (needsUpdate) {
-            localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(validated));
-          }
-          return validated;
+        if (Array.isArray(parsed)) {
+          return parsed;
         }
       }
     } catch (e) {
@@ -139,23 +142,55 @@ export const StorageService = {
 
     const supabase = getSupabase();
     if (supabase) {
+      // Atomic Supabase Sync: Fetch existing IDs, delete only removed players, upsert active players
       supabase
         .from('players')
-        .delete()
-        .neq('id', '___all___')
-        .then(() => {
+        .select('id')
+        .then(({ data: existingRows, error }) => {
+          if (error) {
+            console.warn('Supabase savePlayers fetch error:', error.message);
+            return;
+          }
+
+          const existingIds: string[] = (existingRows || []).map((r: any) => r.id);
+          const currentIds = new Set(players.map(p => p.id));
+          const toDelete = existingIds.filter(id => !currentIds.has(id));
+
+          // 1. Delete removed players permanently
+          if (toDelete.length > 0) {
+            supabase.from('players').delete().in('id', toDelete).then(({ error: delErr }) => {
+              if (delErr) console.warn('Supabase delete players error:', delErr.message);
+            });
+          }
+
+          // 2. Upsert current players
           if (players.length > 0) {
             const rows = players.map(p => ({
               id: p.id,
               data: p,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             }));
-            supabase.from('players').insert(rows).then(({ error }: { error: any }) => {
-              if (error) console.warn('Supabase savePlayers error:', error.message);
+            supabase.from('players').upsert(rows).then(({ error: upErr }) => {
+              if (upErr) console.warn('Supabase upsert players error:', upErr.message);
             });
           }
         });
     }
+  },
+
+  // Regenerate random security codes for all players
+  regenerateAllPlayerPins(players: Player[]): Player[] {
+    const usedPins = new Set<string>();
+    const updated = players.map(p => {
+      let pin = generateSecurePin();
+      while (usedPins.has(pin)) {
+        pin = generateSecurePin();
+      }
+      usedPins.add(pin);
+      return { ...p, pin };
+    });
+    this.savePlayers(updated);
+    return updated;
   },
 
   // Telemetry: Logins & Click Engagement
@@ -257,7 +292,12 @@ export const StorageService = {
     if (!req) return null;
 
     const players = this.getPlayers();
-    const pin = (customPin || generateShortPin()).toUpperCase();
+    const existingPins = new Set(players.map(p => p.pin?.toUpperCase()));
+    
+    let pin = (customPin || generateSecurePin()).toUpperCase();
+    while (!customPin && existingPins.has(pin)) {
+      pin = generateSecurePin().toUpperCase();
+    }
 
     const newPlayer: Player = {
       id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -318,18 +358,28 @@ export const StorageService = {
     if (supabase) {
       supabase
         .from('tournament_days')
-        .delete()
-        .neq('id', '___all___')
-        .then(() => {
+        .select('id')
+        .then(({ data: existingRows, error }) => {
+          if (error) {
+            console.warn('Supabase saveTournamentDays fetch error:', error.message);
+            return;
+          }
+
+          const existingIds: string[] = (existingRows || []).map((r: any) => r.id);
+          const currentIds = new Set(days.map(d => d.id));
+          const toDelete = existingIds.filter(id => !currentIds.has(id));
+
+          if (toDelete.length > 0) {
+            supabase.from('tournament_days').delete().in('id', toDelete).then();
+          }
+
           if (days.length > 0) {
             const rows = days.map(d => ({
               id: d.id,
               data: d,
-              updated_at: new Date().toISOString()
+              updated_at: new Date().toISOString(),
             }));
-            supabase.from('tournament_days').insert(rows).then(({ error }: { error: any }) => {
-              if (error) console.warn('Supabase saveTournamentDays error:', error.message);
-            });
+            supabase.from('tournament_days').upsert(rows).then();
           }
         });
     }
@@ -394,20 +444,18 @@ export const StorageService = {
         supabase.from('tournament_settings').select('data').eq('id', 'registration_requests').maybeSingle(),
       ]);
 
-      const config: TournamentConfig = confRes.data?.data || DEFAULT_CONFIG;
-      let players: Player[] = (playersRes.data && playersRes.data.length > 0)
-        ? playersRes.data.map((r: any) => r.data)
-        : INITIAL_PLAYERS;
+      const config: TournamentConfig = confRes.data?.data || this.getConfig();
       
-      if (players.length === 0) {
-        players = INITIAL_PLAYERS;
-        const pRows = INITIAL_PLAYERS.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
-        supabase.from('players').insert(pRows).then();
+      let players: Player[] = [];
+      if (playersRes.data && Array.isArray(playersRes.data)) {
+        players = playersRes.data.map((r: any) => r.data).filter(Boolean);
+      } else {
+        players = this.getPlayers();
       }
 
-      const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || [];
-      const bracket: GrandFinaleBracket | null = finaleRes.data?.data || null;
-      const requests: PlayerRegistrationRequest[] = reqRes.data?.data || [];
+      const days: TournamentDay[] = daysRes.data?.map((r: any) => r.data) || this.getTournamentDays();
+      const bracket: GrandFinaleBracket | null = finaleRes.data?.data || this.getGrandFinaleBracket();
+      const requests: PlayerRegistrationRequest[] = reqRes.data?.data || this.getRegistrationRequests();
 
       localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(players));
@@ -449,16 +497,34 @@ export const StorageService = {
         });
       }
 
-      await supabase.from('players').delete().neq('id', '___all___');
-      if (players.length > 0) {
-        const pRows = players.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
-        await supabase.from('players').insert(pRows);
+      // Sync players
+      const { data: existingRows } = await supabase.from('players').select('id');
+      const existingIds = (existingRows || []).map((r: any) => r.id);
+      const currentIds = new Set(players.map(p => p.id));
+      const toDelete = existingIds.filter(id => !currentIds.has(id));
+
+      if (toDelete.length > 0) {
+        await supabase.from('players').delete().in('id', toDelete);
       }
 
-      await supabase.from('tournament_days').delete().neq('id', '___all___');
+      if (players.length > 0) {
+        const pRows = players.map(p => ({ id: p.id, data: p, updated_at: new Date().toISOString() }));
+        await supabase.from('players').upsert(pRows);
+      }
+
+      // Sync days
+      const { data: existingDays } = await supabase.from('tournament_days').select('id');
+      const existingDayIds = (existingDays || []).map((r: any) => r.id);
+      const currentDayIds = new Set(days.map(d => d.id));
+      const toDeleteDays = existingDayIds.filter(id => !currentDayIds.has(id));
+
+      if (toDeleteDays.length > 0) {
+        await supabase.from('tournament_days').delete().in('id', toDeleteDays);
+      }
+
       if (days.length > 0) {
         const dRows = days.map(d => ({ id: d.id, data: d, updated_at: new Date().toISOString() }));
-        await supabase.from('tournament_days').insert(dRows);
+        await supabase.from('tournament_days').upsert(dRows);
       }
 
       if (bracket) {

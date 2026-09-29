@@ -25,7 +25,7 @@ import {
   Phone,
 } from 'lucide-react';
 import type { Player, PlayerIntelligenceStats, PlayerRegistrationRequest } from '../types/index.ts';
-import { generateShortPin } from '../services/storageService.ts';
+import { StorageService, generateShortPin, generateSecurePin } from '../services/storageService.ts';
 
 interface PlayersManagerProps {
   players: Player[];
@@ -224,11 +224,18 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     );
   });
 
+  const handleRegenerateAllPins = () => {
+    if (confirm('¿Regenerar claves aleatorias criptográficas únicas para todos los jugadores? Se sincronizarán en la base de datos de Supabase de inmediato.')) {
+      const updated = StorageService.regenerateAllPlayerPins(players);
+      onSavePlayers(updated);
+    }
+  };
+
   return (
     <div className="space-y-4 pb-20 md:pb-6 select-none">
       {/* Header */}
       <div className="pt-1 pb-1">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <span className="text-xs font-semibold text-[#8E8E93]">
               {players.length} jugadores en base de datos
@@ -239,7 +246,16 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
           </div>
 
           {(isAdmin || isSuperAdmin) && (
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center space-x-2 flex-wrap gap-y-2">
+              <button
+                type="button"
+                onClick={handleRegenerateAllPins}
+                className="px-3 py-1.5 rounded-xl bg-[#2C2C2E] border border-white/10 text-xs font-semibold text-[#FFD60A] hover:bg-[#3A3A3C] ios-touch flex items-center shadow-sm"
+                title="Regenerar claves criptográficas para todos"
+              >
+                <Key className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" />
+                <span className="hidden sm:inline">Regenerar</span> Claves
+              </button>
               <button
                 onClick={() => {
                   setIsBulkAdding(!isBulkAdding);
