@@ -1,7 +1,17 @@
 import { calculateMarginBonus, calculateRoundRecordBonus, calculateFinalBonuses, roundDecimal } from './tieBreakerEngine.ts';
 import { generatePreliminaryRounds, generateDailyFinalRound } from './pairingEngine.ts';
-import { INITIAL_PLAYERS } from '../services/storageService.ts';
+import type { Player } from '../types/index.ts';
 import { calculateDailyPrelimStandings, buildChampionshipIntelligence, predictMatchWinProbability } from './intelligenceEngine.ts';
+
+const TEST_PLAYERS_16: Player[] = Array.from({ length: 16 }, (_, i) => ({
+  id: `test_p_${i + 1}`,
+  name: `Player ${i + 1}`,
+  role: 'player' as const,
+  registeredAt: '2026-08-01',
+  isActive: true,
+  loginCount: 0,
+  activeClicks: 0,
+}));
 
 console.log('🎾 --- INICIANDO VERIFICACIÓN DE ALGORITMOS DE PÁDEL ---');
 
@@ -37,9 +47,9 @@ console.log(`Récord 0 Ganados: ${rec0} (esperado -0.003) -> ${rec0 === -0.003 ?
 // 2. Verificación de Regla de Oro de Emparejamientos (Top 8 NUNCA juntos en 3 preliminares)
 console.log('\n2. Verificando Regla de Emparejamientos (Top 8 nunca juntos en Juegos 1, 2 y 3):');
 const rankingMap = new Map<string, number>();
-INITIAL_PLAYERS.forEach((p, idx) => rankingMap.set(p.id, idx + 1)); // P1 a P16 en orden
+TEST_PLAYERS_16.forEach((p, idx) => rankingMap.set(p.id, idx + 1)); // P1 a P16 en orden
 
-const rounds = generatePreliminaryRounds('test_day', INITIAL_PLAYERS, false, rankingMap);
+const rounds = generatePreliminaryRounds('test_day', TEST_PLAYERS_16, false, rankingMap);
 let top8Violations = 0;
 let partnerRepetitions = 0;
 const partnerPairs = new Map<string, Set<string>>();

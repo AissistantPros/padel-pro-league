@@ -90,24 +90,6 @@ export async function sendTelegramNotification(
 export const INITIAL_PLAYERS: Player[] = [
   { id: 'p_1', name: 'Esteban Reyna', nickname: 'El Arquitecto', phone: '+52 998 123 4567', email: 'esteban@padelg20.com', role: 'superadmin', pin: 'EST99', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
   { id: 'p_2', name: 'Pedro Alatorre', nickname: 'Peter Inc', phone: '+52 998 234 5678', email: 'pedro@padelg20.com', role: 'admin', pin: 'G20AD', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_3', name: 'Rodrigo Zepeda', nickname: 'El Zurdo', phone: '+52 998 345 6789', email: 'rodrigo@padelg20.com', role: 'player', pin: 'K7X9Q', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_4', name: 'Mauricio Garza', nickname: 'El Maza', phone: '+52 998 456 7890', email: 'mauricio@padelg20.com', role: 'player', pin: '4M9WR', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_5', name: 'Santiago Medina', nickname: 'El Flaco', phone: '+52 998 567 8901', email: 'santiago@padelg20.com', role: 'player', pin: '8E3TQ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_6', name: 'Carlos Benítez', nickname: 'El Tanque', phone: '+52 998 678 9012', email: 'carlos@padelg20.com', role: 'player', pin: 'N6V9C', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_7', name: 'Javier Escandón', nickname: 'El Profe', phone: '+52 998 789 0123', email: 'javier@padelg20.com', role: 'player', pin: '2Y7LK', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_8', name: 'Diego Villarreal', nickname: 'El Rayo', phone: '+52 998 890 1234', email: 'diego@padelg20.com', role: 'player', pin: '5H4NB', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_9', name: 'Fernando Cárdenas', nickname: 'El Puma', phone: '+52 998 901 2345', email: 'fernando@padelg20.com', role: 'player', pin: '9P8XD', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_10', name: 'Andrés Morales', nickname: 'El Cirujano', phone: '+52 998 012 3456', email: 'andres@padelg20.com', role: 'player', pin: '3T5KZ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_11', name: 'Emilio Treviño', nickname: 'El Mágico', phone: '+52 998 111 2233', email: 'emilio@padelg20.com', role: 'player', pin: '7R2MF', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_12', name: 'Guillermo Lozano', nickname: 'Memo', phone: '+52 998 222 3344', email: 'memo@padelg20.com', role: 'player', pin: '6B8HJ', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_13', name: 'Ricardo Salgado', nickname: 'Richie', phone: '+52 998 333 4455', email: 'richie@padelg20.com', role: 'player', pin: 'X4N7V', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_14', name: 'Alejandro Ponce', nickname: 'Alex', phone: '+52 998 444 5566', email: 'alex@padelg20.com', role: 'player', pin: 'L9D3S', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_15', name: 'Jorge Vales', nickname: 'El Capitán', phone: '+52 998 555 6677', email: 'jorge@padelg20.com', role: 'player', pin: 'W2T8K', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_16', name: 'Gabriel Cantú', nickname: 'Gabo', phone: '+52 998 666 7788', email: 'gabo@padelg20.com', role: 'player', pin: 'H5R4P', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_17', name: 'Luis Eduardo Silva', nickname: 'Lalo', phone: '+52 998 777 8899', email: 'lalo@padelg20.com', role: 'player', pin: 'F8C2M', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_18', name: 'Pablo Fontcuberta', nickname: 'Pablito', phone: '+52 998 888 9900', email: 'pablo@padelg20.com', role: 'player', pin: 'M3K9T', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_19', name: 'Mateo Domínguez', nickname: 'El Tornado', phone: '+52 998 999 0011', email: 'mateo@padelg20.com', role: 'player', pin: 'Z7N4W', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
-  { id: 'p_20', name: 'Héctor Navarro', nickname: 'El Halcón', phone: '+52 998 123 9876', email: 'hector@padelg20.com', role: 'player', pin: 'C6P8Y', registeredAt: '2026-08-01', isActive: true, loginCount: 0, activeClicks: 0 },
 ];
 
 export const StorageService = {
@@ -188,9 +170,9 @@ export const StorageService = {
    * Explicitly delete a player from database and local storage.
    * Called only on user confirmation from PlayersManager.
    */
-  async deletePlayer(playerId: string): Promise<Player[]> {
-    const current = this.getPlayers();
-    const updated = current.filter(p => p.id !== playerId);
+  async deletePlayer(playerId: string, currentPlayers?: Player[]): Promise<Player[]> {
+    const active = currentPlayers && currentPlayers.length > 0 ? currentPlayers : this.getPlayers();
+    const updated = active.filter(p => p.id !== playerId);
     try {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));
     } catch (e) {
@@ -199,7 +181,12 @@ export const StorageService = {
     const supabase = getSupabase();
     if (supabase) {
       try {
-        await supabase.from('players').delete().eq('id', playerId);
+        const { error } = await supabase.from('players').delete().eq('id', playerId);
+        if (error) {
+          console.error(`Supabase deletePlayer error for ${playerId}:`, error.message);
+        } else {
+          console.log(`Player ${playerId} successfully deleted from Supabase`);
+        }
       } catch (err) {
         console.error('Error deleting player from Supabase:', err);
       }

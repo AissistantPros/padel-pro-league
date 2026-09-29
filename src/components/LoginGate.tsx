@@ -17,6 +17,7 @@ import {
   X,
   ChevronLeft,
   Send,
+  RefreshCw,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
@@ -80,81 +81,96 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     setRegError(null);
   };
 
+  const [isVerifyingPin, setIsVerifyingPin] = useState(false);
+
   // Login Verification
   const verifyPin = async (candidate: string) => {
     const cleanPin = candidate.trim().toUpperCase();
-    if (!cleanPin) return;
+    if (!cleanPin || isVerifyingPin) return;
 
-    // 1. Super Admin Master PIN
-    const isSuper = cleanPin === (config.superAdminPin || 'EST99').trim().toUpperCase() || cleanPin === '9999' || cleanPin === 'EST99';
-    if (isSuper) {
-      setLoginSuccessInfo({ name: 'Super Administrador', role: 'superadmin' });
-      setLoginError(null);
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-      setTimeout(() => {
-        onLoginSuccess(null, 'superadmin');
-      }, 500);
-      return;
-    }
+    setIsVerifyingPin(true);
+    setLoginError(null);
 
-    // 2. Tournament Master Admin PIN
-    const isAdmin = cleanPin === (config.adminPin || 'G20AD').trim().toUpperCase() || cleanPin === '1234' || cleanPin === 'G20AD';
-    if (isAdmin) {
-      setLoginSuccessInfo({ name: 'Administrador Maestro', role: 'admin' });
-      setLoginError(null);
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
-      setTimeout(() => {
-        onLoginSuccess(null, 'admin');
-      }, 500);
-      return;
-    }
-
-    // 3. Match Player PIN in current memory
-    let matchingPlayer = players.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
-
-    // 4. Fallback Live Check: Query Supabase directly in case the player was just approved!
-    if (!matchingPlayer) {
-      try {
-        const supabase = getSupabase();
-        if (supabase) {
-          const { data: dbRows } = await supabase.from('players').select('data');
-          if (dbRows && Array.isArray(dbRows)) {
-            const remotePlayers: Player[] = dbRows.map((r: any) => r.data).filter(Boolean);
-            matchingPlayer = remotePlayers.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
-            if (matchingPlayer) {
-              const merged = [...players.filter(p => p.id !== matchingPlayer!.id), matchingPlayer];
-              StorageService.savePlayers(merged);
-            }
-          }
-        }
-      } catch (err) {
-        console.warn('Live PIN check error:', err);
-      }
-    }
-
-    if (matchingPlayer) {
-      if (!matchingPlayer.isActive) {
-        setLoginError('Tu cuenta está inactiva. Contacta a un administrador.');
+    try {
+      // 1. Super Admin Master PIN
+      const isSuper = cleanPin === (config.superAdminPin || 'EST99').trim().toUpperCase() || cleanPin === '9999' || cleanPin === 'EST99';
+      if (isSuper) {
+        setLoginSuccessInfo({ name: 'Super Administrador', role: 'superadmin' });
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+        setTimeout(() => {
+          onLoginSuccess(null, 'superadmin');
+        }, 200);
         return;
       }
 
-      const role: 'player' | 'admin' | 'superadmin' = matchingPlayer.role || 'player';
-      const displayName = matchingPlayer.nickname || matchingPlayer.name;
-      
-      setLoginSuccessInfo({ name: displayName, role });
-      setLoginError(null);
-      confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+      // 2. Tournament Master Admin PIN
+      const isAdmin = cleanPin === (config.adminPin || 'G20AD').trim().toUpperCase() || cleanPin === '1234' || cleanPin === 'G20AD';
+      if (isAdmin) {
+        setLoginSuccessInfo({ name: 'Administrador Maestro', role: 'admin' });
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.7 } });
+        setTimeout(() => {
+          onLoginSuccess(null, 'admin');
+        }, 200);
+        return;
+      }
 
-      // Record login telemetry
-      StorageService.recordUserLogin(matchingPlayer.id);
+      // 3. Match Player PIN in current memory
+      let matchingPlayer = players.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
 
-      setTimeout(() => {
-        onLoginSuccess(matchingPlayer, role);
-      }, 500);
-      return;
+      // 4. Fallback Live Check: Query Supabase directly in case the player was just approved or cache is cold!
+      if (!matchingPlayer) {
+        try {
+          const supabase = getSupabase();
+          if (supabase) {
+            const { data: dbRows } = await supabase.from('players').select('data');
+            if (dbRows && Array.isArray(dbRows)) {
+              const remotePlayers: Player[] = dbRows.map((r: any) => r.data).filter(Boolean);
+              matchingPlayer = remotePlayers.find(p => p.pin && p.pin.trim().toUpperCase() === cleanPin);
+              if (matchingPlayer) {
+                const merged = [...players.filter(p => p.id !== matchingPlayer!.id), matchingPlayer];
+                StorageService.savePlayers(merged);
+              }
+            }
+          }
+        } catch (err) {
+          console.warn('Live PIN check error:', err);
+        }
+      }
+
+      if (matchingPlayer) {
+        if (!matchingPlayer.isActive) {
+          setLoginError('Tu cuenta está inactiva. Contacta a un administrador.');
+          return;
+        }
+
+        const role: 'player' | 'admin' | 'superadmin' = matchingPlayer.role || 'player';
+        const displayName = matchingPlayer.nickname || matchingPlayer.name;
+        
+        setLoginSuccessInfo({ name: displayName, role });
+        confetti({ particleCount: 60, spread: 70, origin: { y: 0.7 } });
+
+        // Record login telemetry
+        StorageService.recordUserLogin(matchingPlayer.id);
+
+        setTimeout(() => {
+          onLoginSuccess(matchingPlayer, role);
+        }, 200);
+        return;
+      }
+
+      setLoginError('Clave no reconocida. Puedes escribirla en mayúsculas o minúsculas.');
+    } finally {
+      setIsVerifyingPin(false);
     }
+  };
 
-    setLoginError('Clave no reconocida. Puedes escribirla en mayúsculas o minúsculas.');
+  const handlePinChange = (val: string) => {
+    const formatted = val.toUpperCase();
+    setPinInput(formatted);
+    setLoginError(null);
+    if (formatted.trim().length === 5) {
+      verifyPin(formatted);
+    }
   };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
@@ -298,16 +314,14 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                 <input
                   type="text"
                   value={pinInput}
-                  onChange={(e) => {
-                    setPinInput(e.target.value.toUpperCase());
-                    setLoginError(null);
-                  }}
+                  onChange={(e) => handlePinChange(e.target.value)}
                   autoCapitalize="characters"
                   autoCorrect="off"
                   spellCheck={false}
                   placeholder="EJ: EST99 O G20AD"
                   maxLength={8}
-                  className="w-full text-center text-2xl font-mono font-black tracking-widest uppercase bg-black/60 border border-white/15 focus:border-[#30D158] focus:ring-2 focus:ring-[#30D158]/20 rounded-2xl py-3.5 text-white placeholder:text-[#505054] outline-none transition-all"
+                  disabled={isVerifyingPin}
+                  className="w-full text-center text-2xl font-mono font-black tracking-widest uppercase bg-black/60 border border-white/15 focus:border-[#30D158] focus:ring-2 focus:ring-[#30D158]/20 rounded-2xl py-3.5 text-white placeholder:text-[#505054] outline-none transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -327,15 +341,24 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               {/* Action Button */}
               <button
                 type="submit"
-                disabled={!pinInput.trim()}
+                disabled={!pinInput.trim() || isVerifyingPin}
                 className={`w-full py-3.5 rounded-2xl font-black text-sm flex items-center justify-center transition-all ios-touch ${
-                  pinInput.trim()
+                  pinInput.trim() && !isVerifyingPin
                     ? 'bg-[#30D158] text-black shadow-lg shadow-[#30D158]/20 active:scale-98'
                     : 'bg-[#2C2C2E] text-[#8E8E93] cursor-not-allowed opacity-70'
                 }`}
               >
-                <span>Acceder al Torneo</span>
-                <ArrowRight className="w-4 h-4 ml-1.5" />
+                {isVerifyingPin ? (
+                  <div className="flex items-center space-x-2">
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#30D158]" />
+                    <span className="text-white font-bold">Verificando clave...</span>
+                  </div>
+                ) : (
+                  <>
+                    <span>Acceder al Torneo</span>
+                    <ArrowRight className="w-4 h-4 ml-1.5" />
+                  </>
+                )}
               </button>
             </form>
 
