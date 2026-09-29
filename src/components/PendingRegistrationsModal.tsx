@@ -209,31 +209,33 @@ export const PendingRegistrationsModal: React.FC<PendingRegistrationsModalProps>
 
               {/* Actions */}
               <div className="space-y-2 pt-1">
-                {/* Send via Telegram */}
-                <a
-                  href={`https://t.me/share/url?url=${encodeURIComponent('https://padel-tournament-app-gamma.vercel.app/')}&text=${encodeURIComponent(approvedResult.welcomeMessage)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full py-3 rounded-2xl bg-[#2AABEE] hover:bg-[#229ED9] text-white font-black text-xs flex items-center justify-center shadow-lg shadow-[#2AABEE]/25 ios-touch"
-                >
-                  <Send className="w-4 h-4 mr-1.5" /> Enviar por Telegram ✈️
-                </a>
+                {/* Send via WhatsApp directly to player's number */}
+                {approvedResult.player.phone && (
+                  <a
+                    href={`https://wa.me/${approvedResult.player.phone.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(approvedResult.welcomeMessage)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-3 rounded-2xl bg-[#25D366] hover:bg-[#20BA5C] text-black font-black text-xs flex items-center justify-center shadow-lg shadow-[#25D366]/20 ios-touch"
+                  >
+                    <Phone className="w-4 h-4 mr-1.5" /> Enviar Clave por WhatsApp
+                  </a>
+                )}
 
                 {/* Copy Text */}
                 <button
                   type="button"
                   onClick={() => handleCopyWelcome(approvedResult.welcomeMessage)}
                   className={`w-full py-3 rounded-2xl font-black text-xs flex items-center justify-center shadow-lg ios-touch ${
-                    copiedWelcome ? 'bg-[#30D158] text-black' : 'bg-[#1C1C1E] border border-white/15 text-white hover:bg-[#2C2C2E]'
+                    copiedWelcome ? 'bg-[#30D158] text-black' : 'bg-[#2C2C2E] border border-white/15 text-white hover:bg-[#3A3A3C]'
                   }`}
                 >
                   {copiedWelcome ? (
                     <>
-                      <Check className="w-4 h-4 mr-1.5" /> ¡Mensaje Copiado al Portapapeles!
+                      <Check className="w-4 h-4 mr-1.5" /> ¡Copiado al Portapapeles!
                     </>
                   ) : (
                     <>
-                      <Copy className="w-4 h-4 mr-1.5" /> Copiar Mensaje de Bienvenida
+                      <Copy className="w-4 h-4 mr-1.5" /> Copiar Clave y Mensaje
                     </>
                   )}
                 </button>

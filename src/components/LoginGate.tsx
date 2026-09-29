@@ -138,19 +138,6 @@ export const LoginGate: React.FC<LoginGateProps> = ({
     verifyPin(pinInput);
   };
 
-  const handleKeypadPress = (val: string) => {
-    if (loginSuccessInfo) return;
-    const next = pinInput + val;
-    setPinInput(next);
-    setLoginError(null);
-  };
-
-  const handleBackspace = () => {
-    if (loginSuccessInfo) return;
-    setPinInput(prev => prev.slice(0, -1));
-    setLoginError(null);
-  };
-
   // Registration Submit
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,27 +318,8 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               </button>
             </form>
 
-            {/* Quick Digital Keypad for numbers */}
-            <div className="pt-2 border-t border-white/5 space-y-2">
-              <div className="grid grid-cols-3 gap-2 max-w-[260px] mx-auto">
-                {['1', '2', '3', '4', '5', '6', '7', '8', '9', 'G', '0', '⌫'].map((k) => (
-                  <button
-                    key={k}
-                    type="button"
-                    onClick={() => {
-                      if (k === '⌫') handleBackspace();
-                      else handleKeypadPress(k);
-                    }}
-                    className="h-11 rounded-xl bg-[#2C2C2E]/70 active:bg-[#3A3A3C] text-white font-bold text-base flex items-center justify-center border border-white/5 ios-touch transition-colors"
-                  >
-                    {k}
-                  </button>
-                ))}
-              </div>
-            </div>
-
             {/* Need help note */}
-            <div className="text-center pt-1">
+            <div className="text-center pt-2">
               <button
                 type="button"
                 onClick={() => setMode('register')}
