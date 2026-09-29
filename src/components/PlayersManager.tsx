@@ -224,10 +224,13 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     );
   });
 
-  const handleRegenerateAllPins = () => {
-    if (confirm('¿Regenerar claves aleatorias criptográficas únicas para todos los jugadores? Se sincronizarán en la base de datos de Supabase de inmediato.')) {
-      const updated = StorageService.regenerateAllPlayerPins(players);
+  const handleRegeneratePlayerPin = (player: Player) => {
+    const confirmMsg = `¿Regenerar clave de acceso para "${player.name}"?\n\nSe creará un nuevo PIN único de 5 caracteres y se guardará de inmediato en la base de datos.`;
+    if (confirm(confirmMsg)) {
+      const newPin = generateSecurePin();
+      const updated = players.map(p => (p.id === player.id ? { ...p, pin: newPin } : p));
       onSavePlayers(updated);
+      alert(`✅ Nuevo PIN para ${player.name}: ${newPin}\n\nCompártele esta clave al jugador.`);
     }
   };
 
@@ -247,15 +250,6 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
           {(isAdmin || isSuperAdmin) && (
             <div className="flex items-center space-x-2 flex-wrap gap-y-2">
-              <button
-                type="button"
-                onClick={handleRegenerateAllPins}
-                className="px-3 py-1.5 rounded-xl bg-[#2C2C2E] border border-white/10 text-xs font-semibold text-[#FFD60A] hover:bg-[#3A3A3C] ios-touch flex items-center shadow-sm"
-                title="Regenerar claves criptográficas para todos"
-              >
-                <Key className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" />
-                <span className="hidden sm:inline">Regenerar</span> Claves
-              </button>
               <button
                 onClick={() => {
                   setIsBulkAdding(!isBulkAdding);
@@ -710,6 +704,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               {/* Action Buttons for Admin */}
               {(isAdmin || isSuperAdmin) && (
                 <div className="flex items-center space-x-1 flex-shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => handleRegeneratePlayerPin(player)}
+                    className="p-2 text-[#FFD60A] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
+                    title={`Regenerar clave única de ${player.name}`}
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
                   <button
                     onClick={() => handleStartEdit(player)}
                     className="p-2 text-[#8E8E93] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
