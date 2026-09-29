@@ -520,14 +520,26 @@ export const LoginGate: React.FC<LoginGateProps> = ({
               </div>
             </div>
 
-            <div className="pt-2">
+            <div className="pt-2 space-y-2">
+              <a
+                href={`https://wa.me/?text=${encodeURIComponent(
+                  `Hola! Acabo de enviar mi solicitud de registro a la WebApp del Torneo G20 con el nombre "${regNickname || regName}". ¿Podrías aprobar mi acceso y enviarme mi clave única de jugador?`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-3.5 rounded-2xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs ios-touch flex items-center justify-center shadow-lg shadow-[#25D366]/20"
+              >
+                <Phone className="w-4 h-4 mr-1.5" />
+                Avisar al Administrador por WhatsApp
+              </a>
+
               <button
                 type="button"
                 onClick={() => {
                   setRegSuccess(false);
                   setMode('login');
                 }}
-                className="w-full py-3 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-white font-bold text-xs ios-touch flex items-center justify-center"
+                className="w-full py-3 rounded-xl bg-[#2C2C2E] hover:bg-[#3A3A3C] text-[#8E8E93] hover:text-white font-bold text-xs ios-touch flex items-center justify-center"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
                 Volver a la Pantalla de Acceso
