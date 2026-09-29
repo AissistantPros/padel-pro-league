@@ -52,6 +52,7 @@ export const DEFAULT_CONFIG: TournamentConfig = {
   adminPin: 'G20AD', // Secure 5-char Master Tournament Admin PIN
   superAdminPin: 'EST99', // Secure 5-char Master Super Admin PIN
   telegramUsername: 'Estebanri', // Esteban's Telegram username
+  telegramBotToken: '8990462672:AAFx0KenD6TUHDwHTHtU_3XP96xZazWhl9g', // Padelg20adminbot Token
   telegramChatId: '1575757414', // Esteban's Telegram Chat ID
   rankingSystem: 'total_points',
   bayesianFactorK: 4,
