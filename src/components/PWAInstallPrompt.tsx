@@ -211,10 +211,16 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
               <p className="text-base sm:text-lg font-bold text-white leading-snug">
                 ¿Quieres tener la App en tu pantalla de inicio con acceso directo?
               </p>
-              <ul className="space-y-2 text-sm sm:text-base text-gray-200">
+              <ul className="space-y-2.5 text-sm sm:text-base text-gray-200">
+                <li className="flex items-center space-x-2.5 text-[#30D158] bg-[#30D158]/10 p-2.5 rounded-xl border border-[#30D158]/30">
+                  <Sparkles className="w-5 h-5 flex-shrink-0 text-[#30D158]" />
+                  <span className="text-white text-xs sm:text-sm font-bold">
+                    ¡Cero espacio en tu teléfono! <span className="text-[#30D158] font-extrabold">NO ocupa memoria ni satura tu iPhone o celular</span> (funciona 100% en la nube).
+                  </span>
+                </li>
                 <li className="flex items-center space-x-2.5">
                   <CheckCircle2 className="w-5 h-5 text-[#30D158] flex-shrink-0" />
-                  <span><strong>Acceso en 1 toque</strong> desde tu celular.</span>
+                  <span><strong>Acceso en 1 toque</strong> desde tu pantalla de inicio.</span>
                 </li>
                 <li className="flex items-center space-x-2.5">
                   <CheckCircle2 className="w-5 h-5 text-[#30D158] flex-shrink-0" />
@@ -288,6 +294,19 @@ export const PWAInstallPrompt: React.FC<PWAInstallPromptProps> = ({
               >
                 <X className="w-6 h-6" />
               </button>
+            </div>
+
+            {/* Aviso de Cero Espacio en Memoria */}
+            <div className="bg-[#30D158]/10 border-2 border-[#30D158]/40 rounded-2xl p-4 flex items-center space-x-3.5">
+              <div className="w-11 h-11 rounded-xl bg-[#30D158]/20 text-[#30D158] flex items-center justify-center flex-shrink-0">
+                <Sparkles className="w-6 h-6 text-[#30D158]" />
+              </div>
+              <div className="flex-1 text-xs sm:text-sm text-gray-200 leading-snug">
+                <span className="text-white block font-black text-sm sm:text-base">
+                  ⚡ ¡Despreocúpate por el espacio!
+                </span>
+                Esta app funciona 100% en la nube: <strong className="text-[#30D158]">NO ocupa memoria ni satura tu iPhone o celular</strong> (0 megabytes de descargas o fotos pesadas).
+              </div>
             </div>
 
             {/* SECCIÓN DE NOTIFICACIONES */}

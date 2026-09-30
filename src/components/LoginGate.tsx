@@ -578,7 +578,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                     📲 ¿Instalar App en tu Celular?
                   </div>
                   <div className="text-xs text-[#8E8E93]">
-                    Guía paso a paso para iPhone y Android
+                    Guía fácil • <span className="text-[#30D158] font-bold">¡Cero espacio en tu celular! (0 MB)</span>
                   </div>
                 </div>
               </div>
