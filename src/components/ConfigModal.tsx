@@ -472,7 +472,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
               </button>
             </div>
             {superPinError && (
-              <p className="text-xs text-[#FF453A] animate-shake">Clave SA no reconocida</p>
+              <p className="text-xs text-[#FF453A] animate-shake font-bold">🤨 Esa no es la clave de mi jefe Esteban, ¡ni le inventes!</p>
             )}
           </form>
         )}

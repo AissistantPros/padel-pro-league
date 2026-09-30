@@ -110,7 +110,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     if (!newName.trim()) return;
 
     if (newRole === 'superadmin' && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: Solo el Super Administrador puede crear usuarios con rango de Super Admin.');
+      alert('🤨 ¿Creando Super Admins por tus pistolas? Jajaja ni lo pienses, tendrías que ser un máster como mi jefe Esteban para hacer eso.');
       return;
     }
 
@@ -179,7 +179,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
   const handleStartEdit = (player: Player) => {
     if (isSuperAdminPlayer(player) && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: Solo el Super Administrador puede editar su propia cuenta.');
+      alert('👀 ¿Queriendo editar a mi jefe Esteban? ¡Imposible mi chavo! Eres un simple administrador, a él nadie lo toca.');
       return;
     }
     setEditingPlayer(player);
@@ -198,12 +198,12 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     if (!editingPlayer || !editName.trim()) return;
 
     if (isSuperAdminPlayer(editingPlayer) && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: Los administradores no tienen permitido modificar los datos del Super Administrador.');
+      alert('✋ Jajaja ¡bájale dos rayitas! No puedes modificar al mero mero. Esteban es intocable.');
       return;
     }
 
     if (editRole === 'superadmin' && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: Solo el Super Administrador puede otorgar rango de Super Admin.');
+      alert('👑 ¿Subiéndote el rango tú solito? Jajaja ni lo pienses, tendrías que ser un máster como mi jefe Esteban para hacer eso.');
       return;
     }
 
@@ -230,7 +230,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     if (!targetPlayer) return;
 
     if (isSuperAdminPlayer(targetPlayer) && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: Ningún administrador tiene permitido eliminar al Super Administrador.');
+      alert('💀 ¿¿¿Quieres borrar a mi jefe??? Imposible compadre, estás chavo. ¡Esteban vivirá por siempre en esta app!');
       return;
     }
 
@@ -257,7 +257,7 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
   const handleRegeneratePlayerPin = (player: Player) => {
     if (isSuperAdminPlayer(player) && !isSuperAdmin) {
-      alert('⛔ Permiso denegado: No puedes alterar ni regenerar la clave del Super Administrador.');
+      alert('🕵️‍♂️ ¿Queriendo cambiarle la clave al patrón? Ni lo sueñes, esa clave es nivel FBI.');
       return;
     }
 
@@ -757,11 +757,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                           {isSuperAdminPlayer(player) ? (
                             isSuperAdmin ? (
                               <span className="text-[#FFD60A] font-mono font-bold bg-[#FFD60A]/15 px-1.5 py-0.5 rounded text-[11px] border border-[#FFD60A]/30">
-                                👑 TU PIN (SA): {player.pin || '-'}
+                                👑 TU PIN, PATRÓN: {player.pin || '-'}
                               </span>
                             ) : (
-                              <span className="text-[#FFD60A] font-bold bg-[#FFD60A]/10 px-1.5 py-0.5 rounded text-[11px] border border-[#FFD60A]/20">
-                                🔒 PIN Oculto (Super Admin)
+                              <span className="text-[#FFD60A] font-bold bg-[#FFD60A]/10 px-1.5 py-0.5 rounded text-[11px] border border-[#FFD60A]/20" title="¿Querías ver el PIN de Esteban? Jajaja ni lo pienses, eres un simple administrador">
+                                🔒 PIN de mi Jefe (Top Secret)
                               </span>
                             )
                           ) : (
@@ -785,8 +785,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               {(isAdmin || isSuperAdmin) && (
                 <div className="flex items-center space-x-1 flex-shrink-0">
                   {isSuperAdminPlayer(player) && !isSuperAdmin ? (
-                    <span className="text-[11px] font-black text-[#FFD60A] bg-[#FFD60A]/10 border border-[#FFD60A]/30 px-2.5 py-1 rounded-xl flex items-center shadow-sm" title="Solo el Super Administrador puede editarse o eliminarse a sí mismo">
-                      <Crown className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" /> Intocable (SA)
+                    <span
+                      className="text-[11px] font-black text-[#FFD60A] bg-[#FFD60A]/15 border border-[#FFD60A]/40 px-2.5 py-1 rounded-xl flex items-center shadow-sm cursor-help"
+                      title="¿Quieres borrar a mi jefe? Imposible compadre, estás chavo."
+                    >
+                      <Crown className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" /> El Jefe (Intocable)
                     </span>
                   ) : (
                     <>
