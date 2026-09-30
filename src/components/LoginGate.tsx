@@ -19,6 +19,7 @@ import {
   Send,
   RefreshCw,
   Smartphone,
+  ChevronRight,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
@@ -562,14 +563,26 @@ export const LoginGate: React.FC<LoginGateProps> = ({
 
         {/* Install PWA Prompt Trigger Button */}
         {onOpenInstallApp && (
-          <div className="text-center pt-1">
+          <div className="pt-2">
             <button
               type="button"
               onClick={onOpenInstallApp}
-              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-[#1C1C1E] border border-[#30D158]/30 text-[#30D158] hover:bg-[#30D158]/15 text-xs font-bold transition-all ios-touch"
+              className="w-full py-3 px-4 rounded-2xl bg-[#1C1C1E] border border-[#30D158]/40 hover:border-[#30D158] text-white hover:bg-[#30D158]/10 transition-all ios-touch flex items-center justify-between shadow-lg group"
             >
-              <Smartphone className="w-3.5 h-3.5" />
-              <span>📲 Instalar App en tu Celular (iOS / Android)</span>
+              <div className="flex items-center space-x-3 text-left">
+                <div className="w-10 h-10 rounded-xl bg-[#30D158]/20 text-[#30D158] flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform">
+                  <Smartphone className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white leading-tight">
+                    📲 ¿Instalar App en tu Celular?
+                  </div>
+                  <div className="text-xs text-[#8E8E93]">
+                    Guía paso a paso para iPhone y Android
+                  </div>
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#30D158]" />
             </button>
           </div>
         )}
