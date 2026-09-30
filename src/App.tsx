@@ -21,6 +21,7 @@ import { ConfigModal } from './components/ConfigModal.tsx';
 import { AdminModal } from './components/AdminModal.tsx';
 import { LoginGate } from './components/LoginGate.tsx';
 import { PendingRegistrationsModal } from './components/PendingRegistrationsModal.tsx';
+import { PWAInstallPrompt } from './components/PWAInstallPrompt.tsx';
 
 export function App() {
   const [players, setPlayers] = useState<Player[]>(() => StorageService.getPlayers());
@@ -29,6 +30,7 @@ export function App() {
   const [grandFinale, setGrandFinale] = useState<GrandFinaleBracket | null>(() => StorageService.getGrandFinaleBracket());
   const [registrationRequests, setRegistrationRequests] = useState<PlayerRegistrationRequest[]>(() => StorageService.getRegistrationRequests());
   const [isPendingRequestsModalOpen, setIsPendingRequestsModalOpen] = useState<boolean>(false);
+  const [isInstallModalOpen, setIsInstallModalOpen] = useState<boolean>(false);
   
   // Auth state
   const [isAdmin, setIsAdmin] = useState<boolean>(() => StorageService.getIsAdminAuthenticated());
@@ -334,14 +336,21 @@ export function App() {
 
   if (!isAuthenticated) {
     return (
-      <LoginGate
-        config={config}
-        players={players}
-        onLoginSuccess={handleLoginSuccess}
-        onRequestSubmitted={(newReq) => {
-          setRegistrationRequests(prev => [newReq, ...prev]);
-        }}
-      />
+      <>
+        <LoginGate
+          config={config}
+          players={players}
+          onLoginSuccess={handleLoginSuccess}
+          onRequestSubmitted={(newReq) => {
+            setRegistrationRequests(prev => [newReq, ...prev]);
+          }}
+          onOpenInstallApp={() => setIsInstallModalOpen(true)}
+        />
+        <PWAInstallPrompt
+          forceOpen={isInstallModalOpen}
+          onClose={() => setIsInstallModalOpen(false)}
+        />
+      </>
     );
   }
 
@@ -356,6 +365,7 @@ export function App() {
         currentPlayer={currentPlayer}
         pendingRequestsCount={pendingRequestsOnly.length}
         onOpenPendingRequests={() => setIsPendingRequestsModalOpen(true)}
+        onOpenInstallApp={() => setIsInstallModalOpen(true)}
         config={config}
         onLogout={handleLogout}
       />
@@ -486,6 +496,12 @@ export function App() {
         onRejectRequest={(remainingRequests) => {
           setRegistrationRequests(remainingRequests);
         }}
+      />
+
+      {/* PWA Install Modal / Banner */}
+      <PWAInstallPrompt
+        forceOpen={isInstallModalOpen}
+        onClose={() => setIsInstallModalOpen(false)}
       />
     </div>
   );

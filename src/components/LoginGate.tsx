@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   Send,
   RefreshCw,
+  Smartphone,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import type { TournamentConfig, Player, PlayerRegistrationRequest } from '../types/index.ts';
@@ -30,6 +31,7 @@ interface LoginGateProps {
   players: Player[];
   onLoginSuccess: (player: Player | null, role: 'player' | 'admin' | 'superadmin') => void;
   onRequestSubmitted?: (req: PlayerRegistrationRequest) => void;
+  onOpenInstallApp?: () => void;
 }
 
 export const LoginGate: React.FC<LoginGateProps> = ({
@@ -37,6 +39,7 @@ export const LoginGate: React.FC<LoginGateProps> = ({
   players,
   onLoginSuccess,
   onRequestSubmitted,
+  onOpenInstallApp,
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   
@@ -554,6 +557,20 @@ export const LoginGate: React.FC<LoginGateProps> = ({
                 Volver a la Pantalla de Acceso
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Install PWA Prompt Trigger Button */}
+        {onOpenInstallApp && (
+          <div className="text-center pt-1">
+            <button
+              type="button"
+              onClick={onOpenInstallApp}
+              className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-full bg-[#1C1C1E] border border-[#30D158]/30 text-[#30D158] hover:bg-[#30D158]/15 text-xs font-bold transition-all ios-touch"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>📲 Instalar App en tu Celular (iOS / Android)</span>
+            </button>
           </div>
         )}
 

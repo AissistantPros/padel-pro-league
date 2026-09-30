@@ -14,6 +14,7 @@ import {
   Crown,
   LogOut,
   Bell,
+  Smartphone,
 } from 'lucide-react';
 import type { TournamentConfig, Player } from '../types/index.ts';
 
@@ -25,6 +26,7 @@ interface HeaderProps {
   currentPlayer: Player | null;
   pendingRequestsCount?: number;
   onOpenPendingRequests?: () => void;
+  onOpenInstallApp?: () => void;
   config: TournamentConfig;
   onLogout: () => void;
 }
@@ -37,6 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   currentPlayer,
   pendingRequestsCount = 0,
   onOpenPendingRequests,
+  onOpenInstallApp,
   config,
   onLogout,
 }) => {
@@ -136,6 +139,19 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="text-xs font-semibold text-white hidden md:inline max-w-[85px] truncate">
                   {currentPlayer.nickname || currentPlayer.name.split(' ')[0]}
                 </span>
+              </button>
+            )}
+
+            {/* Install App Button */}
+            {onOpenInstallApp && (
+              <button
+                type="button"
+                onClick={onOpenInstallApp}
+                className="p-1.5 sm:px-2.5 sm:py-1 rounded-full bg-[#30D158]/10 hover:bg-[#30D158]/20 text-[#30D158] border border-[#30D158]/30 ios-touch flex items-center space-x-1"
+                title="Instalar App en tu Celular"
+              >
+                <Smartphone className="w-3.5 h-3.5" />
+                <span className="text-xs font-bold hidden sm:inline">Instalar App</span>
               </button>
             )}
 
