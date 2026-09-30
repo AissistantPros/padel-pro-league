@@ -100,9 +100,19 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
     }
   };
 
+  const isSuperAdminPlayer = (p: Player | null | undefined): boolean => {
+    if (!p) return false;
+    return p.role === 'superadmin' || p.name.trim().toLowerCase().includes('esteban');
+  };
+
   const handleAddPlayer = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) return;
+
+    if (newRole === 'superadmin' && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: Solo el Super Administrador puede crear usuarios con rango de Super Admin.');
+      return;
+    }
 
     const newPlayer: Player = {
       id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
@@ -168,6 +178,10 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   };
 
   const handleStartEdit = (player: Player) => {
+    if (isSuperAdminPlayer(player) && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: Solo el Super Administrador puede editar su propia cuenta.');
+      return;
+    }
     setEditingPlayer(player);
     setEditName(player.name);
     setEditNickname(player.nickname || '');
@@ -182,6 +196,16 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingPlayer || !editName.trim()) return;
+
+    if (isSuperAdminPlayer(editingPlayer) && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: Los administradores no tienen permitido modificar los datos del Super Administrador.');
+      return;
+    }
+
+    if (editRole === 'superadmin' && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: Solo el Super Administrador puede otorgar rango de Super Admin.');
+      return;
+    }
 
     const updated = players.map(p =>
       p.id === editingPlayer.id
@@ -203,7 +227,14 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
 
   const handleDeletePlayer = async (playerId: string) => {
     const targetPlayer = players.find(p => p.id === playerId);
-    const name = targetPlayer?.name || 'este participante';
+    if (!targetPlayer) return;
+
+    if (isSuperAdminPlayer(targetPlayer) && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: Ningún administrador tiene permitido eliminar al Super Administrador.');
+      return;
+    }
+
+    const name = targetPlayer.name || 'este participante';
     if (confirm(`¿Eliminar definitivamente a "${name}" de la lista oficial del torneo?\n\nEsta acción borrará al participante de la base de datos de forma permanente.`)) {
       // 1. Instant optimistic UI removal so there is no flicker or hesitation
       const remaining = players.filter(p => p.id !== playerId);
@@ -225,6 +256,11 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
   });
 
   const handleRegeneratePlayerPin = (player: Player) => {
+    if (isSuperAdminPlayer(player) && !isSuperAdmin) {
+      alert('⛔ Permiso denegado: No puedes alterar ni regenerar la clave del Super Administrador.');
+      return;
+    }
+
     const confirmMsg = `¿Regenerar clave de acceso para "${player.name}"?\n\nSe creará un nuevo PIN único de 5 caracteres y se guardará de inmediato en la base de datos.`;
     if (confirm(confirmMsg)) {
       const newPin = generateSecurePin();
@@ -718,9 +754,21 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
                       {(isAdmin || isSuperAdmin) && (
                         <>
                           <span>•</span>
-                          <span className="text-[#30D158] font-mono font-bold bg-[#30D158]/10 px-1.5 py-0.5 rounded text-[11px]">
-                            🔑 PIN: {player.pin || '-'}
-                          </span>
+                          {isSuperAdminPlayer(player) ? (
+                            isSuperAdmin ? (
+                              <span className="text-[#FFD60A] font-mono font-bold bg-[#FFD60A]/15 px-1.5 py-0.5 rounded text-[11px] border border-[#FFD60A]/30">
+                                👑 TU PIN (SA): {player.pin || '-'}
+                              </span>
+                            ) : (
+                              <span className="text-[#FFD60A] font-bold bg-[#FFD60A]/10 px-1.5 py-0.5 rounded text-[11px] border border-[#FFD60A]/20">
+                                🔒 PIN Oculto (Super Admin)
+                              </span>
+                            )
+                          ) : (
+                            <span className="text-[#30D158] font-mono font-bold bg-[#30D158]/10 px-1.5 py-0.5 rounded text-[11px]">
+                              🔑 PIN: {player.pin || '-'}
+                            </span>
+                          )}
                           <span>•</span>
                           <span className="text-[#64D2FF] text-[11px] flex items-center">
                             <MousePointer className="w-3 h-3 mr-0.5" />
@@ -736,28 +784,36 @@ export const PlayersManager: React.FC<PlayersManagerProps> = ({
               {/* Action Buttons for Admin */}
               {(isAdmin || isSuperAdmin) && (
                 <div className="flex items-center space-x-1 flex-shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => handleRegeneratePlayerPin(player)}
-                    className="p-2 text-[#FFD60A] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
-                    title={`Regenerar clave única de ${player.name}`}
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleStartEdit(player)}
-                    className="p-2 text-[#8E8E93] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
-                    title="Editar datos y PIN"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeletePlayer(player.id)}
-                    className="p-2 text-[#8E8E93] hover:text-[#FF453A] bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
-                    title="Eliminar"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {isSuperAdminPlayer(player) && !isSuperAdmin ? (
+                    <span className="text-[11px] font-black text-[#FFD60A] bg-[#FFD60A]/10 border border-[#FFD60A]/30 px-2.5 py-1 rounded-xl flex items-center shadow-sm" title="Solo el Super Administrador puede editarse o eliminarse a sí mismo">
+                      <Crown className="w-3.5 h-3.5 mr-1 text-[#FFD60A]" /> Intocable (SA)
+                    </span>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => handleRegeneratePlayerPin(player)}
+                        className="p-2 text-[#FFD60A] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
+                        title={`Regenerar clave única de ${player.name}`}
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleStartEdit(player)}
+                        className="p-2 text-[#8E8E93] hover:text-white bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
+                        title="Editar datos y PIN"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={() => handleDeletePlayer(player.id)}
+                        className="p-2 text-[#8E8E93] hover:text-[#FF453A] bg-[#1C1C1E] rounded-xl border border-white/5 ios-touch"
+                        title="Eliminar"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </>
+                  )}
                 </div>
               )}
 

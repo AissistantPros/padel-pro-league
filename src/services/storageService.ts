@@ -210,11 +210,17 @@ export const StorageService = {
   async deletePlayer(playerId: string, currentPlayers?: Player[]): Promise<Player[]> {
     if (!playerId) return currentPlayers || this.getPlayers();
 
+    const active = currentPlayers && currentPlayers.length > 0 ? currentPlayers : this.getPlayers();
+    const target = active.find(p => p.id === playerId);
+
+    // INVIOLABLE SAFEGUARD: Never delete the Super Admin under any circumstance
+    if (target && (target.role === 'superadmin' || target.name.toLowerCase().includes('esteban'))) {
+      console.warn('Protección Super Admin activada: El Super Administrador no puede ser eliminado.');
+      return active;
+    }
+
     // 1. Mark in permanent blacklist/tombstone
     this.addDeletedPlayerId(playerId);
-
-    // 2. Filter out of local list
-    const active = currentPlayers && currentPlayers.length > 0 ? currentPlayers : this.getPlayers();
     const updated = active.filter(p => p.id !== playerId);
     try {
       localStorage.setItem(STORAGE_KEYS.PLAYERS, JSON.stringify(updated));

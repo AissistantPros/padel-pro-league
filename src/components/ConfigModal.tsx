@@ -144,7 +144,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
       tournamentLogoUrl,
       courtNames: [court1, court2, court3, court4, court5],
       adminPin,
-      superAdminPin,
+      superAdminPin: isSuperAdmin ? superAdminPin : config.superAdminPin,
       telegramUsername: telegramUsername.trim() || undefined,
       telegramBotToken: telegramBotToken.trim() || undefined,
       telegramChatId: telegramChatId.trim() || undefined,
@@ -223,7 +223,7 @@ export const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handleUnlockSuperAdmin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (superPinInput === config.superAdminPin || superPinInput === '9999') {
+    if (superPinInput === config.superAdminPin) {
       onAuthenticateSuperAdmin();
       setShowSuperAdminSection(true);
       setSuperPinError(false);
