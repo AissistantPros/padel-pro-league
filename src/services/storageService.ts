@@ -610,12 +610,27 @@ export const StorageService = {
     return updatedRequests;
   },
 
+  // List of banned/purged ghost simulation days from pre-launch testing
+  BANNED_DAY_IDS: [
+    'jornada_1788295984723',
+    'jornada_1788488388113',
+    'jornada_1789077947823',
+  ],
+
   // Tournament Days
   getTournamentDays(): TournamentDay[] {
     try {
       const stored = localStorage.getItem(STORAGE_KEYS.DAYS);
       if (stored) {
-        return JSON.parse(stored);
+        const parsed: TournamentDay[] = JSON.parse(stored);
+        if (Array.isArray(parsed)) {
+          // Strictly filter out legacy ghost simulation days
+          const cleaned = parsed.filter(d => d && d.id && !this.BANNED_DAY_IDS.includes(d.id));
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(cleaned));
+          }
+          return cleaned;
+        }
       }
     } catch (e) {
       console.error('Error reading days from localStorage', e);
@@ -624,9 +639,12 @@ export const StorageService = {
   },
 
   saveTournamentDays(days: TournamentDay[]): void {
+    // Strictly filter out ghost/banned simulation days
+    const cleanDays = (days || []).filter(d => d && d.id && !this.BANNED_DAY_IDS.includes(d.id));
+
     try {
-      if (days && days.length > 0) {
-        localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(days));
+      if (cleanDays && cleanDays.length > 0) {
+        localStorage.setItem(STORAGE_KEYS.DAYS, JSON.stringify(cleanDays));
       } else {
         localStorage.removeItem(STORAGE_KEYS.DAYS);
       }
@@ -636,7 +654,7 @@ export const StorageService = {
 
     const supabase = getSupabase();
     if (supabase) {
-      if (!days || days.length === 0) {
+      if (!cleanDays || cleanDays.length === 0) {
         supabase.from('tournament_days').delete().neq('id', '___none___').then();
       } else {
         supabase
@@ -772,7 +790,18 @@ export const StorageService = {
 
       let days: TournamentDay[] = [];
       if (daysRes.data && Array.isArray(daysRes.data) && daysRes.data.length > 0) {
-        days = daysRes.data.map((r: any) => r.data).filter(Boolean);
+        days = daysRes.data
+          .map((r: any) => r.data)
+          .filter(Boolean)
+          .filter((d: TournamentDay) => d && d.id && !this.BANNED_DAY_IDS.includes(d.id));
+
+        // Purge any ghost banned days that might somehow appear in Supabase
+        const ghostDayIds = daysRes.data
+          .map((r: any) => r.data?.id || r.id)
+          .filter((id: string) => id && this.BANNED_DAY_IDS.includes(id));
+        if (ghostDayIds.length > 0) {
+          supabase.from('tournament_days').delete().in('id', ghostDayIds).then();
+        }
       } else {
         // Cloud has 0 tournament days: tournament has not started yet!
         days = [];
@@ -830,9 +859,10 @@ export const StorageService = {
         await supabase.from('players').upsert(pRows);
       }
 
-      // Upsert tournament days safely
-      if (days.length > 0) {
-        const dRows = days.map(d => ({ id: d.id, data: d, updated_at: new Date().toISOString() }));
+      // Upsert tournament days safely (excluding banned days)
+      const validDays = (days || []).filter(d => d && d.id && !this.BANNED_DAY_IDS.includes(d.id));
+      if (validDays.length > 0) {
+        const dRows = validDays.map(d => ({ id: d.id, data: d, updated_at: new Date().toISOString() }));
         await supabase.from('tournament_days').upsert(dRows);
       }
 

@@ -67,6 +67,13 @@ export function App() {
             }
           } else if (payload.new && payload.new.data) {
             const updatedDay = payload.new.data as TournamentDay;
+            if (StorageService.BANNED_DAY_IDS.includes(updatedDay.id)) {
+              // Immediately eradicate banned legacy day from Supabase
+              const sb = getSupabase();
+              if (sb) sb.from('tournament_days').delete().eq('id', updatedDay.id).then();
+              setDays(prevDays => prevDays.filter(d => d.id !== updatedDay.id));
+              return;
+            }
             setDays(prevDays => {
               const idx = prevDays.findIndex(d => d.id === updatedDay.id);
               if (idx !== -1) {
