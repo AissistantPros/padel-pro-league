@@ -546,8 +546,12 @@ export const StandingsTable: React.FC<StandingsTableProps> = ({
                 Cada game ganado suma 1 punto base a la tabla. Quien gana más games se coloca más arriba.
               </div>
               <div className="p-3 bg-[#2C2C2E] rounded-xl">
-                <strong className="text-white block mb-1">2. Desempates (Decimales)</strong>
-                En caso de empate en games, se suman decimales por margen de victoria (ej. 6-1 suma +0.003) y rachas de partidos invicto.
+                <strong className="text-white block mb-1">2. Desempate (Orden de llegada)</strong>
+                El único decimal es el de llegada: el primero en registrarse suma +0.016, el segundo +0.015, y así hasta +0.001. Sirve para desempatar en puntos.
+              </div>
+              <div className="p-3 bg-[#2C2C2E] rounded-xl">
+                <strong className="text-white block mb-1">3. Final de la jornada</strong>
+                Tras los 3 juegos cortos se cruzan 1º+4º vs 2º+3º (y así por pista). Ganan +3 los de la Pista 1 y +1 los demás ganadores.
               </div>
             </div>
           </div>

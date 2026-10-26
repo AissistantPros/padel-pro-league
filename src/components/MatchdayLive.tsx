@@ -32,7 +32,7 @@ import type {
 import { MatchCard } from './MatchCard.tsx';
 import { ScoreModal } from './ScoreModal.tsx';
 import { MatchdayReportModal } from './MatchdayReportModal.tsx';
-import { generatePreliminaryRounds, generateDailyFinalRound } from '../utils/pairingEngine.ts';
+import { generateArrivalRounds, generateDailyFinalRound, ARRIVAL_DAY_PLAYERS } from '../utils/pairingEngine.ts';
 import { calculateDailyPrelimStandings, calculateDailyFinalStandings } from '../utils/intelligenceEngine.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
 import { StorageService } from '../services/storageService.ts';
@@ -104,11 +104,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
   // New Date Wizard State
   const [isCreatingNewDay, setIsCreatingNewDay] = useState(false);
-  const [targetPlayerCount, setTargetPlayerCount] = useState<number>(16);
+  // Formato fijo: 16 jugadores / 4 pistas. El orden de check-in ES el orden de llegada.
+  const targetPlayerCount = ARRIVAL_DAY_PLAYERS;
   const [newDayDate, setNewDayDate] = useState(new Date().toISOString().split('T')[0]);
   const [checkedInIds, setCheckedInIds] = useState<string[]>([]);
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
-  const [pairingMode, setPairingMode] = useState<'ranking' | 'random'>('ranking');
 
   // Inline Player Registration in Wizard
   const [isAddingPlayerInline, setIsAddingPlayerInline] = useState(false);
@@ -133,16 +133,9 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     setInlinePlayerNickname('');
     setInlinePlayerPhone('');
 
-    const available = players.filter(p => p.isActive).length;
-    let defCount = 16;
-    if (available < 16 && available >= 12) defCount = 12;
-    else if (available < 12 && available >= 8) defCount = 8;
-    else if (available < 8 && available >= 4) defCount = 4;
-    setTargetPlayerCount(defCount);
-
-    const active = players.filter(p => p.isActive).slice(0, defCount);
-    setCheckedInIds(active.map(p => p.id));
-    setPairingMode(statsList.some(s => s.totalMatchesPlayed > 0) ? 'ranking' : 'random');
+    // Arranca vacío: los jugadores se van tocando en el orden en que llegan a la pista.
+    setCheckedInIds([]);
+    setPlayerSearchQuery('');
   };
 
   const handleToggleCheckin = (playerId: string) => {
@@ -158,13 +151,8 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
     });
   };
 
-  const handleSelectTopByRanking = () => {
-    const sorted = [...players].sort((a, b) => {
-      const stA = statsList.find(s => s.playerId === a.id)?.currentRank ?? 999;
-      const stB = statsList.find(s => s.playerId === b.id)?.currentRank ?? 999;
-      return stA - stB;
-    });
-    setCheckedInIds(sorted.slice(0, targetPlayerCount).map(p => p.id));
+  const handleClearArrivals = () => {
+    setCheckedInIds([]);
   };
 
   // Inline Player Creation inside Wizard
@@ -208,18 +196,16 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
 
     const dayId = `jornada_${Date.now()}`;
     const fixedDayName = getOrdinalDateName(days.length);
-    const participatingPlayers = players.filter(p => checkedInIds.includes(p.id));
-    const isRandom = pairingMode === 'random';
 
-    const rankingMap = new Map<string, number>(
-      statsList.map(s => [s.playerId, s.totalChampionshipPoints > 0 ? s.totalChampionshipPoints : (50 - (s.currentRank || 20)) * 2])
-    );
+    // El orden del arreglo de check-in es el orden de llegada: define los 3 juegos y el decimal.
+    const arrivalOrder = [...checkedInIds];
+    const participatingPlayers = arrivalOrder
+      .map(id => players.find(p => p.id === id))
+      .filter((p): p is Player => Boolean(p));
 
-    const rounds = generatePreliminaryRounds(
+    const rounds = generateArrivalRounds(
       dayId,
       participatingPlayers,
-      isRandom,
-      isRandom ? undefined : rankingMap,
       config.courtNames
     );
 
@@ -228,7 +214,8 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       name: fixedDayName,
       date: newDayDate,
       status: 'preliminaries',
-      checkedInPlayerIds: checkedInIds,
+      checkedInPlayerIds: arrivalOrder,
+      arrivalOrder,
       rounds,
       prelimStandings: [],
       finalStandings: [],
@@ -270,7 +257,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       .flatMap(r => r.matches);
     
     const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
-    const newPrelimStandings = calculateDailyPrelimStandings(participatingPlayers, prelimMatches);
+    const newPrelimStandings = calculateDailyPrelimStandings(
+      participatingPlayers,
+      prelimMatches,
+      currentDay.arrivalOrder || currentDay.checkedInPlayerIds
+    );
 
     const finalRound = updatedRounds.find(r => r.roundNumber === 4);
     const newFinalStandings = finalRound
@@ -307,7 +298,11 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
       .flatMap(r => r.matches);
 
     const participatingPlayers = players.filter(p => currentDay.checkedInPlayerIds.includes(p.id));
-    const prelimStandings = calculateDailyPrelimStandings(participatingPlayers, prelimMatches);
+    const prelimStandings = calculateDailyPrelimStandings(
+      participatingPlayers,
+      prelimMatches,
+      currentDay.arrivalOrder || currentDay.checkedInPlayerIds
+    );
 
     const finalRound = generateDailyFinalRound(
       currentDay.id,
@@ -669,7 +664,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between text-xs text-[#8E8E93] px-1">
                 <span className="font-semibold text-white">Juego {activeRoundTab} de 3 preliminares</span>
-                <span>Al mejor de 7 games</span>
+                <span>Al mejor de 7 puntos</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -791,18 +786,17 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                   : currentDay.checkedInPlayerIds.map((id, idx) => ({
                       playerId: id,
                       playerName: players.find(p => p.id === id)?.name || id,
-                      dailyRank: idx + 1,
                       matchesPlayed: 0,
                       matchesWon: 0,
                       matchesLost: 0,
                       gamesWon: 0,
                       gamesLost: 0,
                       gameDiff: 0,
+                      arrivalPosition: idx + 1,
+                      arrivalBonus: 0,
                       basePoints: 0,
-                      marginBonus: 0,
-                      roundRecordBonus: 0,
-                      finalMatchBonus: 0,
-                      cleanSweepBonus: 0,
+                      finalGamesWon: 0,
+                      finalBonus: 0,
                       prelimTotalScore: 0,
                       totalDailyScore: 0,
                       prelimRank: idx + 1,
@@ -902,53 +896,62 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
               </div>
             </div>
 
-            {/* Step 2: Player Count Selector */}
-            <div className="bg-[#1C1C1E] p-4 rounded-2xl border border-white/10 space-y-2.5">
+            {/* Step 2: Formato fijo de la jornada */}
+            <div className="bg-[#1C1C1E] p-4 rounded-2xl border border-white/10 space-y-2">
               <label className="text-xs font-semibold uppercase text-[#8E8E93] tracking-wider block">
-                1. Cupo de Jugadores:
+                1. Formato de la jornada:
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[8, 12, 16, 20].map((num) => {
-                  const courts = num / 4;
-                  const isSelected = targetPlayerCount === num;
-                  return (
-                    <button
-                      key={num}
-                      type="button"
-                      onClick={() => {
-                        setTargetPlayerCount(num);
-                        if (checkedInIds.length > num) {
-                          setCheckedInIds(checkedInIds.slice(0, num));
-                        }
-                      }}
-                      className={`py-3 px-2 rounded-xl text-center transition-all ios-touch border ${
-                        isSelected
-                          ? 'bg-[#30D158] text-black font-black border-[#30D158] shadow-md shadow-[#30D158]/30'
-                          : 'bg-[#2C2C2E] border-white/5 text-white'
-                      }`}
-                    >
-                      <div className="text-base font-black">{num}</div>
-                      <div className="text-[10px] opacity-80">{courts} {courts === 1 ? 'Pista' : 'Pistas'}</div>
-                    </button>
-                  );
-                })}
+              <div className="flex items-center justify-between rounded-xl bg-[#2C2C2E] border border-[#30D158]/30 px-3.5 py-3">
+                <div>
+                  <div className="text-sm font-black text-white">16 Jugadores · 4 Pistas</div>
+                  <div className="text-[11px] text-[#8E8E93]">3 juegos cortos a 7 pts + final a set completo</div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-[#30D158]/15 text-[#30D158] border border-[#30D158]/30">
+                  Fijo
+                </span>
               </div>
+              <p className="text-[11px] text-[#8E8E93] leading-snug">
+                Toca a cada jugador <span className="text-white font-semibold">en el orden en que llega</span>. Su número de llegada define las parejas de los juegos 1, 2 y 3, y le da el decimal de desempate (+0.016 el primero, +0.015 el segundo…).
+              </p>
             </div>
 
             {/* Step 3: Player Selection Roster & Inline Add Option */}
             <div className="bg-[#1C1C1E] p-4 rounded-2xl border border-white/10 space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold uppercase text-[#8E8E93] tracking-wider">
-                  2. Participantes ({checkedInIds.length}/{targetPlayerCount}):
+                  2. Orden de llegada ({checkedInIds.length}/{targetPlayerCount}):
                 </label>
                 <button
                   type="button"
-                  onClick={handleSelectTopByRanking}
+                  onClick={handleClearArrivals}
                   className="text-xs text-[#0A84FF] font-bold hover:underline"
                 >
-                  Auto Top {targetPlayerCount}
+                  Limpiar
                 </button>
               </div>
+
+              {/* Tira de orden de llegada confirmado */}
+              {checkedInIds.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pb-1">
+                  {checkedInIds.map((id, idx) => {
+                    const pl = players.find(p => p.id === id);
+                    const isTop4 = idx < 4;
+                    return (
+                      <span
+                        key={id}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${
+                          isTop4
+                            ? 'bg-[#FFD60A]/15 text-[#FFD60A] border-[#FFD60A]/40'
+                            : 'bg-[#30D158]/15 text-[#30D158] border-[#30D158]/30'
+                        }`}
+                      >
+                        {idx + 1}. {pl?.nickname || pl?.name || id}
+                        <span className="opacity-70"> +{(0.017 - (idx + 1)).toFixed(3)}</span>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Search + Add Player Inline Button */}
               <div className="flex items-center space-x-2">
@@ -1043,7 +1046,9 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                       </div>
 
                       {isChecked ? (
-                        <CheckCircle className="w-4 h-4 text-[#30D158] flex-shrink-0" />
+                        <span className="w-6 h-6 rounded-full bg-[#30D158] text-black text-[11px] font-black flex items-center justify-center flex-shrink-0">
+                          {checkedInIds.indexOf(p.id) + 1}
+                        </span>
                       ) : (
                         <div className="w-4 h-4 rounded-full border border-white/20 flex-shrink-0" />
                       )}
@@ -1074,7 +1079,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                   </>
                 ) : (
                   <span className="text-xs sm:text-sm font-semibold text-[#8E8E93]">
-                    Selecciona {targetPlayerCount - checkedInIds.length} jugadores más para iniciar
+                    Toca {targetPlayerCount - checkedInIds.length} jugadores más en orden de llegada
                   </span>
                 )}
               </button>

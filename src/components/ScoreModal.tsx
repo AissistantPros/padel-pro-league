@@ -23,6 +23,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   if (!isOpen || !match) return null;
 
   const isShortGame = match.matchType === 'preliminary';
+  const isFullSet = match.matchType === 'daily_final' || match.matchType === 'grand_final';
   const [scoreA, setScoreA] = useState<number | null>(match.score?.completed ? match.score.scoreA : null);
   const [scoreB, setScoreB] = useState<number | null>(match.score?.completed ? match.score.scoreB : null);
   const [activeSide, setActiveSide] = useState<'A' | 'B'>('A');
@@ -49,7 +50,10 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
     }
   }, [match]);
 
-  const isTieBreak = isShortGame && scoreA === 3 && scoreB === 3;
+  // Juego corto: tie-break a 3-3. Set completo: tie-break a 6-6.
+  const isTieBreak =
+    (isShortGame && scoreA === 3 && scoreB === 3) ||
+    (isFullSet && scoreA === 6 && scoreB === 6);
   const isBothSelected = scoreA !== null && scoreB !== null;
 
   const isTeamAWinner = isBothSelected && (

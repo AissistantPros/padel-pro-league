@@ -1,82 +1,152 @@
-import { calculateMarginBonus, calculateRoundRecordBonus, calculateFinalBonuses, roundDecimal } from './tieBreakerEngine.ts';
-import { generatePreliminaryRounds, generateDailyFinalRound } from './pairingEngine.ts';
-import type { Player } from '../types/index.ts';
-import { calculateDailyPrelimStandings, buildChampionshipIntelligence, predictMatchWinProbability } from './intelligenceEngine.ts';
+/**
+ * PRUEBAS DEL NUEVO SISTEMA (Orden de llegada + Final a set completo)
+ * Ejecutar con:  node src/utils/engine.test.ts
+ */
+import {
+  calculateArrivalBonus,
+  roundDecimal,
+  TOP_COURT_FINAL_BONUS,
+  OTHER_COURT_FINAL_BONUS,
+} from './tieBreakerEngine.ts';
+import { generateArrivalRounds, generateDailyFinalRound } from './pairingEngine.ts';
+import { calculateDailyPrelimStandings, calculateDailyFinalStandings } from './intelligenceEngine.ts';
+import type { Player, Match, MatchScore } from '../types/index.ts';
 
-const TEST_PLAYERS_16: Player[] = Array.from({ length: 16 }, (_, i) => ({
-  id: `test_p_${i + 1}`,
-  name: `Player ${i + 1}`,
+let failures = 0;
+
+function check(label: string, actual: unknown, expected: unknown) {
+  const a = JSON.stringify(actual);
+  const e = JSON.stringify(expected);
+  const ok = a === e;
+  if (!ok) failures++;
+  console.log(`${ok ? '✅' : '❌'} ${label}${ok ? '' : `\n     esperado: ${e}\n     recibido: ${a}`}`);
+}
+
+// 16 jugadores, "J1".."J16" en el ORDEN DE LLEGADA
+const ARRIVAL: Player[] = Array.from({ length: 16 }, (_, i) => ({
+  id: `p${i + 1}`,
+  name: `J${i + 1}`,
   role: 'player' as const,
-  registeredAt: '2026-08-01',
+  registeredAt: '2026-10-26',
   isActive: true,
-  loginCount: 0,
-  activeClicks: 0,
 }));
 
-console.log('🎾 --- INICIANDO VERIFICACIÓN DE ALGORITMOS DE PÁDEL ---');
+const nameOf = (id: string) => ARRIVAL.find(p => p.id === id)?.name ?? id;
+const matchLabel = (m: Match) =>
+  `${nameOf(m.teamA.player1Id)}/${nameOf(m.teamA.player2Id)} vs ${nameOf(m.teamB.player1Id)}/${nameOf(m.teamB.player2Id)}`;
 
-// 1. Verificación de Desempates y Bonificaciones
-console.log('\n1. Verificando Reglas de Desempate Decimal:');
-const w70 = calculateMarginBonus(7, 0);
-const l70 = calculateMarginBonus(0, 7);
-const w61 = calculateMarginBonus(6, 1);
-const l61 = calculateMarginBonus(1, 6);
-const w52 = calculateMarginBonus(5, 2);
-const l52 = calculateMarginBonus(2, 5);
-const w43 = calculateMarginBonus(4, 3);
-const l43 = calculateMarginBonus(3, 4);
+console.log('🎾 --- VERIFICACIÓN DEL SISTEMA DE LLEGADA ---\n');
 
-console.log(`Ganar 7-0: ${w70} (esperado +0.004) -> ${w70 === 0.004 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Perder 7-0: ${l70} (esperado -0.004) -> ${l70 === -0.004 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Ganar 6-1: ${w61} (esperado +0.003) -> ${w61 === 0.003 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Perder 6-1: ${l61} (esperado -0.003) -> ${l61 === -0.003 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Ganar 5-2: ${w52} (esperado +0.002) -> ${w52 === 0.002 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Perder 5-2: ${l52} (esperado -0.003) -> ${l52 === -0.003 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Ganar 4-3: ${w43} (esperado +0.000) -> ${w43 === 0.000 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Perder 4-3: ${l43} (esperado -0.002) -> ${l43 === -0.002 ? '✅ OK' : '❌ FAIL'}`);
+// ---------------------------------------------------------------- 1. Decimales
+console.log('1. Decimal por orden de llegada');
+check('1er lugar', calculateArrivalBonus(1), 0.016);
+check('2do lugar', calculateArrivalBonus(2), 0.015);
+check('3er lugar', calculateArrivalBonus(3), 0.014);
+check('16vo lugar', calculateArrivalBonus(16), 0.001);
+check('17vo lugar (sin decimal)', calculateArrivalBonus(17), 0);
 
-const rec3 = calculateRoundRecordBonus(3, 3);
-const rec2 = calculateRoundRecordBonus(2, 3);
-const rec1 = calculateRoundRecordBonus(1, 3);
-const rec0 = calculateRoundRecordBonus(0, 3);
-console.log(`Récord 3 Ganados: ${rec3} (esperado +0.003) -> ${rec3 === 0.003 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Récord 2 Ganados: ${rec2} (esperado +0.002) -> ${rec2 === 0.002 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Récord 1 Ganado: ${rec1} (esperado +0.001) -> ${rec1 === 0.001 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Récord 0 Ganados: ${rec0} (esperado -0.003) -> ${rec0 === -0.003 ? '✅ OK' : '❌ FAIL'}`);
+// ------------------------------------------------------- 2. Emparejamientos
+console.log('\n2. Emparejamientos por orden de llegada (captura del Excel)');
+const rounds = generateArrivalRounds('test_day', ARRIVAL);
+check('Se generan 3 juegos', rounds.length, 3);
+check('4 partidos por juego', rounds.map(r => r.matches.length), [4, 4, 4]);
 
-// 2. Verificación de Regla de Oro de Emparejamientos (Top 8 NUNCA juntos en 3 preliminares)
-console.log('\n2. Verificando Regla de Emparejamientos (Top 8 nunca juntos en Juegos 1, 2 y 3):');
-const rankingMap = new Map<string, number>();
-TEST_PLAYERS_16.forEach((p, idx) => rankingMap.set(p.id, idx + 1)); // P1 a P16 en orden
+check('Juego 1', rounds[0].matches.map(matchLabel), [
+  'J1/J2 vs J3/J4',
+  'J5/J6 vs J7/J8',
+  'J9/J10 vs J11/J12',
+  'J13/J14 vs J15/J16',
+]);
 
-const rounds = generatePreliminaryRounds('test_day', TEST_PLAYERS_16, false, rankingMap);
-let top8Violations = 0;
-let partnerRepetitions = 0;
-const partnerPairs = new Map<string, Set<string>>();
+check('Juego 2', rounds[1].matches.map(matchLabel), [
+  'J1/J5 vs J9/J13',
+  'J2/J6 vs J10/J14',
+  'J3/J7 vs J11/J15',
+  'J4/J8 vs J12/J16',
+]);
 
-rounds.forEach(r => {
-  r.matches.forEach(m => {
-    // Check teamA
-    const rankA1 = rankingMap.get(m.teamA.player1Id)!;
-    const rankA2 = rankingMap.get(m.teamA.player2Id)!;
-    if (rankA1 <= 8 && rankA2 <= 8) top8Violations++;
+check('Juego 3', rounds[2].matches.map(matchLabel), [
+  'J1/J6 vs J11/J16',
+  'J2/J5 vs J12/J15',
+  'J3/J8 vs J9/J14',
+  'J4/J7 vs J10/J13',
+]);
 
-    // Check teamB
-    const rankB1 = rankingMap.get(m.teamB.player1Id)!;
-    const rankB2 = rankingMap.get(m.teamB.player2Id)!;
-    if (rankB1 <= 8 && rankB2 <= 8) top8Violations++;
+let threw = false;
+try {
+  generateArrivalRounds('bad', ARRIVAL.slice(0, 15));
+} catch {
+  threw = true;
+}
+check('Rechaza jornadas que no sean de 16', threw, true);
 
-    // Check repetition
-    const pairA = [m.teamA.player1Id, m.teamA.player2Id].sort().join('-');
-    const pairB = [m.teamB.player1Id, m.teamB.player2Id].sort().join('-');
+// ---------------------------------------------- 3. Puntos y desempate llegada
+console.log('\n3. Puntos de los 3 juegos cortos y desempate por llegada');
 
-    if (!partnerPairs.has(m.teamA.player1Id)) partnerPairs.set(m.teamA.player1Id, new Set());
-    if (partnerPairs.get(m.teamA.player1Id)!.has(m.teamA.player2Id)) partnerRepetitions++;
-    partnerPairs.get(m.teamA.player1Id)!.add(m.teamA.player2Id);
-  });
+// En los 12 partidos gana siempre la Pareja A por 4-3
+const score = (a: number, b: number): MatchScore => ({
+  scoreA: a,
+  scoreB: b,
+  completed: true,
+  winner: a > b ? 'teamA' : 'teamB',
 });
+const playedRounds = rounds.map(r => ({
+  ...r,
+  matches: r.matches.map(m => ({ ...m, score: score(4, 3) })),
+  isCompleted: true,
+}));
+const prelimMatches = playedRounds.flatMap(r => r.matches);
 
-console.log(`Violaciones de Top 8 jugando juntos: ${top8Violations} (esperado 0) -> ${top8Violations === 0 ? '✅ OK' : '❌ FAIL'}`);
-console.log(`Repeticiones de pareja en 3 juegos: ${partnerRepetitions} (esperado 0) -> ${partnerRepetitions === 0 ? '✅ OK' : '❌ FAIL'}`);
+const prelim = calculateDailyPrelimStandings(ARRIVAL, prelimMatches, ARRIVAL.map(p => p.id));
 
-console.log('\n🎾 --- TODAS LAS PRUEBAS DE MOTOR COMPLETADAS CON ÉXITO ---');
+// Ojo: el arreglo viene YA ordenado por ranking, por eso los puntos bajan de forma monotona
+check('Puntos base en orden de ranking', prelim.map(s => s.basePoints), [12, 12, 12, 12, 11, 11, 11, 11, 10, 10, 10, 10, 9, 9, 9, 9]);
+check(
+  'Orden tras desempate (todos los empates resueltos por llegada)',
+  prelim.map(s => s.playerName),
+  ['J1', 'J2', 'J5', 'J6', 'J3', 'J4', 'J7', 'J8', 'J9', 'J10', 'J13', 'J14', 'J11', 'J12', 'J15', 'J16']
+);
+check('J1 = 12 games + 0.016', prelim[0].prelimTotalScore, 12.016);
+check('J16 = 9 games + 0.001', prelim[15].prelimTotalScore, 9.001);
+check('prelimRank asignado 1..16', prelim.map(s => s.prelimRank), Array.from({ length: 16 }, (_, i) => i + 1));
+
+// ------------------------------------------------------------ 4. La final
+console.log('\n4. Final: 1º+4º vs 2º+3º por pista');
+const finalRound = generateDailyFinalRound('test_day', prelim);
+check('Juego 4 creado', finalRound.roundNumber, 4);
+check('Final Pista 1', matchLabel(finalRound.matches[0]), 'J1/J6 vs J2/J5');
+check('Final Pista 2', matchLabel(finalRound.matches[1]), 'J3/J8 vs J4/J7');
+check('Final Pista 3', matchLabel(finalRound.matches[2]), 'J9/J14 vs J10/J13');
+check('Final Pista 4', matchLabel(finalRound.matches[3]), 'J11/J16 vs J12/J15');
+
+// --------------------------------------------------- 5. Bonus 3 / 1 y total
+console.log('\n5. Bonus de la final (3 puntos Pista 1, 1 punto resto)');
+// En la final gana siempre la Pareja A: Pista 1 6-4, Pista 2 6-2, Pista 3 7-5, Pista 4 6-0
+const finalScores = [
+  { a: 6, b: 4 },
+  { a: 6, b: 2 },
+  { a: 7, b: 5 },
+  { a: 6, b: 0 },
+];
+const playedFinal = {
+  ...finalRound,
+  matches: finalRound.matches.map((m, i) => ({ ...m, score: score(finalScores[i].a, finalScores[i].b) })),
+  isCompleted: true,
+};
+
+const finalStandings = calculateDailyFinalStandings(prelim, playedFinal.matches);
+const byName = new Map(finalStandings.map(s => [s.playerName, s]));
+
+check('Bonus ganador Pista 1', byName.get('J1')?.finalBonus, TOP_COURT_FINAL_BONUS);
+check('Bonus ganador Pista 2', byName.get('J3')?.finalBonus, OTHER_COURT_FINAL_BONUS);
+check('Bonus perdedor Pista 1', byName.get('J2')?.finalBonus, 0);
+check('J1 total = 12 + 0.016 + 6 + 3', byName.get('J1')?.totalDailyScore, roundDecimal(12 + 0.016 + 6 + 3));
+check('J2 total = 12 + 0.015 + 4 + 0', byName.get('J2')?.totalDailyScore, roundDecimal(12 + 0.015 + 4));
+check('J3 total = 11 + 0.014 + 6 + 1', byName.get('J3')?.totalDailyScore, roundDecimal(11 + 0.014 + 6 + 1));
+// J16 gana 6-0 la final de la Pista 4 (Pareja A) -> 9 games + 0.001 + 6 + 1
+check('J16 total = 9 + 0.001 + 6 + 1', byName.get('J16')?.totalDailyScore, roundDecimal(9 + 0.001 + 6 + 1));
+check('Ranking final 1..16', finalStandings.map(s => s.finalDailyRank), Array.from({ length: 16 }, (_, i) => i + 1));
+check('Todos los jugadores en el ranking final', finalStandings.length, 16);
+
+console.log(`\n${failures === 0 ? '🎾 --- TODO OK ---' : `❌ ${failures} PRUEBA(S) FALLARON`}`);
+if (failures > 0) process.exit(1);

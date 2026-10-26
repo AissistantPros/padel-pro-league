@@ -11,20 +11,27 @@ import type {
   TournamentConfig
 } from '../types/index.ts';
 import {
-  calculateMarginBonus,
-  calculateRoundRecordBonus,
-  calculateFinalBonuses,
-  roundDecimal
+  calculateArrivalBonus,
+  buildArrivalBonusMap,
+  getArrivalPosition,
+  roundDecimal,
+  TOP_COURT_FINAL_BONUS,
+  OTHER_COURT_FINAL_BONUS,
 } from './tieBreakerEngine.ts';
+import { sortPrelimStandings } from './pairingEngine.ts';
 
 /**
  * Calculates preliminary standings for a matchday after the 3 short games
  */
 export function calculateDailyPrelimStandings(
   players: Player[],
-  preliminaryMatches: Match[]
+  preliminaryMatches: Match[],
+  arrivalOrder: string[] = []
 ): DailyPlayerStanding[] {
-  // Map of playerId -> stats
+  // El orden de llegada es la UNICA fuente de decimales del sistema.
+  const orderedIds = arrivalOrder.length > 0 ? arrivalOrder : players.map(p => p.id);
+  const arrivalBonusMap = buildArrivalBonusMap(orderedIds);
+
   const statsMap = new Map<string, {
     playerName: string;
     matchesPlayed: number;
@@ -32,8 +39,6 @@ export function calculateDailyPrelimStandings(
     matchesLost: number;
     gamesWon: number;
     gamesLost: number;
-    basePoints: number;
-    marginBonus: number;
   }>();
 
   // Initialize for all checked-in players
@@ -45,8 +50,6 @@ export function calculateDailyPrelimStandings(
       matchesLost: 0,
       gamesWon: 0,
       gamesLost: 0,
-      basePoints: 0,
-      marginBonus: 0,
     });
   });
 
@@ -55,42 +58,35 @@ export function calculateDailyPrelimStandings(
     const { teamA, teamB, score } = match;
     const gA = score.scoreA;
     const gB = score.scoreB;
-    const isCutoff = score.isCutoff || false;
 
     // Team A players
     [teamA.player1Id, teamA.player2Id].forEach(pId => {
       const stat = statsMap.get(pId);
-      if (stat) {
-        stat.matchesPlayed += 1;
-        stat.gamesWon += gA;
-        stat.gamesLost += gB;
-        stat.basePoints += gA;
-        if (gA > gB) stat.matchesWon += 1;
-        else if (gA < gB) stat.matchesLost += 1;
-        stat.marginBonus += calculateMarginBonus(gA, gB, isCutoff);
-      }
+      if (!stat) return;
+      stat.matchesPlayed += 1;
+      stat.gamesWon += gA;
+      stat.gamesLost += gB;
+      if (gA > gB) stat.matchesWon += 1;
+      else if (gA < gB) stat.matchesLost += 1;
     });
 
     // Team B players
     [teamB.player1Id, teamB.player2Id].forEach(pId => {
       const stat = statsMap.get(pId);
-      if (stat) {
-        stat.matchesPlayed += 1;
-        stat.gamesWon += gB;
-        stat.gamesLost += gA;
-        stat.basePoints += gB;
-        if (gB > gA) stat.matchesWon += 1;
-        else if (gB < gA) stat.matchesLost += 1;
-        stat.marginBonus += calculateMarginBonus(gB, gA, isCutoff);
-      }
+      if (!stat) return;
+      stat.matchesPlayed += 1;
+      stat.gamesWon += gB;
+      stat.gamesLost += gA;
+      if (gB > gA) stat.matchesWon += 1;
+      else if (gB < gA) stat.matchesLost += 1;
     });
   });
 
-  // Convert to DailyPlayerStanding array and add record bonus
   const standings: DailyPlayerStanding[] = Array.from(statsMap.entries()).map(([playerId, stat]) => {
-    const marginBonus = roundDecimal(stat.marginBonus);
-    const roundRecordBonus = calculateRoundRecordBonus(stat.matchesWon, stat.matchesPlayed);
-    const prelimTotalScore = roundDecimal(stat.basePoints + marginBonus + roundRecordBonus);
+    const arrivalPosition = getArrivalPosition(orderedIds, playerId);
+    const arrivalBonus = arrivalBonusMap.get(playerId) ?? calculateArrivalBonus(arrivalPosition);
+    const basePoints = stat.gamesWon;
+    const prelimTotalScore = roundDecimal(basePoints + arrivalBonus);
 
     return {
       playerId,
@@ -101,34 +97,24 @@ export function calculateDailyPrelimStandings(
       gamesWon: stat.gamesWon,
       gamesLost: stat.gamesLost,
       gameDiff: stat.gamesWon - stat.gamesLost,
-      basePoints: stat.basePoints,
-      marginBonus,
-      roundRecordBonus,
-      finalMatchBonus: 0,
-      cleanSweepBonus: 0,
+      arrivalPosition,
+      arrivalBonus,
+      basePoints,
+      finalGamesWon: 0,
+      finalBonus: 0,
       prelimTotalScore,
       totalDailyScore: prelimTotalScore,
       prelimRank: 0,
     };
   });
 
-  // Sort by prelimTotalScore descending, then by games won, then by game diff
-  standings.sort((a, b) => {
-    if (b.prelimTotalScore !== a.prelimTotalScore) {
-      return b.prelimTotalScore - a.prelimTotalScore;
-    }
-    if (b.gamesWon !== a.gamesWon) {
-      return b.gamesWon - a.gamesWon;
-    }
-    return b.gameDiff - a.gameDiff;
-  });
-
-  // Assign prelimRank (1 to N)
-  standings.forEach((s, idx) => {
+  // Ranking tras los 3 juegos cortos: puntos + decimal de llegada como desempate
+  const sorted = sortPrelimStandings(standings);
+  sorted.forEach((s, idx) => {
     s.prelimRank = idx + 1;
   });
 
-  return standings;
+  return sorted;
 }
 
 /**
@@ -139,71 +125,62 @@ export function calculateDailyFinalStandings(
   finalMatches: Match[]
 ): DailyPlayerStanding[] {
   const standingsMap = new Map<string, DailyPlayerStanding>(
-    prelimStandings.map(s => [s.playerId, { ...s }])
+    prelimStandings.map(s => [s.playerId, {
+      ...s,
+      finalGamesWon: 0,
+      finalBonus: 0,
+      totalDailyScore: roundDecimal(s.prelimTotalScore),
+    }])
   );
 
   finalMatches.filter(m => m.score.completed).forEach(match => {
     const { teamA, teamB, score } = match;
-    const wonA = score.scoreA > score.scoreB;
-    const wonB = score.scoreB > score.scoreA;
+    const gA = score.scoreA;
+    const gB = score.scoreB;
+    const wonA = gA > gB;
+    const wonB = gB > gA;
 
-    // Team A
-    [teamA.player1Id, teamA.player2Id].forEach(pId => {
-      const st = standingsMap.get(pId);
-      if (st) {
-        st.matchesPlayed += 1;
-        st.gamesWon += score.scoreA;
-        st.gamesLost += score.scoreB;
-        st.gameDiff = st.gamesWon - st.gamesLost;
-        if (wonA) {
-          st.matchesWon += 1;
-        } else {
-          st.matchesLost += 1;
-        }
-        const { finalMatchBonus, cleanSweepBonus } = calculateFinalBonuses(
-          wonA,
-          st.matchesWon,
-          st.matchesPlayed
-        );
-        st.finalMatchBonus = finalMatchBonus;
-        st.cleanSweepBonus = cleanSweepBonus;
-        st.totalDailyScore = roundDecimal(st.prelimTotalScore + finalMatchBonus + cleanSweepBonus);
-      }
-    });
+    // Bonus: 3 puntos al ganador de la Pista 1 (1+4 vs 2+3), 1 punto a los demas ganadores
+    const courtBonus = match.courtNumber === 1 ? TOP_COURT_FINAL_BONUS : OTHER_COURT_FINAL_BONUS;
 
-    // Team B
-    [teamB.player1Id, teamB.player2Id].forEach(pId => {
-      const st = standingsMap.get(pId);
-      if (st) {
+    const applySide = (ids: string[], myGames: number, oppGames: number, won: boolean) => {
+      ids.forEach(pId => {
+        const st = standingsMap.get(pId);
+        if (!st) return;
         st.matchesPlayed += 1;
-        st.gamesWon += score.scoreB;
-        st.gamesLost += score.scoreA;
+        st.gamesWon += myGames;
+        st.gamesLost += oppGames;
         st.gameDiff = st.gamesWon - st.gamesLost;
-        if (wonB) {
+        st.finalGamesWon += myGames;
+        if (won) {
           st.matchesWon += 1;
-        } else {
+          st.finalBonus = courtBonus;
+        } else if (myGames < oppGames) {
           st.matchesLost += 1;
+          st.finalBonus = 0;
         }
-        const { finalMatchBonus, cleanSweepBonus } = calculateFinalBonuses(
-          wonB,
-          st.matchesWon,
-          st.matchesPlayed
-        );
-        st.finalMatchBonus = finalMatchBonus;
-        st.cleanSweepBonus = cleanSweepBonus;
-        st.totalDailyScore = roundDecimal(st.prelimTotalScore + finalMatchBonus + cleanSweepBonus);
-      }
-    });
+        st.totalDailyScore = roundDecimal(st.prelimTotalScore + st.finalGamesWon + st.finalBonus);
+      });
+    };
+
+    applySide([teamA.player1Id, teamA.player2Id], gA, gB, wonA);
+    applySide([teamB.player1Id, teamB.player2Id], gB, gA, wonB);
   });
 
   const finalStandings = Array.from(standingsMap.values());
-  
-  // Sort final standings
+
+  // Ranking final del dia: todos los puntos del dia + decimal de llegada
   finalStandings.sort((a, b) => {
     if (b.totalDailyScore !== a.totalDailyScore) {
       return b.totalDailyScore - a.totalDailyScore;
     }
-    return b.gameDiff - a.gameDiff;
+    if (b.basePoints !== a.basePoints) {
+      return b.basePoints - a.basePoints;
+    }
+    if (b.gameDiff !== a.gameDiff) {
+      return b.gameDiff - a.gameDiff;
+    }
+    return a.arrivalPosition - b.arrivalPosition;
   });
 
   finalStandings.forEach((s, idx) => {
@@ -329,9 +306,7 @@ export function buildChampionshipIntelligence(
           if (won) totalMatchesWon += 1;
           else if (!draw) totalMatchesLost += 1;
 
-          // Margin bonus
-          const margin = calculateMarginBonus(myScore, oppScore, match.score.isCutoff);
-          totalDecimalBonus += margin;
+          // Sin decimales por margen: el unico decimal es el de llegada (a nivel dia)
 
           // Partner Synergy tracking (active players only)
           if (partnerId && activePlayerIds.has(partnerId)) {
@@ -428,17 +403,25 @@ export function buildChampionshipIntelligence(
             result: won ? 'W' : (draw ? 'D' : 'L'),
             scoreText: `${myScore} - ${oppScore}${match.score.isCutoff ? ' (Corte)' : ''}`,
             pointsEarned: myScore,
-            decimalEarned: roundDecimal(margin),
+            decimalEarned: 0,
           });
         });
       });
 
-      // Add daily record bonuses and final bonuses from completed day standings
+      // Decimal de llegada + bonus de la final del dia
       const dayFinalStanding = day.finalStandings?.find(s => s.playerId === player.id) || day.prelimStandings?.find(s => s.playerId === player.id);
       if (dayFinalStanding) {
-        totalDecimalBonus += (dayFinalStanding.roundRecordBonus || 0);
-        totalDecimalBonus += (dayFinalStanding.finalMatchBonus || 0);
-        totalDecimalBonus += (dayFinalStanding.cleanSweepBonus || 0);
+        const legacy: any = dayFinalStanding;
+        if (typeof dayFinalStanding.arrivalBonus === 'number') {
+          totalDecimalBonus += dayFinalStanding.arrivalBonus;
+          totalDecimalBonus += dayFinalStanding.finalBonus || 0;
+        } else {
+          // Compatibilidad con jornadas jugadas bajo el sistema anterior
+          totalDecimalBonus += (legacy.marginBonus || 0);
+          totalDecimalBonus += (legacy.roundRecordBonus || 0);
+          totalDecimalBonus += (legacy.finalMatchBonus || 0);
+          totalDecimalBonus += (legacy.cleanSweepBonus || 0);
+        }
       }
     });
 

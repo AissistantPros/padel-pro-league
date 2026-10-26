@@ -81,28 +81,30 @@ export interface DailyPlayerStanding {
   gamesWon: number;
   gamesLost: number;
   gameDiff: number;
-  
-  // Base points (sum of games won in 3 prelims, e.g. 7+6+5 = 18)
+
+  // Order of arrival at check-in: 1, 2, 3 ... 16
+  arrivalPosition: number;
+
+  // ONLY decimal of the system: arrival decimal (+0.016, +0.015 ... +0.001)
+  arrivalBonus: number;
+
+  // Games won in the 3 short games (max 21)
   basePoints: number;
-  
-  // Margin Bonus decimals from games (+0.004, -0.004, +0.003, etc.)
-  marginBonus: number;
-  
-  // Round Record Bonus decimals (+0.003 for 3 wins, +0.002 for 2 wins, etc.)
-  roundRecordBonus: number;
-  
-  // Daily Final Match Bonus (+0.001 for winning final game 4)
-  finalMatchBonus: number;
-  
-  // Clean Sweep Bonus (+0.001 for winning all 4 matches of the day)
-  cleanSweepBonus: number;
-  
-  // Total score with all decimals (for exact sorting and historical accumulation)
+
+  // Games won in the daily final (full traditional set)
+  finalGamesWon: number;
+
+  // Daily final bonus: +3 (winner of court 1, ranks 1+4 vs 2+3) / +1 (winner of any other court) / 0
+  finalBonus: number;
+
+  // basePoints + arrivalBonus -> ranking after the 3 short games
   prelimTotalScore: number;
+
+  // Everything earned on the day: prelimTotalScore + finalGamesWon + finalBonus
   totalDailyScore: number;
-  
-  prelimRank: number; // 1 to 20 after round 3
-  finalDailyRank?: number; // 1 to 20 after round 4
+
+  prelimRank: number; // 1 to 16 after round 3
+  finalDailyRank?: number; // 1 to 16 after round 4
 }
 
 export interface TournamentDay {
@@ -111,6 +113,8 @@ export interface TournamentDay {
   name: string; // e.g. "Fecha G20 #1"
   status: 'draft' | 'checkin' | 'preliminaries' | 'finals' | 'completed';
   checkedInPlayerIds: string[];
+  // Player IDs in the exact order they checked in (arrival order). Drives pairings 1-3 and the arrival decimal.
+  arrivalOrder?: string[];
   rounds: DailyRound[]; // Round 1, 2, 3 (prelims) & Round 4 (finals)
   prelimStandings: DailyPlayerStanding[];
   finalStandings: DailyPlayerStanding[];

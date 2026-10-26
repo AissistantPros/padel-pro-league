@@ -1,58 +1,66 @@
-import type { MatchScore, DailyPlayerStanding } from '../types/index.ts';
+/**
+ * SISTEMA DE PUNTOS — REGLA ÚNICA DE DECIMALES
+ * ============================================
+ * El único decimal que existe en todo el torneo es el de ORDEN DE LLEGADA.
+ * Ya no hay decimales por margen de games, por récord de juegos, por ganar
+ * la final ni por "clean sweep". Todos esos bonuses fueron eliminados.
+ *
+ * Al llegar a la jornada, cada jugador acumula:
+ *   1er jugador en llegar  -> +0.016
+ *   2do jugador en llegar  -> +0.015
+ *   3er jugador en llegar  -> +0.014
+ *   ...
+ *   16vo jugador en llegar -> +0.001
+ *
+ * Ese decimal sólo sirve como criterio de desempate: dos jugadores empatados
+ * en puntos de games quedan ordenados por quién llegó primero.
+ */
+
+/** Decimal del primer jugador en llegar (1er lugar). */
+export const ARRIVAL_FIRST_DECIMAL = 0.016;
+
+/** Cada posición adicional resta 0.001 al decimal de llegada. */
+export const ARRIVAL_DECIMAL_STEP = 0.001;
+
+/** Tope de posiciones con decimal (16 jugadores = 4 pistas). */
+export const ARRIVAL_MAX_PLAYERS = 16;
+
+/** Bonus para los ganadores del partido estelar de la final (1º+4º vs 2º+3º). */
+export const TOP_COURT_FINAL_BONUS = 3;
+
+/** Bonus para los ganadores del resto de los partidos de la final. */
+export const OTHER_COURT_FINAL_BONUS = 1;
 
 /**
- * Calculates the exact margin bonus/penalty decimal for a short game result:
- * Win 7-0: +0.004 | Loss 7-0: -0.004
- * Win 6-1: +0.003 | Loss 6-1: -0.003
- * Win 5-2: +0.002 | Loss 5-2: -0.003
- * Win 4-3: +0.000 | Loss 4-3: -0.002
- * Handles early cut-off games (e.g. 3-1, 4-2) by proportional mapping
+ * Decimal de desempate por orden de llegada.
+ * position 1 -> 0.016 | position 16 -> 0.001 | position >= 17 -> 0
  */
-export function calculateMarginBonus(myGames: number, oppGames: number, isCutoff: boolean = false): number {
-  if (myGames > oppGames) {
-    // Win
-    if (oppGames === 0) return 0.004; // 7-0 (or cutoff with 0)
-    if (oppGames === 1) return 0.003; // 6-1
-    if (oppGames === 2) return 0.002; // 5-2
-    return 0.000; // 4-3 or close win
-  } else if (myGames < oppGames) {
-    // Loss
-    if (myGames === 0) return -0.004; // 0-7
-    if (myGames === 1) return -0.003; // 1-6
-    if (myGames === 2) return -0.003; // 2-5
-    return -0.002; // 3-4 or close loss
-  }
-  return 0.000; // Draw (if cutoff tied e.g. 2-2)
+export function calculateArrivalBonus(position: number): number {
+  if (!Number.isFinite(position) || position < 1) return 0;
+  const decimal = ARRIVAL_FIRST_DECIMAL - (position - 1) * ARRIVAL_DECIMAL_STEP;
+  if (decimal <= 0) return 0;
+  return roundDecimal(decimal);
 }
 
 /**
- * Calculates the bonus/penalty for the preliminary 3-match record:
- * 3 Wins (3-0): +0.003
- * 2 Wins (2-1): +0.002
- * 1 Win  (1-2): +0.001
- * 0 Wins (0-3): -0.003
+ * Construye el mapa playerId -> decimal de llegada a partir del arreglo
+ * de check-in respetando el orden exacto en que se registraron.
  */
-export function calculateRoundRecordBonus(wins: number, totalPlayed: number): number {
-  if (totalPlayed === 0) return 0;
-  if (wins === 3) return 0.003;
-  if (wins === 2) return 0.002;
-  if (wins === 1) return 0.001;
-  if (wins === 0) return -0.003;
-  return 0;
+export function buildArrivalBonusMap(arrivalOrder: string[]): Map<string, number> {
+  const map = new Map<string, number>();
+  arrivalOrder.forEach((playerId, index) => {
+    map.set(playerId, calculateArrivalBonus(index + 1));
+  });
+  return map;
 }
 
 /**
- * Daily Final bonuses added to the player's total cumulative score:
- * - Won final match: +0.001
- * - Clean sweep (won all preliminary matches + final match): +0.001 extra
+ * Posición de llegada (1-based) de un jugador dentro del orden registrado.
+ * Devuelve ARRIVAL_MAX_PLAYERS si no aparece (no debería ocurrir).
  */
-export function calculateFinalBonuses(wonFinal: boolean, totalDailyWins: number, totalDailyMatches: number): {
-  finalMatchBonus: number;
-  cleanSweepBonus: number;
-} {
-  const finalMatchBonus = wonFinal ? 0.001 : 0.000;
-  const cleanSweepBonus = (wonFinal && totalDailyWins === totalDailyMatches && totalDailyMatches >= 4) ? 0.001 : 0.000;
-  return { finalMatchBonus, cleanSweepBonus };
+export function getArrivalPosition(arrivalOrder: string[], playerId: string): number {
+  const index = arrivalOrder.indexOf(playerId);
+  return index === -1 ? ARRIVAL_MAX_PLAYERS : index + 1;
 }
 
 /**
@@ -64,12 +72,20 @@ export function roundDecimal(num: number): number {
 
 /**
  * Formats a score with games and decimals for clear presentation
- * e.g. "18.007" (18 games + 0.007 decimal tie-breakers)
+ * e.g. "18.007" (18 games + 0.007 decimal por orden de llegada)
  */
 export function formatScoreDisplay(score: number): string {
-  const parts = score.toFixed(4).split('.');
+  const parts = (score || 0).toFixed(3).split('.');
   const base = parts[0];
   const decimals = parts[1];
-  if (decimals === '0000') return base;
+  if (decimals === '000') return base;
   return `${base}.${decimals}`;
+}
+
+/**
+ * Formats the arrival decimal with explicit sign: "+0.016", "+0.001"
+ */
+export function formatArrivalBonus(bonus: number): string {
+  if (!bonus) return '—';
+  return `+${bonus.toFixed(3)}`;
 }
