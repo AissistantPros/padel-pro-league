@@ -24,6 +24,8 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
 
   const isShortGame = match.matchType === 'preliminary';
   const isFullSet = match.matchType === 'daily_final' || match.matchType === 'grand_final';
+  // En la final el ganador anota 6 y el perdedor de 0 a 5. Un tie-break se anota 6-5.
+  const FINAL_MAX_GAMES = 6;
   const [scoreA, setScoreA] = useState<number | null>(match.score?.completed ? match.score.scoreA : null);
   const [scoreB, setScoreB] = useState<number | null>(match.score?.completed ? match.score.scoreB : null);
   const [activeSide, setActiveSide] = useState<'A' | 'B'>('A');
@@ -50,11 +52,12 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
     }
   }, [match]);
 
-  // Juego corto: tie-break a 3-3. Set completo: tie-break a 6-6.
-  const isTieBreak =
-    (isShortGame && scoreA === 3 && scoreB === 3) ||
-    (isFullSet && scoreA === 6 && scoreB === 6);
+  // El tie-break solo se captura en los juegos cortos (3-3). En la final el
+  // resultado se anota siempre 6-0 ... 6-5, aunque se haya ido a tie-break.
+  const isTieBreak = isShortGame && scoreA === 3 && scoreB === 3;
   const isBothSelected = scoreA !== null && scoreB !== null;
+  const isInvalidFinal = isFullSet && scoreA === FINAL_MAX_GAMES && scoreB === FINAL_MAX_GAMES;
+  const canSave = isBothSelected && !isInvalidFinal;
 
   const isTeamAWinner = isBothSelected && (
     (scoreA !== null && scoreB !== null && scoreA > scoreB) ||
@@ -98,6 +101,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
 
   const handleSave = () => {
     if (scoreA === null || scoreB === null) return;
+    if (isFullSet && scoreA === FINAL_MAX_GAMES && scoreB === FINAL_MAX_GAMES) return;
 
     let winner: 'teamA' | 'teamB' | 'draw' = 'draw';
     if (scoreA > scoreB) winner = 'teamA';
@@ -139,7 +143,9 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
   const pB1 = getPlayerDisplay(match.teamB.player1Id, match.teamB.player1Name);
   const pB2 = getPlayerDisplay(match.teamB.player2Id, match.teamB.player2Name);
 
-  const numbers = [0, 1, 2, 3, 4, 5, 6, 7];
+  const numbers = isShortGame
+    ? [0, 1, 2, 3, 4, 5, 6, 7]
+    : [0, 1, 2, 3, 4, 5, 6];
 
   return (
     <div className={`fixed inset-0 z-[100] bg-[#000000] text-white flex flex-col justify-between overflow-y-auto select-none transition-opacity duration-200 ${
@@ -161,7 +167,7 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
             </span>
           </div>
           <h2 className="text-sm font-bold text-white">
-            {isShortGame ? `Ronda ${match.roundNumber} Preliminar` : 'Final de Posición'}
+            {isShortGame ? `Ronda ${match.roundNumber} Preliminar` : 'Final · Set completo'}
           </h2>
         </div>
 
@@ -438,6 +444,19 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
           </div>
         </div>
 
+        {/* Regla de la final: el ganador anota 6, el perdedor de 0 a 5 */}
+        {isFullSet && (
+          <div className={`p-3 rounded-2xl border text-center text-[11px] font-semibold ${
+            isInvalidFinal
+              ? 'bg-[#FF453A]/15 border-[#FF453A]/50 text-[#FF453A]'
+              : 'bg-[#2C2C2E] border-white/10 text-[#8E8E93]'
+          }`}>
+            {isInvalidFinal
+              ? '6-6 no es un resultado válido: un tie-break se anota 6-5.'
+              : 'El ganador anota 6 y el perdedor de 0 a 5. Si hubo tie-break, anota 6-5.'}
+          </div>
+        )}
+
         {/* Tie-Break (If 3-3) */}
         {isTieBreak && (
           <div className="p-4 bg-[#FFD60A]/15 border border-[#FFD60A]/40 rounded-3xl space-y-2.5 animate-fade-in">
@@ -481,14 +500,18 @@ export const ScoreModal: React.FC<ScoreModalProps> = ({
           <button
             type="button"
             onClick={handleSave}
-            disabled={!isBothSelected}
+            disabled={!canSave}
             className={`w-full h-14 sm:h-16 rounded-2xl font-black text-base sm:text-lg flex items-center justify-center transition-all duration-200 ios-touch ${
-              isBothSelected
+              canSave
                 ? 'bg-[#30D158] text-black shadow-[0_0_25px_rgba(48,209,88,0.45)] hover:bg-[#28B84B] active:scale-98 cursor-pointer'
                 : 'bg-[#1C1C1E] text-[#8E8E93] border border-white/10 cursor-not-allowed opacity-80'
             }`}
           >
-            {isBothSelected ? (
+            {isInvalidFinal ? (
+              <span className="text-xs sm:text-sm font-semibold text-[#FF453A]">
+                ⚠️ Corrige el marcador para guardar
+              </span>
+            ) : canSave ? (
               <>
                 <Check className="w-6 h-6 mr-2 stroke-[3]" />
                 Guardar Marcador Oficial
