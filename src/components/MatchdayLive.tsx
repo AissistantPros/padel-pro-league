@@ -33,6 +33,7 @@ import { MatchCard } from './MatchCard.tsx';
 import { ScoreModal } from './ScoreModal.tsx';
 import { MatchdayReportModal } from './MatchdayReportModal.tsx';
 import { generateArrivalRounds, generateDailyFinalRound, ARRIVAL_DAY_PLAYERS } from '../utils/pairingEngine.ts';
+import { calculateArrivalBonus, formatArrivalBonus } from '../utils/tieBreakerEngine.ts';
 import { calculateDailyPrelimStandings, calculateDailyFinalStandings } from '../utils/intelligenceEngine.ts';
 import { formatScoreDisplay } from '../utils/tieBreakerEngine.ts';
 import { StorageService } from '../services/storageService.ts';
@@ -946,7 +947,7 @@ export const MatchdayLive: React.FC<MatchdayLiveProps> = ({
                         }`}
                       >
                         {idx + 1}. {pl?.nickname || pl?.name || id}
-                        <span className="opacity-70"> +{(0.017 - (idx + 1)).toFixed(3)}</span>
+                        <span className="opacity-70"> {formatArrivalBonus(calculateArrivalBonus(idx + 1))}</span>
                       </span>
                     );
                   })}
